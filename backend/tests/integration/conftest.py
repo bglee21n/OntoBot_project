@@ -16,6 +16,7 @@ import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
 
+import asyncpg
 import httpx
 import pytest
 from alembic import command
@@ -26,7 +27,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from ontobot.config import get_settings
 from ontobot.db.models.security import AppUser, Role, UserRole
 from ontobot.db.session import dispose_engine, session_scope
-from ontobot.ontology import registry
+from ontobot.ontology import importer, registry, versioning
 from ontobot.security.auth import hash_password
 
 BACKEND = Path(__file__).resolve().parents[2]
@@ -82,7 +83,7 @@ def make_user() -> MakeUser:
     async def _make(*roles: str, status: str = "active") -> tuple[str, str, int]:
         username = f"u_{uuid.uuid4().hex[:10]}"
         password = uuid.uuid4().hex  # 테스트 전용 값 — 32자
-        async for db in session_scope():
+        async with session_scope() as db:
             user = AppUser(
                 username=username,
                 display_name=username,
@@ -104,4 +105,51 @@ def make_user() -> MakeUser:
 async def login(client: httpx.AsyncClient, username: str, password: str) -> httpx.Response:
     return await client.post(
         "/api/v1/auth/local/login", json={"username": username, "password": password}
+    )
+
+
+# ---------------------------------------------------------------- 원천 DB (동기화 테스트)
+
+SOURCE_ENV = "ONTOBOT_TESTSRC"
+SOURCE_DB = "ontobot_source_test"
+SAMPLE_PACK = BACKEND.parent / "domain-packs" / "sample" / "ontology.yaml"
+
+
+@pytest.fixture(scope="session")
+async def source_env() -> AsyncIterator[None]:
+    s = get_settings()
+    for k, v in {
+        "HOST": s.db_host,
+        "PORT": str(s.db_port),
+        "DB": SOURCE_DB,
+        "USER": s.db_user,
+        "PASSWORD": s.db_password.get_secret_value(),
+    }.items():
+        os.environ[f"{SOURCE_ENV}_{k}"] = v
+    try:
+        conn = await source_connect()
+    except (OSError, asyncpg.PostgresError) as e:
+        pytest.skip(f"원천 테스트 DB({SOURCE_DB}) 에 접속할 수 없음: {type(e).__name__}")
+    await conn.close()
+    # 매핑이 게시 버전에 맞아야 하므로 샘플 온톨로지를 게시해 둔다.
+    async with session_scope() as db:
+        doc = importer.parse(SAMPLE_PACK.read_text(encoding="utf-8"), "yaml")
+        current = await registry.reload(db)
+        if current is None or current.content_hash != doc.content_hash():
+            draft = await versioning.create_draft(db, actor_id=None, parent_id=None)
+            await versioning.replace_document(db, draft.id, doc, actor_id=None)
+            await versioning.publish(db, draft.id, actor_id=None)
+            await db.commit()
+            await registry.reload(db)
+    yield
+
+
+async def source_connect() -> asyncpg.Connection:
+    s = get_settings()
+    return await asyncpg.connect(
+        host=s.db_host,
+        port=s.db_port,
+        user=s.db_user,
+        password=s.db_password.get_secret_value(),
+        database=SOURCE_DB,
     )

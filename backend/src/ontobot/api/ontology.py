@@ -14,6 +14,7 @@ from sqlalchemy import select
 from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.ontology import LinkType, ObjectType, OntologyVersion, PropertyType
+from ontobot.jobs import handlers, queue
 from ontobot.ontology import diff as diff_mod
 from ontobot.ontology import importer, registry, versioning
 from ontobot.ontology.models import (
@@ -244,7 +245,17 @@ async def export_document(
 @router.post("/versions/{version_id}/publish", response_model=VersionDetail)
 async def publish_version(version_id: int, db: Db, user: Modeler) -> VersionDetail:
     with _domain_errors():
-        await versioning.publish(db, version_id, actor_id=user.id)
+        published = await versioning.publish(db, version_id, actor_id=user.id)
+    # indexed=true 속성의 표현식 인덱스는 게시 작업이 만든다(TRD 6.2, v0.2 정정 8).
+    for t in published.object_types:
+        for p in t.properties:
+            if p.indexed:
+                await queue.enqueue(
+                    db,
+                    handlers.PROPERTY_INDEX,
+                    {"type": t.api_name, "property": p.api_name},
+                    dedupe=True,
+                )
     # 레지스트리는 커밋 뒤에 다시 읽어야 한다 — 커밋 전에 읽으면 롤백된 버전이 캐시에 남는다.
     await db.commit()
     await registry.reload(db)

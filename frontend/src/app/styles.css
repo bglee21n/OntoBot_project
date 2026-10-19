@@ -54,3 +54,10 @@ label.check { flex-direction: row; align-items: center; }
 summary { cursor: pointer; font-weight: 600; }
 a.button { display: block; text-align: center; padding: 0.5rem; border-radius: 4px; background: var(--accent); color: #fff; text-decoration: none; }
 .center { text-align: center; margin: 0; }
+.topbar nav { display: flex; gap: 1rem; }
+.span-all { grid-column: 1 / -1; margin: 0; }
+.ok-text { color: var(--ok); }
+.error-text { color: var(--danger); }
+.badge.succeeded { background: #ecfdf5; border-color: var(--ok); color: var(--ok); }
+.badge.failed { background: #fef2f2; border-color: var(--danger); color: var(--danger); }
+.badge.running { background: #eff6ff; border-color: var(--accent); color: var(--accent); }

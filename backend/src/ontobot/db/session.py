@@ -1,11 +1,17 @@
 """비동기 DB 엔진·세션.
 
 엔진은 처음 쓸 때 만든다 — import 시점에 접속하면 DB 없이 도는 단위 테스트까지 깨진다.
+
+세션은 ``async with session_scope() as db:`` 로만 연다. 예전에는 비동기 제너레이터를
+``async for`` 로 돌렸는데, 본문에서 ``return`` 하면 제너레이터가 GC 될 때까지 닫히지 않아
+**트랜잭션이 열린 채** 남았다(idle in transaction).
+실측: 워커가 그 상태로 ``CREATE INDEX CONCURRENTLY`` 를 실행해 자기 트랜잭션을 영원히 기다렸다.
 """
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -28,6 +34,7 @@ def get_engine() -> AsyncEngine:
     return _engine
 
 
+@asynccontextmanager
 async def session_scope() -> AsyncIterator[AsyncSession]:
     get_engine()
     if _sessionmaker is None:  # get_engine()이 언제나 채운다 — 타입 좁히기용

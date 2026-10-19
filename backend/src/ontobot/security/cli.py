@@ -50,7 +50,7 @@ async def create_user(username: str, display_name: str, roles: list[str]) -> Non
         password_hash = hash_password(_read_password())
     except ValueError as e:
         sys.exit(str(e))
-    async for db in session_scope():
+    async with session_scope() as db:
         if await db.scalar(select(AppUser.id).where(AppUser.username == username)):
             sys.exit(f"이미 있는 사용자입니다: {username}")
         user = AppUser(username=username, display_name=display_name, password_hash=password_hash)
@@ -70,7 +70,7 @@ async def create_user(username: str, display_name: str, roles: list[str]) -> Non
 
 
 async def grant_type(role_name: str, object_type: str) -> None:
-    async for db in session_scope():
+    async with session_scope() as db:
         role = await _role(db, role_name)
         existing = await db.scalar(
             select(TypePermission).where(

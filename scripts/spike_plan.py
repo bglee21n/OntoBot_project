@@ -71,7 +71,7 @@ async def run_model(model: str, items: list[dict[str, Any]]) -> list[dict[str, A
     out = []
     for item in items:
         llm = LLMGateway(cfg, overrides={"planner": model, "answerer": model})
-        async for db in session_scope():
+        async with session_scope() as db:
             schema = registry.current() or await registry.reload(db)
             readable = {t.api_name for t in schema.document.object_types} if schema else set()
             started = time.perf_counter()

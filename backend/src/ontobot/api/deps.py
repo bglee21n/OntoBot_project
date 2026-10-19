@@ -18,7 +18,7 @@ from ontobot.security.auth import resolve_session
 
 async def get_db() -> AsyncIterator[AsyncSession]:
     """요청 하나 = 트랜잭션 하나. 예외가 나면 롤백한다(라우터가 직접 commit 하지 않는다)."""
-    async for session in session_scope():
+    async with session_scope() as session:
         try:
             yield session
             await session.commit()

@@ -49,3 +49,24 @@ def test_short_password_is_refused() -> None:
     with pytest.raises(ValueError):
         hash_password("x" * (MIN_PASSWORD_LENGTH - 1))
     assert hash_password("x" * MIN_PASSWORD_LENGTH).startswith("$argon2")
+
+
+def test_env_secret_ref_falls_back_to_env_file(tmp_path, monkeypatch) -> None:
+    from ontobot import config
+    from ontobot.security import secrets
+
+    env = tmp_path / ".env"
+    env.write_text(
+        "SRCX_HOST=h\nSRCX_DB=d\nSRCX_USER=u\nSRCX_PASSWORD=p@ss:w/rd\n", encoding="utf-8"
+    )
+    monkeypatch.setitem(config.Settings.model_config, "env_file", env)
+    config.get_settings.cache_clear()
+    monkeypatch.setenv("SRCX_HOST", "from-process")
+    try:
+        creds = secrets.resolve_db("env:SRCX")
+    finally:
+        config.get_settings.cache_clear()
+    assert creds.host == "from-process"  # 프로세스 환경변수가 먼저
+    assert (creds.database, creds.user, creds.port) == ("d", "u", 5432)
+    assert creds.password.get_secret_value() == "p@ss:w/rd"
+    assert "p@ss" not in repr(creds)

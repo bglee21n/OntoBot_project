@@ -64,7 +64,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+# 테스트는 원천 표 이름을 만들어 SQL 에 넣는다(무작위 고유 이름 — 외부 입력이 아니다).
+"tests/**" = ["S101", "S105", "S106", "S603", "S607", "S608"]
 # 프롬프트·안내 문구는 문장이라 줄을 자르면 내용이 바뀐다.
 "src/ontobot/chat/templates.py" = ["E501"]
 "src/ontobot/chat/answerer.py" = ["E501"]
@@ -120,6 +121,8 @@ source_modules = [
     "ontobot.tracing", "ontobot.jobs", "ontobot.db", "ontobot.config", "ontobot.main",
 ]
 forbidden_modules = ["neo4j"]
+# graph.client 를 거쳐 쓰는 것은 허용한다 — 규칙은 "직접 import 는 graph 안에서만"이다.
+allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "16.3-4 LLM SDK는 llm 패키지 밖에서 import하지 않는다"
@@ -131,3 +134,4 @@ source_modules = [
     "ontobot.tracing", "ontobot.jobs", "ontobot.db", "ontobot.config", "ontobot.main",
 ]
 forbidden_modules = ["anthropic", "openai", "ollama"]
+allow_indirect_imports = true

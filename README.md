@@ -7,7 +7,7 @@
 | 구현 계획 (MVP P0) | [docs/plan/OntoBot_project-implementation-plan.md](docs/plan/OntoBot_project-implementation-plan.md) |
 | 결정 기록 | [docs/adr/](docs/adr/) |
 
-현재 단계: **Phase 1.5 — 수직 슬라이스 스파이크**(단일 타입 질의가 계획→검증→실행→답변→근거 대조→등급까지 관통). 측정 결과는 [ADR-0004](docs/adr/0004-planner-structured-output.md).
+현재 단계: **Phase 2 완료 — 동기화·객체 저장·그래프 투영**. 원천 PostgreSQL → 스테이징 병합 → 아웃박스 → Neo4j, 대사·재구축. 다음은 Phase 3·4(근거 대조 완성·질의 파이프라인·채팅). 플래너 측정은 [ADR-0004](docs/adr/0004-planner-structured-output.md).
 
 ## 개발 환경
 
@@ -53,6 +53,8 @@ uv run --project backend python scripts/task.py test-unit
 uv run --project backend python scripts/task.py test-int    # .env 의 PostgreSQL 이 필요
 uv run --project backend python scripts/task.py dev-api     # http://localhost:8000/healthz
 uv run --project backend python scripts/task.py dev-web     # http://localhost:5173
+uv run --project backend python scripts/task.py worker      # 동기화·그래프 투영·주기 작업(따로 띄운다)
+uv run --project backend python scripts/graph_rebuild.py    # Neo4j 재구축 + 대사(--check 는 대사만)
 uv run --project backend python scripts/task.py openapi     # API 가 바뀌면 프론트 타입 재생성(계약 테스트가 확인)
 ```
 

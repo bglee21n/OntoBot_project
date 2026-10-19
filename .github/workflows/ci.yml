@@ -36,8 +36,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
-  # Docker 없이(ADR-0007): Windows 러너에 미리 설치된 PostgreSQL 서비스를 켜서 쓴다(운영과 같은 OS).
-  # Neo4j 는 Phase 2에서 zip + JRE 로 러너에 직접 설치하는 단계를 더한다.
+  # Docker 없이(ADR-0007): Windows 러너에 미리 설치된 PostgreSQL 서비스를 켜고,
+  # Neo4j Community 는 공식 zip(SHA-256 확인)을 받아 서비스로 띄운다 — 운영과 같은 OS·설치 방식.
   integration:
     needs: backend
     runs-on: windows-latest
@@ -46,6 +46,9 @@ jobs:
       ONTOBOT_DB_NAME: ontobot_test
       ONTOBOT_DB_USER: ontobot
       ONTOBOT_DB_PASSWORD: ontobot-test
+      ONTOBOT_TEST_NEO4J_URI: bolt://localhost:7687
+      ONTOBOT_TEST_NEO4J_PASSWORD: ontobot-test-graph
+      NEO4J_VERSION: "5.26.32"
     steps:
       - uses: actions/checkout@v4
       - name: PostgreSQL 서비스 기동 · 테스트 DB 생성
@@ -57,6 +60,27 @@ jobs:
           $psql = Join-Path $env:PGBIN "psql.exe"
           & $psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ontobot LOGIN PASSWORD 'ontobot-test'"
           & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_test OWNER ontobot"
+          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_source_test OWNER ontobot"
+      - name: Neo4j Community 설치·기동
+        shell: pwsh
+        run: |
+          $env:JAVA_HOME = $env:JAVA_HOME_21_X64
+          $url = "https://dist.neo4j.org/neo4j-community-$env:NEO4J_VERSION-windows.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "neo4j.zip"
+          Invoke-WebRequest $url -OutFile $zip
+          $expected = (Invoke-WebRequest "$url.sha256").Content.Trim().Split(" ")[0]
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $expected.ToUpper()) { throw "Neo4j zip 해시 불일치" }
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
+          $home4j = Join-Path $env:RUNNER_TEMP "neo4j-community-$env:NEO4J_VERSION"
+          $bin = Join-Path $home4j "bin"
+          Add-Content (Join-Path (Join-Path $home4j "conf") "neo4j.conf") "dbms.usage_report.enabled=false"
+          & (Join-Path $bin "neo4j-admin.bat") dbms set-initial-password $env:ONTOBOT_TEST_NEO4J_PASSWORD
+          & (Join-Path $bin "neo4j.bat") windows-service install
+          & (Join-Path $bin "neo4j.bat") start
+          for ($i = 0; $i -lt 60; $i++) {
+            if (Test-NetConnection localhost -Port 7687 -InformationLevel Quiet) { break }
+            Start-Sleep -Seconds 2
+          }
       - uses: astral-sh/setup-uv@v6
         with: {version: "0.11.7"}
       - run: uv sync --frozen --python 3.12

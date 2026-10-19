@@ -37,3 +37,18 @@ Get-Service neo4j-ontobot-*            # 상태
 Start-Service neo4j-ontobot-test       # 통합 테스트 전
 uv run --project backend python scripts/task.py test-int
 ```
+
+### 개발용 원천 DB
+
+`ontobot_source_dev` 에 샘플 팩 CSV(region·organization·facility)를 표로 넣어 두었다. 화면 '데이터 소스'에서
+`env:ONTOBOT_SRCDEV` 로 등록하면 된다(`.env` 의 `ONTOBOT_SRCDEV_*`). 통합 테스트는 이 DB 가 아니라
+`ontobot_source_test` 를 쓴다(테스트마다 고유 이름의 표를 만든다).
+
+### 워커
+
+동기화와 Neo4j 투영은 **워커 프로세스**가 한다. API 만 띄우면 '지금 동기화'가 대기열에만 쌓인다.
+
+```powershell
+uv run --project backend python scripts/task.py worker
+```
+

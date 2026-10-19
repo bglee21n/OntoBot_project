@@ -6,7 +6,7 @@
 | 2. grounding은 llm·db·graph·sync 금지 | import-linter |
 | 3. Neo4j 드라이버는 graph/client.py 에서만 | import-linter(패키지 밖) + 여기(패키지 안) |
 | 4. LLM SDK는 llm/adapters/ 에서만 | import-linter(패키지 밖) + 여기(패키지 안) |
-| 5. object 테이블 읽기는 objects/reader.py 에서만 | 여기 |
+| 5. object 테이블 읽기는 objects/reader.py 에서만(쓰기·병합 판별은 objects/store.py) | 여기 |
 | 6. 권한 판정 함수는 security/rbac.py 에서만 | 여기 |
 
 import-linter 자체가 무력해지지 않았는지도 함께 확인한다(위반 샘플을 실제로 잡는가).
@@ -34,7 +34,8 @@ OBJECT_MODEL = "ObjectRecord"
 PERMISSION_FUNCS = re.compile(
     r"^(readable_types|can_read|has_permission|is_allowed|check_permission)$"
 )
-RAW_OBJECT_SELECT = re.compile(r"\bFROM\s+\"?object\"?(\s|$|;|\))", re.IGNORECASE)
+# object 표를 SQL 문자열로 직접 다루는 모양(읽기·쓰기 모두). objects 패키지 밖에서는 금지다.
+RAW_OBJECT_SQL = re.compile(r'\b(?:FROM|JOIN|UPDATE|INTO)\s+"?object"?(?=\s|$|;|\))', re.I)
 
 
 def _modules() -> list[Path]:
@@ -94,8 +95,10 @@ def test_object_table_read_only_in_reader() -> None:
             offenders.append(f"{rel}: {OBJECT_MODEL} 사용")
         if rel == "objects/store.py" and re.search(r"\bselect\s*\(", text):
             offenders.append(f"{rel}: store는 쓰기만 한다 — 읽기는 reader.resolve()")
-        if RAW_OBJECT_SELECT.search(text) and rel != "objects/reader.py":
-            offenders.append(f"{rel}: object 테이블 직접 SELECT")
+        if RAW_OBJECT_SQL.search(text) and not rel.startswith("objects/"):
+            offenders.append(
+                f"{rel}: object 표를 SQL 로 직접 다룸 — objects.reader/store 를 거칠 것"
+            )
     assert offenders == [], offenders
 
 

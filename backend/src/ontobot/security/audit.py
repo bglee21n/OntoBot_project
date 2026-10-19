@@ -24,6 +24,10 @@ DRAFT_CREATED = "ontology.draft_created"
 DRAFT_IMPORTED = "ontology.draft_imported"
 DRAFT_EDITED = "ontology.draft_edited"
 VERSION_PUBLISHED = "ontology.version_published"
+SOURCE_CHANGED = "sync.source_changed"
+MAPPING_CHANGED = "sync.mapping_changed"
+SYNC_TRIGGERED = "sync.manual_run"
+GRAPH_REBUILD = "graph.rebuild"
 
 
 def record(

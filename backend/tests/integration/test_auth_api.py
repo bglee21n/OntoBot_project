@@ -13,7 +13,7 @@ pytestmark = pytest.mark.integration
 
 
 async def _audit_events(actor_id: int | None, since_id: int) -> list[str]:
-    async for db in session_scope():
+    async with session_scope() as db:
         q = select(AuditLog.event).where(AuditLog.id > since_id)
         if actor_id is not None:
             q = q.where(AuditLog.actor_id == actor_id)
@@ -22,7 +22,7 @@ async def _audit_events(actor_id: int | None, since_id: int) -> list[str]:
 
 
 async def _last_audit_id() -> int:
-    async for db in session_scope():
+    async with session_scope() as db:
         return int(await db.scalar(select(AuditLog.id).order_by(AuditLog.id.desc()).limit(1)) or 0)
     return 0
 
@@ -82,7 +82,7 @@ async def test_logout_revokes_session_immediately(client, make_user: MakeUser) -
 async def test_expired_session_is_rejected(client, make_user: MakeUser) -> None:
     username, password, uid = await make_user("user")
     await login(client, username, password)
-    async for db in session_scope():
+    async with session_scope() as db:
         await db.execute(
             update(UserSession)
             .where(UserSession.user_id == uid)
@@ -107,7 +107,7 @@ async def test_session_token_is_not_stored_in_plaintext(client, make_user: MakeU
     username, password, uid = await make_user("user")
     await login(client, username, password)
     token = client.cookies.get("ontobot_session")
-    async for db in session_scope():
+    async with session_scope() as db:
         hashes = list(
             await db.scalars(select(UserSession.token_hash).where(UserSession.user_id == uid))
         )

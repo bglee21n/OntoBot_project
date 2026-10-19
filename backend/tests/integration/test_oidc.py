@@ -146,7 +146,7 @@ async def test_full_login_creates_user_with_default_role(client, idp: FakeIdp) -
     me = (await client.get("/api/v1/auth/me")).json()
     assert me["display_name"] == "앨리스" and me["roles"] == ["user"]
 
-    async for db in session_scope():
+    async with session_scope() as db:
         payload = await db.scalar(
             select(AuditLog.payload).where(
                 AuditLog.actor_id == me["id"], AuditLog.event == "auth.login"

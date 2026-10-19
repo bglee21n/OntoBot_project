@@ -57,7 +57,7 @@ async def test_import_and_publish_sample_pack(client, modeler: int) -> None:
     expected = importer.parse(SAMPLE.read_text(encoding="utf-8"), "yaml").content_hash()
     assert current.content_hash == expected
 
-    async for db in session_scope():
+    async with session_scope() as db:
         published = await db.scalar(
             select(func.count())
             .select_from(OntologyVersion)

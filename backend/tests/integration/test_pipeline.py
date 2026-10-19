@@ -82,7 +82,7 @@ class Script:
 
 @pytest.fixture(scope="module")
 async def schema() -> AsyncIterator[registry.PublishedSchema]:
-    async for db in session_scope():
+    async with session_scope() as db:
         doc = importer.parse(SAMPLE.read_text(encoding="utf-8"), "yaml")
         draft = await versioning.create_draft(db, actor_id=None, parent_id=None)
         await versioning.replace_document(db, draft.id, doc, actor_id=None)
@@ -102,7 +102,7 @@ async def _run(
     readable: set[str] | None = None,
 ) -> pipeline.PipelineResult:
     monkeypatch.setattr(ollama, "transport", httpx.MockTransport(script.handler))
-    async for db in session_scope():
+    async with session_scope() as db:
         # 다른 테스트가 넣은 시설과 섞이지 않게, 이 파일의 시설만 보이는 조건을 플래너 대본에 둔다.
         return await pipeline.run(
             db,
@@ -202,7 +202,7 @@ async def test_not_query(monkeypatch, schema) -> None:
 
 async def test_execution_error_is_failed_not_empty(monkeypatch, schema) -> None:
     # 원천 데이터가 자료형과 어긋나면(정수 칸에 글자) 캐스팅이 실패한다 — 0건으로 둔갑하면 안 된다.
-    async for db in session_scope():
+    async with session_scope() as db:
         await upsert_objects(
             db,
             "Facility",
@@ -218,7 +218,7 @@ async def test_execution_error_is_failed_not_empty(monkeypatch, schema) -> None:
         assert (res.status, res.failure_reason) == ("failed", "execution_error")
         assert res.answer == templates.FAILED["execution_error"]
     finally:
-        async for db in session_scope():
+        async with session_scope() as db:
             await db.execute(text("UPDATE object SET deleted_at = now() WHERE pk = 'PT-BAD'"))
             await db.commit()
 
@@ -228,7 +228,7 @@ async def test_llm_down_is_failed(monkeypatch, schema) -> None:
         raise httpx.ConnectError("refused")
 
     monkeypatch.setattr(ollama, "transport", httpx.MockTransport(down))
-    async for db in session_scope():
+    async with session_scope() as db:
         res = await pipeline.run(db, LLMGateway(CFG), schema, {"Facility"}, "질문")
     assert (res.status, res.failure_reason) == ("failed", "llm_unavailable")
 

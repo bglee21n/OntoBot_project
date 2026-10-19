@@ -14,7 +14,7 @@ MVP 는 원천 값을 그대로 돌려준다. P1 에서 편집 레이어, P3 에
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -100,3 +100,77 @@ async def run_query(db: AsyncSession, q: CompiledQuery) -> list[ObjectRow] | lis
         ObjectRow(q.object_type, r.pk, _project(r.properties, q.declared_properties), r.synced_at)
         for r in result
     ]
+
+
+# ---------------------------------------------------------------- 그래프 대사·재구축용 (TRD 5.5)
+
+
+async def object_keys(db: AsyncSession, object_type: str) -> list[str]:
+    """살아 있는 객체의 pk 를 바이트 순서로. Neo4j 쪽과 같은 순서로 이어 붙여 해시를 비교한다
+    (COLLATE "C" = UTF-8 바이트 순서 = 파이썬 문자열 정렬 순서)."""
+    return list(
+        await db.scalars(
+            text(
+                "SELECT pk FROM object WHERE type = :t AND deleted_at IS NULL "
+                'ORDER BY pk COLLATE "C"'
+            ),
+            {"t": object_type},
+        )
+    )
+
+
+async def link_keys(db: AsyncSession, link_type: str) -> list[str]:
+    return list(
+        await db.scalars(
+            text(
+                "SELECT from_pk || chr(31) || to_pk AS k FROM link "
+                "WHERE link_type = :l AND deleted_at IS NULL "
+                'ORDER BY (from_pk || chr(31) || to_pk) COLLATE "C"'
+            ),
+            {"l": link_type},
+        )
+    )
+
+
+async def iter_titles(
+    db: AsyncSession, object_type: str, title_property: str | None, *, chunk: int = 2000
+) -> AsyncIterator[list[tuple[str, str | None]]]:
+    """재구축용 (pk, 제목) 묶음. 제목 속성이 PII 면 호출부가 None 을 넘긴다."""
+    last = ""
+    while True:
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT pk, CASE WHEN CAST(:tp AS text) IS NULL THEN NULL "
+                    "ELSE properties ->> CAST(:tp AS text) END AS title FROM object "
+                    'WHERE type = :t AND deleted_at IS NULL AND pk COLLATE "C" > :last '
+                    'ORDER BY pk COLLATE "C" LIMIT :n'
+                ),
+                {"t": object_type, "tp": title_property, "last": last, "n": chunk},
+            )
+        ).all()
+        if not rows:
+            return
+        yield [(r.pk, r.title) for r in rows]
+        last = rows[-1].pk
+
+
+async def iter_links(
+    db: AsyncSession, link_type: str, *, chunk: int = 5000
+) -> AsyncIterator[list[tuple[str, str]]]:
+    last_id = 0
+    while True:
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT id, from_pk, to_pk FROM link "
+                    "WHERE link_type = :l AND deleted_at IS NULL AND id > :last "
+                    "ORDER BY id LIMIT :n"
+                ),
+                {"l": link_type, "last": last_id, "n": chunk},
+            )
+        ).all()
+        if not rows:
+            return
+        yield [(r.from_pk, r.to_pk) for r in rows]
+        last_id = rows[-1].id

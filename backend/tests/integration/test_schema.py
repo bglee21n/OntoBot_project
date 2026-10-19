@@ -31,7 +31,7 @@ async def test_migration_matches_models() -> None:
 
 
 async def test_seeded_roles_match_code_constants() -> None:
-    async for db in session_scope():
+    async with session_scope() as db:
         names = set(await db.scalars(select(Role.name)))
     assert names == set(KNOWN_ROLES)
 
@@ -45,7 +45,7 @@ async def test_seeded_roles_match_code_constants() -> None:
     ],
 )
 async def test_audit_log_is_append_only(sql: str) -> None:
-    async for db in session_scope():
+    async with session_scope() as db:
         await db.execute(text("INSERT INTO audit_log (event) VALUES ('probe')"))
         await db.commit()
         with pytest.raises(DBAPIError, match="append-only"):

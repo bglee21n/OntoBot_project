@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
+import { SourcesPage } from "../features/sources/SourcesPage";
 import { LoginPage, RequireAuth } from "./auth";
 import { Layout } from "./Layout";
 
@@ -19,6 +20,7 @@ export function App() {
         <Route index element={<Navigate to="/ontology" replace />} />
         <Route path="/ontology" element={<VersionsPage />} />
         <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
+        <Route path="/sources" element={<SourcesPage />} />
       </Route>
     </Routes>
   );

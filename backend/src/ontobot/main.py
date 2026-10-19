@@ -16,7 +16,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from ontobot.api import auth as auth_api
 from ontobot.api import errors
+from ontobot.api import graph as graph_api
 from ontobot.api import ontology as ontology_api
+from ontobot.api import sources as sources_api
 from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.ontology import registry
@@ -30,7 +32,7 @@ _UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
     try:
-        async for db in session_scope():
+        async with session_scope() as db:
             await registry.reload(db)
     except (SQLAlchemyError, OSError):
         # DB 없이도 프로세스는 뜬다(/healthz). 게시 스키마가 없다는 사실은 읽는 쪽이 밝힌다.
@@ -63,6 +65,9 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_api.router, prefix=API_PREFIX)
     app.include_router(ontology_api.router, prefix=API_PREFIX)
+    app.include_router(sources_api.router, prefix=API_PREFIX)
+    app.include_router(graph_api.router, prefix=API_PREFIX)
+    app.include_router(graph_api.jobs_router, prefix=API_PREFIX)
     return app
 
 

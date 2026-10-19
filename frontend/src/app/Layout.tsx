@@ -12,6 +12,7 @@ export function Layout() {
         <strong>{ko.appTitle}</strong>
         <nav>
           <NavLink to="/ontology">{ko.nav.ontology}</NavLink>
+          <NavLink to="/sources">{ko.nav.sources}</NavLink>
         </nav>
         <span className="spacer" />
         {me.data && (

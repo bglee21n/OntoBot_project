@@ -42,6 +42,7 @@ TASKS: dict[str, list[tuple[Path, list[str]]]] = {
     "migrate": [(BACKEND, [*UV, "alembic", "upgrade", "head"])],
     "dev-api": [(BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])],
     "dev-web": [(FRONTEND, [NPM, "run", "dev"])],
+    "worker": [(BACKEND, [*UV, "python", "-m", "ontobot.jobs.worker"])],
 }
 
 # pytest 는 수집된 테스트가 없으면 5를 돌려준다.

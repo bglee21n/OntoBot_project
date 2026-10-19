@@ -45,7 +45,7 @@ def _value(prop: PropertyDef, text: str) -> Any:
 async def seed(pack: str) -> None:
     pack_dir = ROOT / "domain-packs" / pack
     doc = importer.parse((pack_dir / "ontology.yaml").read_text(encoding="utf-8"), "yaml")
-    async for db in session_scope():
+    async with session_scope() as db:
         current = await registry.reload(db)
         if current is None or current.content_hash != doc.content_hash():
             draft = await versioning.create_draft(db, actor_id=None, parent_id=None)
