@@ -1,0 +1,60 @@
+# 샘플 도메인 팩 — 도메인 비의존 코어를 검증하기 위한 최소 온톨로지(TRD 2절 1번).
+# 실제 도메인이 정해지면 domain-packs/<도메인>/ 을 새로 만든다. 코어 코드는 바뀌지 않는다.
+#
+# 모양은 TRD 7.2 QueryPlan 예시와 같다: Facility —owned_by→ Organization, Facility —located_in→ Region.
+# 임포트: POST /api/v1/ontology/versions/{id}/import  (format: yaml)
+
+object_types:
+  - api_name: Region
+    display_name: 지역
+    description: 광역 행정구역
+    pk_property: region_code
+    title_property: name
+    properties:
+      - {api_name: region_code, display_name: 지역 코드, data_type: string, nullable: false, indexed: true}
+      - {api_name: name, display_name: 지역명, data_type: string, nullable: false, indexed: true}
+
+  - api_name: Organization
+    display_name: 조직
+    description: 설비를 관리하는 사업소·지사
+    pk_property: org_id
+    title_property: name
+    properties:
+      - {api_name: org_id, display_name: 조직 ID, data_type: string, nullable: false, indexed: true}
+      - {api_name: name, display_name: 조직명, data_type: string, nullable: false, indexed: true}
+      - {api_name: manager_name, display_name: 담당자, data_type: string, pii_kind: name}
+      - {api_name: manager_phone, display_name: 담당자 연락처, data_type: string, pii_kind: phone}
+
+  - api_name: Facility
+    display_name: 시설
+    description: 관리 대상 설비
+    pk_property: facility_id
+    title_property: name
+    properties:
+      - {api_name: facility_id, display_name: 시설 ID, data_type: string, nullable: false, indexed: true}
+      - {api_name: name, display_name: 시설명, data_type: string, nullable: false}
+      - api_name: facility_type
+        display_name: 시설 유형
+        data_type: enum
+        enum_values: [변전소, 철탑, 전주]
+        indexed: true
+      - {api_name: risk_grade, display_name: 위험등급, data_type: int, indexed: true}
+      - {api_name: capacity_kw, display_name: 설비 용량(kW), data_type: decimal}
+      - {api_name: installed_on, display_name: 설치일, data_type: date}
+      - {api_name: owner_org_id, display_name: 소유 조직 ID, data_type: string, indexed: true}
+      - {api_name: region_code, display_name: 지역 코드, data_type: string, indexed: true}
+
+link_types:
+  - api_name: owned_by
+    display_name: 소유 조직
+    from_type: Facility
+    to_type: Organization
+    cardinality: one
+    source: {kind: fk_property, property: owner_org_id}
+
+  - api_name: located_in
+    display_name: 소재 지역
+    from_type: Facility
+    to_type: Region
+    cardinality: one
+    source: {kind: fk_property, property: region_code}

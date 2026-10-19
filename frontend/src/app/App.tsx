@@ -1,25 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import { getJson } from "../api/client";
-import { ko } from "../i18n/ko";
+import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
+import { VersionsPage } from "../features/ontology/VersionsPage";
+import { LoginPage, RequireAuth } from "./auth";
+import { Layout } from "./Layout";
 
 export function App() {
-  const health = useQuery({
-    queryKey: ["healthz"],
-    queryFn: () => getJson<{ status: string }>("/healthz"),
-    retry: false,
-  });
-
-  const status = health.isPending
-    ? ko.health.checking
-    : health.isError
-      ? ko.health.down
-      : ko.health.ok;
-
   return (
-    <main>
-      <h1>{ko.appTitle}</h1>
-      <p role="status">{status}</p>
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        element={
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<Navigate to="/ontology" replace />} />
+        <Route path="/ontology" element={<VersionsPage />} />
+        <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
+      </Route>
+    </Routes>
   );
 }

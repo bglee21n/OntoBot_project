@@ -35,6 +35,11 @@ TASKS: dict[str, list[tuple[Path, list[str]]]] = {
     "test-contract": [(BACKEND, [*UV, "pytest", "tests/contract", "-q"])],
     "eval": [(BACKEND, [*UV, "pytest", "tests/eval", "-q"])],
     "build": [(FRONTEND, [NPM, "run", "build"])],
+    "openapi": [
+        (ROOT, [*UV, "python", "scripts/export_openapi.py"]),
+        (FRONTEND, [NPM, "run", "gen:api"]),
+    ],
+    "migrate": [(BACKEND, [*UV, "alembic", "upgrade", "head"])],
     "dev-api": [(BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])],
     "dev-web": [(FRONTEND, [NPM, "run", "dev"])],
 }

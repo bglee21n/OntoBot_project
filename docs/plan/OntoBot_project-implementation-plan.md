@@ -201,3 +201,5 @@ make eval            # 골든셋 게이트(gate.yaml)
 | 2026-10-19 | 0 | 문서 이동(`docs/prd`·`docs/trd`·`docs/plan`), TRD v0.2 정정 8건, ADR 0001~0006, 백엔드 골격(uv·`/healthz`·설정·DB 세션), 의존 규칙(import-linter 4계약 + 소스 검사), 프론트 골격(Vite·React·TS — TypeScript는 `openapi-typescript`·`typescript-eslint` 호환을 위해 **5.9.3** 고정), compose·CI. ⚠ pgvector 확장은 `ontobot_db`에 아직 설치되지 않았다(`CREATE EXTENSION vector`는 슈퍼유저 필요 — 사용은 P1) |
 | 2026-10-19 | 0 | Docker 제거(Dockerfile·compose), TRD v0.3, ADR-0007, CI 통합 잡을 Windows 러너 + 설치된 PostgreSQL로 전환. Neo4j 네이티브 설치는 Phase 2 착수 시 |
 | 2026-10-20 | 0 | 개발 PC 준비: `ontobot` 슈퍼유저 권한(사용자), 테스트 DB 2개·pgvector 확장, Neo4j Community 5.26.32 LTS 개발(7687)·테스트(7688) 인스턴스를 Windows 서비스로 설치, `graph/client.py` 최소판과 접속 스모크 테스트 |
+| 2026-10-20 | 1 | **Phase 1 완료.** ORM 28+1표·Alembic 0001/0002(감사 로그 추가 전용 트리거, 기본 역할 5종), 로컬 계정(argon2)·서버 세션(토큰 해시만 저장)·RBAC·감사·RFC 7807·Origin 검사, OIDC(Authorization Code + PKCE, 가짜 IdP 테스트), 온톨로지 정의 모델·임포트/익스포트·버전 비교·게시(advisory lock, 단일 게시 부분 유일 인덱스)·레지스트리·플래너 요약, 사용자 CLI, 샘플 도메인 팩, 프론트(로그인·온톨로지 편집기·OpenAPI 타입 생성 + 계약 테스트). 테스트: 단위 52·계약 2·통합 43. 브라우저 확인: 로그인→draft→임포트→게시→복사 draft→속성 추가→버전 비교 |
+

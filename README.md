@@ -7,7 +7,7 @@
 | 구현 계획 (MVP P0) | [docs/plan/OntoBot_project-implementation-plan.md](docs/plan/OntoBot_project-implementation-plan.md) |
 | 결정 기록 | [docs/adr/](docs/adr/) |
 
-현재 단계: **Phase 0 — 저장소 골격·CI** (코드는 `/healthz`와 의존 규칙 검사까지).
+현재 단계: **Phase 1 완료 — DB·인증·스키마 레지스트리**. 다음은 Phase 1.5(수직 슬라이스 스파이크).
 
 ## 개발 환경
 
@@ -23,6 +23,18 @@ cd backend && uv sync                # backend/.venv 생성
 cd ../frontend && npm ci
 ```
 
+## 처음 한 번
+
+```bash
+uv run --project backend python scripts/task.py migrate        # DB 마이그레이션(.env 의 DB)
+cd backend
+uv run python -m ontobot.security.cli create-user --username alice --display-name 앨리스 --role modeler --role user
+uv run python -m ontobot.security.cli grant-type --role user --type Facility
+```
+
+비밀번호는 대화형으로 입력한다(인자로 받지 않는다). 샘플 온톨로지는
+[domain-packs/sample/ontology.yaml](domain-packs/sample/ontology.yaml) — 화면의 '임포트'로 넣고 게시한다.
+
 ## 자주 쓰는 작업
 
 명령의 정본은 [scripts/task.py](scripts/task.py)다(Windows에는 make가 없으므로 직접 부른다).
@@ -33,6 +45,7 @@ uv run --project backend python scripts/task.py test-unit
 uv run --project backend python scripts/task.py test-int    # .env 의 PostgreSQL 이 필요
 uv run --project backend python scripts/task.py dev-api     # http://localhost:8000/healthz
 uv run --project backend python scripts/task.py dev-web     # http://localhost:5173
+uv run --project backend python scripts/task.py openapi     # API 가 바뀌면 프론트 타입 재생성(계약 테스트가 확인)
 ```
 
 ## 의존 규칙 (TRD 16.3)

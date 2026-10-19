@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.3                                     |
+| 문서      | 기술 요구사항 문서(TRD) v0.4                                     |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -185,7 +185,9 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 
 | 테이블              | 주요 컬럼                                                                                                                   |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `app_user`          | `oidc_sub`, `display_name`, `status`                                                                                        |
+| `app_user`          | `oidc_sub`(`iss|sub`), `username`·`password_hash`(로컬 계정, argon2), `display_name`, `status`                                                                                        |
+| `user_session`      | `token_hash`(SHA-256 — 원문은 쿠키에만), `user_id`, `expires_at`, `revoked_at`, `auth_method`(local/oidc) |
+| `auth_request`      | 진행 중인 OIDC 로그인: `state_hash`, `nonce`, `code_verifier`, `return_to`(같은 사이트 상대 경로만), `expires_at` — 콜백에서 한 번만 꺼내 지운다 |
 | `role`, `user_role` |                                                                                                                             |
 | `type_permission`   | `role_id`, `object_type`, `can_read` — MVP는 타입 단위(PRD 5.5). 속성 단위는 P1                                             |
 | `audit_log`         | `ts`, `actor_id`, `event`, `target`, `payload`(마스킹) — 앱 DB 계정에 **INSERT·SELECT만** 허용. 해시 체인(`prev_hash`)은 P1 |
@@ -412,10 +414,10 @@ class LLMGateway:
 
 | 묶음     | 엔드포인트                                                                                                                                                                                                                                                                                          | 권한                |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| 인증     | `GET /auth/login` · `GET /auth/callback` · `POST /auth/logout` · `GET /auth/me`                                                                                                                                                                                                                     | —                   |
+| 인증     | `GET /auth/providers` · `GET /auth/login` · `GET /auth/callback` · `POST /auth/local/login` · `POST /auth/logout` · `GET /auth/me`                                                                                                                                                                                                                     | —                   |
 | 채팅     | `POST /chat` (SSE) · `GET /conversations` · `GET /conversations/{id}/messages`                                                                                                                                                                                                                      | 사용자              |
 | 객체     | `GET /objects/{type}/{pk}` (근거 카드)                                                                                                                                                                                                                                                              | 타입 읽기 권한      |
-| 온톨로지 | `GET·POST /ontology/versions` · `GET /ontology/versions/{id}` · `POST·PATCH·DELETE /ontology/versions/{id}/object-types[/{tid}]` · 같은 형태의 `/properties`, `/link-types` · `POST /ontology/versions/{id}/import` · `GET /ontology/versions/{id}/export` · `POST /ontology/versions/{id}/publish` | 모델러              |
+| 온톨로지 | `GET·POST /ontology/versions` · `GET /ontology/versions/{id}` · `POST·PATCH·DELETE /ontology/versions/{id}/object-types[/{tid}]` · 같은 형태의 `/properties`, `/link-types` · `POST /ontology/versions/{id}/import` · `GET /ontology/versions/{id}/export` · `GET /ontology/versions/{id}/diff?base=` · `POST /ontology/versions/{id}/publish` | 모델러              |
 | 동기화   | `CRUD /sources` · `POST /sources/{id}/test` · `CRUD /mappings` · `POST /mappings/{id}/sync` · `GET /sync-runs`                                                                                                                                                                                      | 모델러              |
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
 | 워크숍   | `POST /workshop/sessions` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
@@ -688,3 +690,4 @@ OntoBot_project/
 | v0.1 | 2026-10-19 | 최초 작성 |
 | v0.2 | 2026-10-19 | 착수 전 정정 — `link` 부분 유일키, `golden_item.golden_set_id`, `eval_run`·`eval_result` 컬럼 확정, `graph_outbox` 소비 순서·처리 위치, 식별자 형식(Neo4j 라벨 안전성), 속성 인덱스는 게시 작업이 생성, 권한 지문 참조 절, 문서 위치 |
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
+| v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |

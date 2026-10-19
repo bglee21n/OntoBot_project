@@ -1,0 +1,211 @@
+import { type FormEvent, useState } from "react";
+
+import type { DataType, LinkTypeDef, ObjectTypeCreate, PropertyDef } from "../../api/types";
+import { ko } from "../../i18n/ko";
+
+const DATA_TYPES: DataType[] = ["string", "int", "decimal", "bool", "date", "datetime", "enum"];
+const PII_KINDS = ["", "name", "phone", "email", "rrn", "address", "account", "other"] as const;
+type PiiKind = NonNullable<PropertyDef["pii_kind"]>;
+
+/** 속성 추가·수정. 수정할 때 api_name 은 잠근다 — 동기화 매핑이 그 이름을 쓴다. */
+export function PropertyForm({
+  initial,
+  onSubmit,
+  onCancel,
+  pending,
+}: {
+  initial?: PropertyDef;
+  onSubmit: (p: PropertyDef) => void;
+  onCancel?: () => void;
+  pending: boolean;
+}) {
+  const [p, setP] = useState<PropertyDef>(
+    initial ?? { api_name: "", display_name: "", data_type: "string", nullable: true, indexed: false },
+  );
+  const [enumText, setEnumText] = useState((initial?.enum_values ?? []).join(", "));
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const enumValues = enumText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    onSubmit({ ...p, enum_values: p.data_type === "enum" ? enumValues : null });
+  };
+
+  return (
+    <form onSubmit={submit} className="grid-form">
+      <label>
+        {ko.ontology.apiName}
+        <input
+          value={p.api_name}
+          onChange={(e) => setP({ ...p, api_name: e.target.value })}
+          placeholder="risk_grade"
+          disabled={initial !== undefined}
+          required
+        />
+      </label>
+      <label>
+        {ko.ontology.displayName}
+        <input value={p.display_name} onChange={(e) => setP({ ...p, display_name: e.target.value })} required />
+      </label>
+      <label>
+        {ko.ontology.dataType}
+        <select value={p.data_type} onChange={(e) => setP({ ...p, data_type: e.target.value as DataType })}>
+          {DATA_TYPES.map((t) => (
+            <option key={t}>{t}</option>
+          ))}
+        </select>
+      </label>
+      {p.data_type === "enum" && (
+        <label>
+          {ko.ontology.enumValues}
+          <input value={enumText} onChange={(e) => setEnumText(e.target.value)} required />
+        </label>
+      )}
+      <label>
+        {ko.ontology.piiKind}
+        <select
+          value={p.pii_kind ?? ""}
+          onChange={(e) => setP({ ...p, pii_kind: e.target.value ? (e.target.value as PiiKind) : null })}
+        >
+          {PII_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {k || "—"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={p.nullable ?? true} onChange={(e) => setP({ ...p, nullable: e.target.checked })} />
+        {ko.ontology.nullable}
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={p.indexed ?? false} onChange={(e) => setP({ ...p, indexed: e.target.checked })} />
+        {ko.ontology.indexed}
+      </label>
+      <div className="row">
+        <button type="submit" disabled={pending}>
+          {initial ? ko.common.save : ko.common.add}
+        </button>
+        {onCancel && (
+          <button type="button" className="link" onClick={onCancel}>
+            {ko.common.cancel}
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/** 객체 타입 추가. pk·제목 속성은 이름만 정하고, 실제 속성은 이어서 추가한다(게시 전 검사가 짚는다). */
+export function ObjectTypeForm({ onSubmit, pending }: { onSubmit: (t: ObjectTypeCreate) => void; pending: boolean }) {
+  const [t, setT] = useState<ObjectTypeCreate>({
+    api_name: "",
+    display_name: "",
+    pk_property: "",
+    title_property: "",
+    properties: [],
+  });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit(t);
+  };
+  return (
+    <form onSubmit={submit} className="grid-form">
+      <label>
+        {ko.ontology.apiName}
+        <input value={t.api_name} onChange={(e) => setT({ ...t, api_name: e.target.value })} placeholder="Facility" required />
+      </label>
+      <label>
+        {ko.ontology.displayName}
+        <input value={t.display_name} onChange={(e) => setT({ ...t, display_name: e.target.value })} required />
+      </label>
+      <label>
+        {ko.ontology.pk}
+        <input value={t.pk_property} onChange={(e) => setT({ ...t, pk_property: e.target.value })} placeholder="facility_id" required />
+      </label>
+      <label>
+        {ko.ontology.title}
+        <input value={t.title_property} onChange={(e) => setT({ ...t, title_property: e.target.value })} placeholder="name" required />
+      </label>
+      <div className="row">
+        <button type="submit" disabled={pending}>
+          {ko.ontology.addObjectType}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function LinkTypeForm({
+  typeNames,
+  onSubmit,
+  pending,
+}: {
+  typeNames: string[];
+  onSubmit: (l: LinkTypeDef) => void;
+  pending: boolean;
+}) {
+  const first = typeNames[0] ?? "";
+  const [l, setL] = useState<LinkTypeDef>({
+    api_name: "",
+    display_name: "",
+    from_type: first,
+    to_type: first,
+    cardinality: "one",
+    source: { kind: "fk_property", property: "" },
+  });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit(l);
+  };
+  const typeSelect = (value: string, set: (v: string) => void) => (
+    <select value={value} onChange={(e) => set(e.target.value)} required>
+      {typeNames.map((n) => (
+        <option key={n}>{n}</option>
+      ))}
+    </select>
+  );
+  return (
+    <form onSubmit={submit} className="grid-form">
+      <label>
+        {ko.ontology.apiName}
+        <input value={l.api_name} onChange={(e) => setL({ ...l, api_name: e.target.value })} placeholder="owned_by" required />
+      </label>
+      <label>
+        {ko.ontology.displayName}
+        <input value={l.display_name} onChange={(e) => setL({ ...l, display_name: e.target.value })} required />
+      </label>
+      <label>
+        {ko.ontology.fromType}
+        {typeSelect(l.from_type, (v) => setL({ ...l, from_type: v }))}
+      </label>
+      <label>
+        {ko.ontology.toType}
+        {typeSelect(l.to_type, (v) => setL({ ...l, to_type: v }))}
+      </label>
+      <label>
+        {ko.ontology.cardinality}
+        <select value={l.cardinality} onChange={(e) => setL({ ...l, cardinality: e.target.value as "one" | "many" })}>
+          <option>one</option>
+          <option>many</option>
+        </select>
+      </label>
+      <label>
+        {ko.ontology.fkProperty}
+        <input
+          value={l.source.property ?? ""}
+          onChange={(e) => setL({ ...l, source: { kind: "fk_property", property: e.target.value } })}
+          placeholder="owner_org_id"
+          required
+        />
+      </label>
+      <div className="row">
+        <button type="submit" disabled={pending || typeNames.length === 0}>
+          {ko.ontology.addLinkType}
+        </button>
+      </div>
+    </form>
+  );
+}
