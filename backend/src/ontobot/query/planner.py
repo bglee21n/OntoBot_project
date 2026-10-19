@@ -1,0 +1,77 @@
+"""플래너 — 질문을 QueryPlan 으로(TRD 7.1 2단계).
+
+LLM 은 SQL 도 Cypher 도 쓰지 않는다(TRD 5.3). 권한으로 거른 스키마 요약만 보고 계획 JSON 을 낸다.
+예시는 샘플 도메인 팩과 **다른 가상의 타입**으로 든다 — 평가 대상 스키마로 예시를 들면 모델이
+예시를 베끼는 것과 스키마를 이해하는 것을 구분할 수 없다.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any, Protocol
+
+from ontobot.llm.types import Message
+from ontobot.query.plan import AGG_VALUE, DEFAULT_LIMIT, MAX_LIMIT, PlannerOutput
+
+
+class StructuredLLM(Protocol):
+    async def structured(
+        self, role: str, messages: list[Message], schema: type[PlannerOutput]
+    ) -> PlannerOutput: ...
+
+
+SYSTEM = f"""너는 사용자 질문을 데이터 조회 계획(JSON)으로 바꾸는 플래너다.
+
+규칙:
+- 아래 <schema> 에 있는 객체 타입·속성 이름(name)만 쓴다. 이름을 지어내지 않는다.
+- 답이 되는 타입을 target 에 둔다. 조건은 filters 에 둔다.
+- aggregate 는 질문이 개수·합계·평균·최댓값·최솟값을 물을 때만 쓴다. 목록·이름·속성 값을 묻는 질문에는 aggregate 를 쓰지 않는다(null).
+- 식별자(pk) 속성이나 다른 타입을 가리키는 코드 속성에는 질문에 그 코드가 그대로 있을 때만 조건을 건다. 이름을 코드 자리에 넣지 않는다.
+- 연산자: eq ne gt gte lt lte in contains between is_null. 표현식·SQL 을 쓰지 않는다.
+- 값 형식: int·decimal 은 숫자, date 는 YYYY-MM-DD, datetime 은 ISO 8601, enum 은 목록의 값 그대로.
+  in 은 값 목록, between 은 [하한, 상한].
+- "~이전"은 lt, "~이후"는 gt, "~이상"은 gte, "~이하"는 lte, "~넘는"·"초과"는 gt, "미만"은 lt.
+- 집계 결과를 정렬하려면 sort.property 에 "{AGG_VALUE}" 를 쓴다.
+- 목록 질문의 limit 은 질문이 말한 개수, 없으면 {DEFAULT_LIMIT}. 최대 {MAX_LIMIT}.
+- 질문의 조건을 스키마의 속성으로 표현할 수 없으면 그 조건을 **빼고 계획을 내지 않는다**.
+  대신 {{"kind": "cannot_answer", "reason": "표현할 수 없는 조건"}} 을 낸다. 조건을 빼면 다른 답이 된다.
+- 인사·잡담처럼 데이터 조회가 아닌 말이면 {{"kind": "not_query"}} 를 낸다.
+
+예시(가상의 스키마 — Ticket 타입, priority:int, status:enum[open,closed], opened_on:date):
+질문: "우선순위 4 이상인 열린 티켓 몇 개야?"
+{{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"priority","op":"gte","value":4}},
+{{"property":"status","op":"eq","value":"open"}}],"aggregate":{{"fn":"count","property":null,"group_by":[]}}}}}}
+질문: "상태별 티켓 수"
+{{"kind":"query","plan":{{"target":"Ticket","aggregate":{{"fn":"count","property":null,"group_by":["status"]}},
+"sort":[{{"property":"{AGG_VALUE}","dir":"desc"}}]}}}}
+질문: "우선순위가 높은 순으로 열린 티켓 10개 보여줘"
+{{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"status","op":"eq","value":"open"}}],
+"aggregate":null,"sort":[{{"property":"priority","dir":"desc"}}],"limit":10}}}}
+질문: "고마워!"
+{{"kind":"not_query"}}
+"""
+
+
+def messages(
+    summary: dict[str, Any], question: str, errors: list[str] | None = None
+) -> list[Message]:
+    schema = json.dumps(summary, ensure_ascii=False)
+    msgs = [
+        Message("system", f"{SYSTEM}\n<schema>\n{schema}\n</schema>"),
+        Message("user", question),
+    ]
+    if errors:
+        msgs.append(
+            Message(
+                "user",
+                "직전 계획이 검증에 실패했습니다. 오류를 고친 계획을 다시 내세요.\n- "
+                + "\n- ".join(errors),
+            )
+        )
+    return msgs
+
+
+async def plan(
+    llm: StructuredLLM, summary: dict[str, Any], question: str, errors: list[str] | None = None
+) -> PlannerOutput:
+    return await llm.structured("planner", messages(summary, question, errors), PlannerOutput)

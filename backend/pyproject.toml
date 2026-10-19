@@ -65,6 +65,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+# 프롬프트·안내 문구는 문장이라 줄을 자르면 내용이 바뀐다.
+"src/ontobot/chat/templates.py" = ["E501"]
+"src/ontobot/chat/answerer.py" = ["E501"]
+"src/ontobot/query/planner.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -1,0 +1,77 @@
+# 샘플 도메인 팩 골든 질의(Phase 1.5 스파이크 · 이후 평가 게이트의 시작점, TRD 13절).
+# 기대값은 seed/*.csv 에서 계산했다(합성 데이터). 시드를 바꾸면 여기도 바꾼다.
+#
+# expected_status: ok / empty / failed / not_query
+# expected_failure: failed 일 때 사유
+# required_values: 답변 본문에 그대로 있어야 하는 값(근거 대조와 같은 정규화로 비교)
+# note: 왜 이 문항이 있는가
+items:
+  - id: q01
+    question: 위험등급이 3 이상인 시설은 몇 개야?
+    expected_status: ok
+    required_values: ["18"]
+    note: 단일 조건 + count
+
+  - id: q02
+    question: 변전소 목록 보여줘
+    expected_status: ok
+    required_values: ["강남 변전소 01호", "수원 변전소 04호"]
+    note: enum 조건 + 목록
+
+  - id: q03
+    question: 위험등급이 가장 높은 시설 5개 알려줘
+    expected_status: ok
+    required_values: ["대구 전주 03호", "부산 전주 06호"]
+    note: 정렬 + limit
+
+  - id: q04
+    question: 시설 유형별 개수 알려줘
+    expected_status: ok
+    required_values: ["10"]
+    note: group_by count
+
+  - id: q05
+    question: F-0007 시설의 설비 용량은?
+    expected_status: ok
+    required_values: ["3,000"]
+    note: pk 조건 + 속성 조회(표시 문자열은 천 단위 구분)
+
+  - id: q06
+    question: 2015년 이전에 설치된 철탑은?
+    expected_status: ok
+    required_values: ["부산 철탑 02호", "대구 철탑 11호"]
+    note: date lt + enum 조건
+
+  - id: q07
+    question: 조직 목록 보여줘
+    expected_status: ok
+    required_values: ["강남지사", "수원지사"]
+    note: 다른 타입
+
+  - id: q08
+    question: 지역 코드가 11인 지역 이름은?
+    expected_status: ok
+    required_values: ["서울"]
+    note: 문자열 코드 조건
+
+  - id: q09
+    question: 안녕하세요
+    expected_status: not_query
+    note: 질의 아님
+
+  - id: q10
+    question: 용량이 1000kW 넘는 변전소의 평균 위험등급은?
+    expected_status: ok
+    required_values: ["2.56"]
+    note: 조건 2개 + avg(서버 반올림)
+
+  - id: q11
+    question: 위험등급이 9인 시설 보여줘
+    expected_status: empty
+    note: 0건 — 실패가 아니라 결과다
+
+  - id: q12
+    question: 서울 지역 시설 목록 보여줘
+    expected_status: failed
+    expected_failure: plan_invalid
+    note: 링크 탐색이 필요하다(Phase 4). 지금은 지어낸 조건 없이 실패로 밝혀야 한다

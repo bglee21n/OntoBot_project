@@ -7,7 +7,7 @@
 | 구현 계획 (MVP P0) | [docs/plan/OntoBot_project-implementation-plan.md](docs/plan/OntoBot_project-implementation-plan.md) |
 | 결정 기록 | [docs/adr/](docs/adr/) |
 
-현재 단계: **Phase 1 완료 — DB·인증·스키마 레지스트리**. 다음은 Phase 1.5(수직 슬라이스 스파이크).
+현재 단계: **Phase 1.5 — 수직 슬라이스 스파이크**(단일 타입 질의가 계획→검증→실행→답변→근거 대조→등급까지 관통). 측정 결과는 [ADR-0004](docs/adr/0004-planner-structured-output.md).
 
 ## 개발 환경
 
@@ -32,7 +32,15 @@ uv run python -m ontobot.security.cli create-user --username alice --display-nam
 uv run python -m ontobot.security.cli grant-type --role user --type Facility
 ```
 
-비밀번호는 대화형으로 입력한다(인자로 받지 않는다). 샘플 온톨로지는
+비밀번호는 대화형으로 입력한다(인자로 받지 않는다).
+
+샘플 데이터와 스파이크(로컬 Ollama 필요, 모델은 [config/llm.yaml](config/llm.yaml)):
+
+```bash
+uv run --project backend python scripts/seed_domain_pack.py --pack sample
+uv run --project backend python scripts/spike_plan.py --models qwen3:8b
+```
+ 샘플 온톨로지는
 [domain-packs/sample/ontology.yaml](domain-packs/sample/ontology.yaml) — 화면의 '임포트'로 넣고 게시한다.
 
 ## 자주 쓰는 작업

@@ -1,0 +1,695 @@
+{
+  "summaries": [
+    {
+      "model": "gemma4:e2b",
+      "items": 12,
+      "correct": 3,
+      "answerable_correct": "1/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 3,
+      "final_plan_invalid": 2,
+      "grades": {
+        "1": 1,
+        "2": 1,
+        "3": 7
+      },
+      "estimated_ratio": 0.077,
+      "removed_citations": 12,
+      "p50_ms": 1039,
+      "max_ms": 5338
+    }
+  ],
+  "details": {
+    "gemma4:e2b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 건수 · 건수 내림차순",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": 100
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 건수 · 건수 내림차순)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "위험등급이 3 이상인 시설은 1개입니다. [[q:1#value]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 4899,
+          "querying": 3,
+          "answering": 435,
+          "verifying": 0
+        },
+        "total_ms": 5338
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "(추정) 변전소 목록은 다음과 같습니다:\n- 결과 1: 10",
+        "raw_answer": "변전소 목록은 다음과 같습니다:\n- 결과 1: 10 [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 2,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 545,
+          "querying": 1,
+          "answering": 421,
+          "verifying": 0
+        },
+        "total_ms": 968
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1006
+        },
+        "total_ms": 1006
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "- 변전소 시설의 개수는 10입니다. [[q:1#value]]\n- 전주 시설의 개수는 10입니다. [[q:2#value]]\n- 철탑 시설의 개수는 10입니다. [[q:3#value]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          },
+          {
+            "sentence": 3,
+            "citation": "q:2#value",
+            "reason": "value_mismatch"
+          },
+          {
+            "sentence": 5,
+            "citation": "q:3#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 498,
+          "querying": 3,
+          "answering": 570,
+          "verifying": 0
+        },
+        "total_ms": 1072
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 설비 용량(kW) 최댓값",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "max",
+            "property": "capacity_kw",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 ID = F-0007 · 설비 용량(kW) 최댓값)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "F-0007 시설의 설비 용량은 3,000kW입니다. [[q:1#value_max]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value_max",
+            "reason": "unknown_field"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 546,
+          "querying": 1,
+          "answering": 447,
+          "verifying": 0
+        },
+        "total_ms": 996
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 철탑 · 설치일 < 2015-01-01 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            },
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 유형 = 철탑 · 설치일 < 2015-01-01 · 건수)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "2015년 이전에 설치된 철탑은 4개입니다. [[q:1#value]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 657,
+          "querying": 1,
+          "answering": 420,
+          "verifying": 0
+        },
+        "total_ms": 1080
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 최대 20건",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(조직 · 최대 20건)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "- 강남지사: 조직 ID는 ORG-01입니다. [[o:Organization/ORG-01#org_id]]\n- 부산지사: 조직 ID는 ORG-02입니다. [[o:Organization/ORG-02#org_id]]\n- 대구지사: 조직 ID는 ORG-03입니다. [[o:Organization/ORG-03#org_id]]\n- 수원지사: 조직 ID는 ORG-04입니다. [[o:Organization/ORG-04#org_id]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "o:Organization/ORG-01#org_id",
+            "reason": "value_mismatch"
+          },
+          {
+            "sentence": 3,
+            "citation": "o:Organization/ORG-02#org_id",
+            "reason": "value_mismatch"
+          },
+          {
+            "sentence": 5,
+            "citation": "o:Organization/ORG-03#org_id",
+            "reason": "value_mismatch"
+          },
+          {
+            "sentence": 7,
+            "citation": "o:Organization/ORG-04#org_id",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 4,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 383,
+          "querying": 1,
+          "answering": 824,
+          "verifying": 0
+        },
+        "total_ms": 1210
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "'max' 는 숫자·날짜 속성에만 쓸 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "지역 · 지역 코드 = 11 · 최대 20건",
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(지역 · 지역 코드 = 11 · 최대 20건)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "서울이 지역 코드 11인 지역 이름입니다. [[o:Region/11#name]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "o:Region/11#name",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1032,
+          "querying": 1,
+          "answering": 430,
+          "verifying": 0
+        },
+        "total_ms": 1464
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 346
+        },
+        "total_ms": 346
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "limit 은 1~100 이어야 합니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "limit 은 1~100 이어야 합니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": 1000
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1147
+        },
+        "total_ms": 1147
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 444,
+          "querying": 1
+        },
+        "total_ms": 446
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 지역 코드 = 서울 · 건수)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "서울 지역 시설 목록은 없습니다. [[q:1#value]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 570,
+          "querying": 2,
+          "answering": 382,
+          "verifying": 0
+        },
+        "total_ms": 954
+      }
+    ]
+  }
+}

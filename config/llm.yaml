@@ -1,0 +1,18 @@
+# LLM 역할별 공급자·모델(TRD 10절). 모델 ID 는 코드에 적지 않고 여기에만 둔다.
+# ⚠ 모델이나 공급자를 바꾸면 평가 게이트(TRD 13절)를 통과해야 운영 설정에 반영한다.
+# 비밀값(API 키)은 이 파일에 적지 않는다 — api_key_env 로 환경변수 이름만 가리킨다.
+
+providers:
+  local:
+    adapter: ollama
+    base_url: http://localhost:11434
+    external: false
+
+roles:
+  # planner·answerer 는 Phase 1.5 스파이크 측정으로 정했다(docs/adr/0004-planner-structured-output.md).
+  # gemma4:e4b — 골든 12/12, p50 1.3초. 같은 정확도의 gpt-oss:20b 는 p50 14.2초였다.
+  planner:     {provider: local, model: "gemma4:e4b", timeout_s: 60}
+  answerer:    {provider: local, model: "gemma4:e4b", timeout_s: 90}
+  # 워크숍 역할(Phase 6)은 아직 재지 않았다 — 같은 모델로 두고 Phase 6 에서 다시 정한다.
+  interviewer: {provider: local, model: "gemma4:e4b", timeout_s: 60}
+  extractor:   {provider: local, model: "gemma4:e4b", timeout_s: 90}

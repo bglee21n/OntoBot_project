@@ -128,7 +128,7 @@ def prop_def(p: PropertyType) -> PropertyDef:
 
 
 async def create_draft(
-    db: AsyncSession, *, actor_id: int, parent_id: int | None
+    db: AsyncSession, *, actor_id: int | None, parent_id: int | None
 ) -> OntologyVersion:
     """새 draft. ``parent_id`` 가 있으면 그 버전의 정의를 복사한다(게시본을 고치는 유일한 길)."""
     doc = OntologyDocument()
@@ -164,7 +164,7 @@ async def create_draft(
 
 
 async def replace_document(
-    db: AsyncSession, version_id: int, doc: OntologyDocument, *, actor_id: int
+    db: AsyncSession, version_id: int, doc: OntologyDocument, *, actor_id: int | None
 ) -> OntologyVersion:
     """임포트 — draft 의 정의를 문서로 통째 바꾼다. 문서는 이미 교차 검사를 통과했다."""
     version = await _draft(db, version_id)
@@ -384,7 +384,7 @@ async def delete_link_type(
 # ---------------------------------------------------------------- 게시
 
 
-async def publish(db: AsyncSession, version_id: int, *, actor_id: int) -> OntologyVersion:
+async def publish(db: AsyncSession, version_id: int, *, actor_id: int | None) -> OntologyVersion:
     """교차 검사를 통과한 draft 만 게시한다. 이전 게시본은 archived 가 된다.
 
     게시 버전이 언제나 하나뿐이라는 것은 부분 유일 인덱스가 보장한다 — 그래서 옛 것을 먼저

@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     test_neo4j_user: str = "neo4j"
     test_neo4j_password: SecretStr = SecretStr("")
 
+    # LLM 역할별 공급자·모델 설정 파일(TRD 10절).
+    llm_config_path: Path = _REPO_ROOT / "config" / "llm.yaml"
+
     # 등급 ②(일부 근거)를 허용할지. 끄면 ②를 ③으로 처리한다(TRD 2절 4번, 8.2-6).
     grade2_enabled: bool = True
 

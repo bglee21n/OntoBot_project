@@ -1,0 +1,3092 @@
+{
+  "summaries": [
+    {
+      "model": "gemma4:e2b",
+      "items": 12,
+      "correct": 6,
+      "answerable_correct": "4/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 3,
+      "final_plan_invalid": 2,
+      "grades": {
+        "1": 7,
+        "2": 1,
+        "3": 1
+      },
+      "estimated_ratio": 0.071,
+      "removed_citations": 1,
+      "p50_ms": 1000,
+      "max_ms": 2186
+    },
+    {
+      "model": "gemma4:e4b",
+      "items": 12,
+      "correct": 4,
+      "answerable_correct": "2/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 1,
+      "final_plan_invalid": 1,
+      "grades": {
+        "1": 5,
+        "2": 1,
+        "3": 4
+      },
+      "estimated_ratio": 0.083,
+      "removed_citations": 0,
+      "p50_ms": 1288,
+      "max_ms": 20293
+    },
+    {
+      "model": "qwen3:8b",
+      "items": 12,
+      "correct": 8,
+      "answerable_correct": "6/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 3,
+      "final_plan_invalid": 2,
+      "grades": {
+        "1": 7,
+        "2": 1,
+        "3": 1
+      },
+      "estimated_ratio": 0.045,
+      "removed_citations": 1,
+      "p50_ms": 4362,
+      "max_ms": 22432
+    },
+    {
+      "model": "gemma4:12b",
+      "items": 12,
+      "correct": 8,
+      "answerable_correct": "6/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 0,
+      "final_plan_invalid": 0,
+      "grades": {
+        "1": 5,
+        "2": 3,
+        "3": 3
+      },
+      "estimated_ratio": 0.091,
+      "removed_citations": 0,
+      "p50_ms": 7863,
+      "max_ms": 23485
+    },
+    {
+      "model": "gpt-oss:20b",
+      "items": 12,
+      "correct": 9,
+      "answerable_correct": "7/9",
+      "first_structured_fail": 0,
+      "first_plan_invalid": 0,
+      "final_plan_invalid": 0,
+      "grades": {
+        "1": 9,
+        "2": 0,
+        "3": 1
+      },
+      "estimated_ratio": 0.0,
+      "removed_citations": 0,
+      "p50_ms": 21595,
+      "max_ms": 100555
+    }
+  ],
+  "details": {
+    "gemma4:e2b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 건수 · 건수 내림차순",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": 100
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 건수 · 건수 내림차순)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "위험등급이 3 이상인 시설은 1개입니다. [[q:1#value]]",
+        "removed_citations": [
+          {
+            "sentence": 0,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 731,
+          "querying": 2,
+          "answering": 383,
+          "verifying": 0
+        },
+        "total_ms": 1116
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "(추정) 변전소 목록은 다음과 같습니다:\n- 결과 1: 10",
+        "raw_answer": "변전소 목록은 다음과 같습니다:\n- 결과 1: 10 [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 2,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 564,
+          "querying": 1,
+          "answering": 420,
+          "verifying": 0
+        },
+        "total_ms": 986
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 987
+        },
+        "total_ms": 987
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "- 변전소: 10\n- 전주: 10\n- 철탑: 10",
+        "raw_answer": "- 변전소: 10 [[q:1#value]]\n- 전주: 10 [[q:2#value]]\n- 철탑: 10 [[q:3#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 3,
+        "latency_ms": {
+          "planning": 500,
+          "querying": 3,
+          "answering": 495,
+          "verifying": 0
+        },
+        "total_ms": 999
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 설비 용량(kW) 최댓값",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "max",
+            "property": "capacity_kw",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "F-0007 시설의 설비 용량 최댓값은 3,000kW입니다.",
+        "raw_answer": "F-0007 시설의 설비 용량 최댓값은 3,000kW입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 546,
+          "querying": 2,
+          "answering": 451,
+          "verifying": 0
+        },
+        "total_ms": 1001
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 철탑 · 설치일 < 2015-01-01 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            },
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "2015년 이전에 설치된 철탑은 4건입니다.",
+        "raw_answer": "2015년 이전에 설치된 철탑은 4건입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 671,
+          "querying": 1,
+          "answering": 418,
+          "verifying": 0
+        },
+        "total_ms": 1092
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 최대 20건",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "다음은 조회된 조직 목록입니다.\n\n* 강남지사: 조직 ID ORG-01, 담당자 김가상, 담당자 연락처 010-0000-0001,,,\n* 부산지사: 조직 ID ORG-02, 담당자 이가상, 담당자 연락처 010-0000-0002,,,\n* 대구지사: 조직 ID ORG-03, 담당자 박가상, 담당자 연락처 010-0000-0003,,,\n* 수원지사: 조직 ID ORG-04, 담당자 최가상, 담당자 연락처 010-0000-0004,,,",
+        "raw_answer": "다음은 조회된 조직 목록입니다.\n\n* 강남지사: 조직 ID ORG-01, 담당자 김가상, 담당자 연락처 010-0000-0001 [[o:Organization/ORG-01#org_id]], [[o:Organization/ORG-01#name]], [[o:Organization/ORG-01#manager_name]], [[o:Organization/ORG-01#manager_phone]]\n* 부산지사: 조직 ID ORG-02, 담당자 이가상, 담당자 연락처 010-0000-0002 [[o:Organization/ORG-02#org_id]], [[o:Organization/ORG-02#name]], [[o:Organization/ORG-02#manager_name]], [[o:Organization/ORG-02#manager_phone]]\n* 대구지사: 조직 ID ORG-03, 담당자 박가상, 담당자 연락처 010-0000-0003 [[o:Organization/ORG-03#org_id]], [[o:Organization/ORG-03#name]], [[o:Organization/ORG-03#manager_name]], [[o:Organization/ORG-03#manager_phone]]\n* 수원지사: 조직 ID ORG-04, 담당자 최가상, 담당자 연락처 010-0000-0004 [[o:Organization/ORG-04#org_id]], [[o:Organization/ORG-04#name]], [[o:Organization/ORG-04#manager_name]], [[o:Organization/ORG-04#manager_phone]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 4,
+        "verified_sentences": 4,
+        "latency_ms": {
+          "planning": 385,
+          "querying": 2,
+          "answering": 1798,
+          "verifying": 0
+        },
+        "total_ms": 2186
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "'max' 는 숫자·날짜 속성에만 쓸 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "지역 · 지역 코드 = 11 · 최대 20건",
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "서울이 지역 코드 11인 지역 이름입니다.",
+        "raw_answer": "서울이 지역 코드 11인 지역 이름입니다. [[o:Region/11#name]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 1045,
+          "querying": 1,
+          "answering": 399,
+          "verifying": 0
+        },
+        "total_ms": 1447
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 351
+        },
+        "total_ms": 352
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "limit 은 1~100 이어야 합니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "limit 은 1~100 이어야 합니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": 1000
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1185
+        },
+        "total_ms": 1185
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 443,
+          "querying": 1
+        },
+        "total_ms": 444
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "서울 지역 시설 목록은 다음과 같습니다:\n- 결과 1: 건수(건): 0",
+        "raw_answer": "서울 지역 시설 목록은 다음과 같습니다:\n- 결과 1: 건수(건): 0 [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 574,
+          "querying": 1,
+          "answering": 419,
+          "verifying": 0
+        },
+        "total_ms": 995
+      }
+    ],
+    "gemma4:e4b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 ≥ 3 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "gte",
+              "value": 3
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "위험등급이 3 이상인 시설은 18건입니다.",
+        "raw_answer": "위험등급이 3 이상인 시설은 18건입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 19777,
+          "querying": 1,
+          "answering": 512,
+          "verifying": 0
+        },
+        "total_ms": 20293
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "(추정) 변전소 목록은 다음과 같습니다.\n건수(건): 10",
+        "raw_answer": "변전소 목록은 다음과 같습니다.\n건수(건): 10 [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 2,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 3857,
+          "querying": 1,
+          "answering": 529,
+          "verifying": 0
+        },
+        "total_ms": 4389
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "'risk_grade' 값이 비어 있습니다",
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "집계 결과는 그룹 속성이나 'value' 로만 정렬할 수 있습니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "is_null",
+              "value": false
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1445
+        },
+        "total_ms": 1445
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "시설 유형별 개수는 다음과 같습니다.\n변전소: 10건 [[q:1]]\n전주: 10건 [[q:2]]\n철탑: 10건 [[q:3]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 602,
+          "querying": 1,
+          "answering": 673,
+          "verifying": 0
+        },
+        "total_ms": 1277
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 설비 용량(kW) 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "capacity_kw",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 ID = F-0007 · 설비 용량(kW) 평균)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "F-0007 시설의 설비 용량(kW) 평균은 3,000입니다. [[q:1#value (평균(설비 용량(kW)))]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 666,
+          "querying": 1,
+          "answering": 651,
+          "verifying": 0
+        },
+        "total_ms": 1320
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 철탑 · 설치일 < 2015-01-01 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            },
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "2015년 이전에 설치된 철탑은 4건입니다.",
+        "raw_answer": "2015년 이전에 설치된 철탑은 4건입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 768,
+          "querying": 1,
+          "answering": 528,
+          "verifying": 0
+        },
+        "total_ms": 1299
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 건수",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조직 목록은 다음과 같습니다.\n* 건수(건): 4",
+        "raw_answer": "조직 목록은 다음과 같습니다.\n* 건수(건): 4 [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 517,
+          "querying": 2,
+          "answering": 523,
+          "verifying": 0
+        },
+        "total_ms": 1044
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "지역 · 지역 코드 = 11 · 건수",
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(지역 · 지역 코드 = 11 · 건수)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "지역 코드가 11인 지역 이름은 데이터에 없습니다. [[q:1]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 638,
+          "querying": 1,
+          "answering": 493,
+          "verifying": 0
+        },
+        "total_ms": 1134
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 398
+        },
+        "total_ms": 398
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 설비 용량(kW) > 1,000 · 위험등급 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            },
+            {
+              "property": "capacity_kw",
+              "op": "gt",
+              "value": 1000
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 유형 = 변전소 · 설비 용량(kW) > 1,000 · 위험등급 평균)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "용량이 1000kW 넘는 변전소의 평균 위험등급은 2.56입니다. [[q:1#value (평균(위험등급))]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 738,
+          "querying": 1,
+          "answering": 623,
+          "verifying": 0
+        },
+        "total_ms": 1364
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 524,
+          "querying": 1
+        },
+        "total_ms": 526
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "서울 지역 시설 목록은 건수(건)가 0건입니다.",
+        "raw_answer": "서울 지역 시설 목록은 건수(건)가 0건입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 603,
+          "querying": 1,
+          "answering": 521,
+          "verifying": 0
+        },
+        "total_ms": 1126
+      }
+    ],
+    "qwen3:8b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 ≥ 3 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "gte",
+              "value": 3
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "위험등급이 3 이상인 시설은 18개입니다.",
+        "raw_answer": "위험등급이 3 이상인 시설은 18개입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 21085,
+          "querying": 2,
+          "answering": 1344,
+          "verifying": 0
+        },
+        "total_ms": 22432
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "정렬 속성 'value' 이 'Facility' 에 없습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 시설명 오름차순 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "name",
+              "dir": "asc"
+            }
+          ],
+          "limit": 20
+        },
+        "answer": "강남 변전소 01호입니다.\n강남 변전소 13호입니다.\n강남 변전소 25호입니다.\n대구 변전소 07호입니다.\n대구 변전소 19호입니다.\n부산 변전소 10호입니다.\n부산 변전소 22호입니다.\n수원 변전소 04호입니다.\n수원 변전소 16호입니다.\n수원 변전소 28호입니다.",
+        "raw_answer": "강남 변전소 01호입니다. [[o:Facility/F-0001#name]]  \n강남 변전소 13호입니다. [[o:Facility/F-0013#name]]  \n강남 변전소 25호입니다. [[o:Facility/F-0025#name]]  \n대구 변전소 07호입니다. [[o:Facility/F-0007#name]]  \n대구 변전소 19호입니다. [[o:Facility/F-0019#name]]  \n부산 변전소 10호입니다. [[o:Facility/F-0010#name]]  \n부산 변전소 22호입니다. [[o:Facility/F-0022#name]]  \n수원 변전소 04호입니다. [[o:Facility/F-0004#name]]  \n수원 변전소 16호입니다. [[o:Facility/F-0016#name]]  \n수원 변전소 28호입니다. [[o:Facility/F-0028#name]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 10,
+        "verified_sentences": 10,
+        "latency_ms": {
+          "planning": 4498,
+          "querying": 2,
+          "answering": 11654,
+          "verifying": 0
+        },
+        "total_ms": 16156
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 내림차순 · 최대 5건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "(추정) 위험등급이 가장 높은 시설 5개는 다음과 같습니다.  \n\n- 대구 전주 03호의 위험등급은 5입니다.\n- 부산 전주 06호의 위험등급은 5입니다.\n- 부산 변전소 10호의 위험등급은 5입니다.\n- 부산 철탑 14호의 위험등급은 5입니다.\n- 수원 철탑 20호의 위험등급은 5입니다.",
+        "raw_answer": "위험등급이 가장 높은 시설 5개는 다음과 같습니다.  \n\n- 대구 전주 03호의 위험등급은 5입니다. [[o:Facility/F-0003#risk_grade]]  \n- 부산 전주 06호의 위험등급은 5입니다. [[o:Facility/F-0006#risk_grade]]  \n- 부산 변전소 10호의 위험등급은 5입니다. [[o:Facility/F-0010#risk_grade]]  \n- 부산 철탑 14호의 위험등급은 5입니다. [[o:Facility/F-0014#risk_grade]]  \n- 수원 철탑 20호의 위험등급은 5입니다. [[o:Facility/F-0020#risk_grade]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 6,
+        "verified_sentences": 5,
+        "latency_ms": {
+          "planning": 1747,
+          "querying": 2,
+          "answering": 8367,
+          "verifying": 0
+        },
+        "total_ms": 10117
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "시설 유형별 개수는 다음과 같습니다.  \n- 변전소: 10건\n- 전주: 10건\n- 철탑: 10건",
+        "raw_answer": "시설 유형별 개수는 다음과 같습니다.  \n- 변전소: 10건 [[q:1#value]]  \n- 전주: 10건 [[q:2#value]]  \n- 철탑: 10건 [[q:3#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 3,
+        "latency_ms": {
+          "planning": 2205,
+          "querying": 2,
+          "answering": 2585,
+          "verifying": 0
+        },
+        "total_ms": 4793
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 설비 용량(kW) 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "capacity_kw",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "F-0007 시설의 설비 용량은 3,000kW입니다.",
+        "raw_answer": "F-0007 시설의 설비 용량은 3,000kW입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 2520,
+          "querying": 2,
+          "answering": 1576,
+          "verifying": 0
+        },
+        "total_ms": 4098
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "정렬 속성 'value' 이 'Facility' 에 없습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "정렬 속성 'value' 이 'Facility' 에 없습니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            },
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 6325
+        },
+        "total_ms": 6325
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 건수 · 건수 내림차순",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": 20
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(조직 · 건수 · 건수 내림차순)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "조직 목록은 다음과 같습니다.  \n- [[q:1#value]]",
+        "removed_citations": [
+          {
+            "sentence": 1,
+            "citation": "q:1#value",
+            "reason": "value_mismatch"
+          }
+        ],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 2279,
+          "querying": 3,
+          "answering": 1003,
+          "verifying": 0
+        },
+        "total_ms": 3287
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "plan_invalid",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": false,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": [
+              "'max' 는 숫자·날짜 속성에만 쓸 수 있습니다"
+            ]
+          },
+          {
+            "structured_ok": true,
+            "errors": [
+              "'max' 는 숫자·날짜 속성에만 쓸 수 있습니다"
+            ]
+          }
+        ],
+        "conditions": null,
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "max",
+            "property": "name",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 4163
+        },
+        "total_ms": 4163
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 734
+        },
+        "total_ms": 734
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 설비 용량(kW) > 1,000 · 위험등급 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            },
+            {
+              "property": "capacity_kw",
+              "op": "gt",
+              "value": 1000
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "용량이 1000kW 넘는 변전소의 평균 위험등급은 2.56입니다.",
+        "raw_answer": "용량이 1000kW 넘는 변전소의 평균 위험등급은 2.56입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 2810,
+          "querying": 2,
+          "answering": 1749,
+          "verifying": 0
+        },
+        "total_ms": 4562
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1630,
+          "querying": 2
+        },
+        "total_ms": 1633
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 시설명 오름차순 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "name",
+              "dir": "asc"
+            }
+          ],
+          "limit": 20
+        },
+        "answer": "조회 조건(시설 · 지역 코드 = 서울 · 시설명 오름차순 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 2299,
+          "querying": 2
+        },
+        "total_ms": 2301
+      }
+    ],
+    "gemma4:12b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 ≥ 3 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "gte",
+              "value": 3
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 위험등급 ≥ 3 · 건수)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "위험등급이 3 이상인 시설은 18건입니다. [[q:1#value (건수(건))]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 18984,
+          "querying": 2,
+          "answering": 2419,
+          "verifying": 0
+        },
+        "total_ms": 21406
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "(추정) 변전소 목록은 다음과 같습니다.\n\n- 강남 변전소 01호\n- 수원 변전소 04호\n- 대구 변전소 07호\n- 부산 변전소 10호\n- 강남 변전소 13호\n- 수원 변전소 16호\n- 대구 변전소 19호\n- 부산 변전소 22호\n- 강남 변전소 25호\n- 수원 변전소 28호",
+        "raw_answer": "변전소 목록은 다음과 같습니다.\n\n- 강남 변전소 01호 [[o:Facility/F-0001#name]]\n- 수원 변전소 04호 [[o:Facility/F-0004#name]]\n- 대구 변전소 07호 [[o:Facility/F-0007#name]]\n- 부산 변전소 10호 [[o:Facility/F-0010#name]]\n- 강남 변전소 13호 [[o:Facility/F-0013#name]]\n- 수원 변전소 16호 [[o:Facility/F-0016#name]]\n- 대구 변전소 19호 [[o:Facility/F-0019#name]]\n- 부산 변전소 22호 [[o:Facility/F-0022#name]]\n- 강남 변전소 25호 [[o:Facility/F-0025#name]]\n- 수원 변전소 28호 [[o:Facility/F-0028#name]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 11,
+        "verified_sentences": 10,
+        "latency_ms": {
+          "planning": 5663,
+          "querying": 2,
+          "answering": 17818,
+          "verifying": 0
+        },
+        "total_ms": 23485
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 내림차순 · 최대 5건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "(추정) 위험등급이 가장 높은 시설 5개는 다음과 같습니다.\n\n- 대구 전주 03호 (위험등급: 5)\n- 부산 전주 06호 (위험등급: 5)\n- 부산 변전소 10호 (위험등급: 5)\n- 부산 철탑 14호 (위험등급: 5)\n- 수원 철탑 20호 (위험등급: 5)",
+        "raw_answer": "위험등급이 가장 높은 시설 5개는 다음과 같습니다.\n\n- 대구 전주 03호 (위험등급: 5) [[o:Facility/F-0003#risk_grade]]\n- 부산 전주 06호 (위험등급: 5) [[o:Facility/F-0006#risk_grade]]\n- 부산 변전소 10호 (위험등급: 5) [[o:Facility/F-0010#risk_grade]]\n- 부산 철탑 14호 (위험등급: 5) [[o:Facility/F-0014#risk_grade]]\n- 수원 철탑 20호 (위험등급: 5) [[o:Facility/F-0020#risk_grade]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 6,
+        "verified_sentences": 5,
+        "latency_ms": {
+          "planning": 3021,
+          "querying": 3,
+          "answering": 12888,
+          "verifying": 0
+        },
+        "total_ms": 15913
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 건수 내림차순 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [
+            {
+              "property": "value",
+              "dir": "desc"
+            }
+          ],
+          "limit": null
+        },
+        "answer": "시설 유형별 개수는 다음과 같습니다.\n\n- 변전소: 10\n- 전주: 10\n- 철탑: 10",
+        "raw_answer": "시설 유형별 개수는 다음과 같습니다.\n\n- 변전소: 10 [[q:1#value]]\n- 전주: 10 [[q:2#value]]\n- 철탑: 10 [[q:3#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 3,
+        "latency_ms": {
+          "planning": 3646,
+          "querying": 1,
+          "answering": 4054,
+          "verifying": 0
+        },
+        "total_ms": 7703
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 설비 용량(kW) 합계",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "sum",
+            "property": "capacity_kw",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 ID = F-0007 · 설비 용량(kW) 합계)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "F-0007 시설의 설비 용량(kW) 합계는 3,000입니다. [[q:1#value (합계(설비 용량(kW)))]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 4188,
+          "querying": 2,
+          "answering": 3419,
+          "verifying": 0
+        },
+        "total_ms": 7611
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 2,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 설치일 < 2015-01-01 · 시설 유형 = 철탑 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            },
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "(추정) 2015년 이전에 설치된 철탑은 다음과 같습니다.\n\n- 부산 철탑 02호 (설치일: 2006-09-07)\n- 강남 철탑 05호 (설치일: 2013-11-15)\n- 수원 철탑 08호 (설치일: 2009-01-12)\n- 대구 철탑 11호 (설치일: 2010-07-07)",
+        "raw_answer": "2015년 이전에 설치된 철탑은 다음과 같습니다.\n\n- 부산 철탑 02호 (설치일: 2006-09-07) [[o:Facility/F-0002#installed_on]]\n- 강남 철탑 05호 (설치일: 2013-11-15) [[o:Facility/F-0005#installed_on]]\n- 수원 철탑 08호 (설치일: 2009-01-12) [[o:Facility/F-0008#installed_on]]\n- 대구 철탑 11호 (설치일: 2010-07-07) [[o:Facility/F-0011#installed_on]]",
+        "removed_citations": [],
+        "estimated": 1,
+        "fact_sentences": 5,
+        "verified_sentences": 4,
+        "latency_ms": {
+          "planning": 4301,
+          "querying": 2,
+          "answering": 12858,
+          "verifying": 0
+        },
+        "total_ms": 17162
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 최대 20건",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "조직 목록은 다음과 같습니다.\n\n- 강남지사\n- 부산지사\n- 대구지사\n- 수원지사",
+        "raw_answer": "조직 목록은 다음과 같습니다.\n\n- 강남지사 [[o:Organization/ORG-01#name]]\n- 부산지사 [[o:Organization/ORG-02#name]]\n- 대구지사 [[o:Organization/ORG-03#name]]\n- 수원지사 [[o:Organization/ORG-04#name]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 4,
+        "verified_sentences": 4,
+        "latency_ms": {
+          "planning": 2170,
+          "querying": 3,
+          "answering": 5848,
+          "verifying": 0
+        },
+        "total_ms": 8023
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "지역 · 지역 코드 = 11 · 최대 20건",
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "지역 코드가 11인 지역 이름은 서울입니다.",
+        "raw_answer": "지역 코드가 11인 지역 이름은 서울입니다. [[o:Region/11#name]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 3109,
+          "querying": 2,
+          "answering": 2279,
+          "verifying": 0
+        },
+        "total_ms": 5392
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 3359
+        },
+        "total_ms": 3359
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 설비 용량(kW) > 1,000 · 시설 유형 = 변전소 · 위험등급 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "capacity_kw",
+              "op": "gt",
+              "value": 1000
+            },
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 설비 용량(kW) > 1,000 · 시설 유형 = 변전소 · 위험등급 평균)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "용량이 1000kW를 넘는 변전소의 평균 위험등급은 2.56입니다. [[q:1#value (평균(위험등급))]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 4925,
+          "querying": 2,
+          "answering": 3304,
+          "verifying": 0
+        },
+        "total_ms": 8232
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 2623,
+          "querying": 2
+        },
+        "total_ms": 2626
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "조회 조건(시설 · 지역 코드 = 서울 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 2854,
+          "querying": 2
+        },
+        "total_ms": 2856
+      }
+    ],
+    "gpt-oss:20b": [
+      {
+        "id": "q01",
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 ≥ 3 · 건수",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "gte",
+              "value": 3
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "위험등급이 3 이상인 시설은 18개입니다.",
+        "raw_answer": "위험등급이 3 이상인 시설은 18개입니다. [[q:1#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 29485,
+          "querying": 3,
+          "answering": 5858,
+          "verifying": 0
+        },
+        "total_ms": 35348
+      },
+      {
+        "id": "q02",
+        "question": "변전소 목록 보여줘",
+        "expected": "ok",
+        "status": "failed",
+        "failure_reason": "llm_unavailable",
+        "grade": null,
+        "status_ok": false,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "답변 모델에 연결하지 못해 실패했습니다. 잠시 뒤 다시 시도해 주세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 10266,
+          "querying": 2,
+          "answering": 90286
+        },
+        "total_ms": 100555
+      },
+      {
+        "id": "q03",
+        "question": "위험등급이 가장 높은 시설 5개 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 내림차순 · 최대 5건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [
+            {
+              "property": "risk_grade",
+              "dir": "desc"
+            }
+          ],
+          "limit": 5
+        },
+        "answer": "대구 전주 03호의 위험등급은 5입니다.\n부산 전주 06호의 위험등급은 5입니다.\n부산 변전소 10호의 위험등급은 5입니다.\n부산 철탑 14호의 위험등급은 5입니다.\n수원 철탑 20호의 위험등급은 5입니다.",
+        "raw_answer": "대구 전주 03호의 위험등급은 5입니다. [[o:Facility/F-0003#risk_grade]]  \n부산 전주 06호의 위험등급은 5입니다. [[o:Facility/F-0006#risk_grade]]  \n부산 변전소 10호의 위험등급은 5입니다. [[o:Facility/F-0010#risk_grade]]  \n부산 철탑 14호의 위험등급은 5입니다. [[o:Facility/F-0014#risk_grade]]  \n수원 철탑 20호의 위험등급은 5입니다. [[o:Facility/F-0020#risk_grade]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 5,
+        "verified_sentences": 5,
+        "latency_ms": {
+          "planning": 7816,
+          "querying": 2,
+          "answering": 14509,
+          "verifying": 0
+        },
+        "total_ms": 22329
+      },
+      {
+        "id": "q04",
+        "question": "시설 유형별 개수 알려줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형별 건수 · 최대 100건",
+        "plan": {
+          "target": "Facility",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "count",
+            "property": null,
+            "group_by": [
+              "facility_type"
+            ]
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "변전소: 10개\n전주: 10개\n철탑: 10개",
+        "raw_answer": "변전소: 10개 [[q:1#facility_type]] [[q:1#value]]  \n전주: 10개 [[q:2#facility_type]] [[q:2#value]]  \n철탑: 10개 [[q:3#facility_type]] [[q:3#value]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 3,
+        "verified_sentences": 3,
+        "latency_ms": {
+          "planning": 8627,
+          "querying": 2,
+          "answering": 19206,
+          "verifying": 0
+        },
+        "total_ms": 27837
+      },
+      {
+        "id": "q05",
+        "question": "F-0007 시설의 설비 용량은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 ID = F-0007 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_id",
+              "op": "eq",
+              "value": "F-0007"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "설비 용량은 3,000 kW입니다.",
+        "raw_answer": "설비 용량은 3,000 kW입니다. [[o:Facility/F-0007#capacity_kw]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 6354,
+          "querying": 2,
+          "answering": 4123,
+          "verifying": 0
+        },
+        "total_ms": 10479
+      },
+      {
+        "id": "q06",
+        "question": "2015년 이전에 설치된 철탑은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 철탑 · 설치일 < 2015-01-01 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "철탑"
+            },
+            {
+              "property": "installed_on",
+              "op": "lt",
+              "value": "2015-01-01"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "부산 철탑 02호 (설치일: 2006-09-07)\n강남 철탑 05호 (설치일: 2013-11-15)\n수원 철탑 08호 (설치일: 2009-01-12)\n대구 철탑 11호 (설치일: 2010-07-07)",
+        "raw_answer": "부산 철탑 02호 (설치일: 2006-09-07) [[o:Facility/F-0002#installed_on]]  \n강남 철탑 05호 (설치일: 2013-11-15) [[o:Facility/F-0005#installed_on]]  \n수원 철탑 08호 (설치일: 2009-01-12) [[o:Facility/F-0008#installed_on]]  \n대구 철탑 11호 (설치일: 2010-07-07) [[o:Facility/F-0011#installed_on]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 4,
+        "verified_sentences": 4,
+        "latency_ms": {
+          "planning": 5882,
+          "querying": 4,
+          "answering": 25281,
+          "verifying": 0
+        },
+        "total_ms": 31168
+      },
+      {
+        "id": "q07",
+        "question": "조직 목록 보여줘",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "조직 · 최대 20건",
+        "plan": {
+          "target": "Organization",
+          "filters": [],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": 20
+        },
+        "answer": "강남지사 (ORG-01) - 담당자: 김가상, 연락처: 010-0000-0001\n부산지사 (ORG-02) - 담당자: 이가상, 연락처: 010-0000-0002\n대구지사 (ORG-03) - 담당자: 박가상, 연락처: 010-0000-0003\n수원지사 (ORG-04) - 담당자: 최가상, 연락처: 010-0000-0004",
+        "raw_answer": "강남지사 (ORG-01) - 담당자: 김가상, 연락처: 010-0000-0001 [[o:Organization/ORG-01#name]] [[o:Organization/ORG-01#manager_name]] [[o:Organization/ORG-01#manager_phone]]  \n부산지사 (ORG-02) - 담당자: 이가상, 연락처: 010-0000-0002 [[o:Organization/ORG-02#name]] [[o:Organization/ORG-02#manager_name]] [[o:Organization/ORG-02#manager_phone]]  \n대구지사 (ORG-03) - 담당자: 박가상, 연락처: 010-0000-0003 [[o:Organization/ORG-03#name]] [[o:Organization/ORG-03#manager_name]] [[o:Organization/ORG-03#manager_phone]]  \n수원지사 (ORG-04) - 담당자: 최가상, 연락처: 010-0000-0004 [[o:Organization/ORG-04#name]] [[o:Organization/ORG-04#manager_name]] [[o:Organization/ORG-04#manager_phone]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 4,
+        "verified_sentences": 4,
+        "latency_ms": {
+          "planning": 6430,
+          "querying": 2,
+          "answering": 37401,
+          "verifying": 0
+        },
+        "total_ms": 43835
+      },
+      {
+        "id": "q08",
+        "question": "지역 코드가 11인 지역 이름은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "지역 · 지역 코드 = 11 · 최대 20건",
+        "plan": {
+          "target": "Region",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "11"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "지역 코드가 11인 지역 이름은 서울입니다.",
+        "raw_answer": "지역 코드가 11인 지역 이름은 서울입니다. [[o:Region/11#name]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 1,
+        "latency_ms": {
+          "planning": 10448,
+          "querying": 2,
+          "answering": 10410,
+          "verifying": 0
+        },
+        "total_ms": 20861
+      },
+      {
+        "id": "q09",
+        "question": "안녕하세요",
+        "expected": "not_query",
+        "status": "not_query",
+        "failure_reason": null,
+        "grade": null,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "not_query": true
+          }
+        ],
+        "conditions": null,
+        "plan": null,
+        "answer": "저는 등록된 데이터를 조회해 답합니다. 예를 들어 \"위험등급이 3 이상인 시설은 몇 개야?\"처럼 물어보세요.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 1608
+        },
+        "total_ms": 1608
+      },
+      {
+        "id": "q10",
+        "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+        "expected": "ok",
+        "status": "ok",
+        "failure_reason": null,
+        "grade": 3,
+        "status_ok": true,
+        "values_ok": false,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 시설 유형 = 변전소 · 설비 용량(kW) > 1,000 · 위험등급 평균",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "facility_type",
+              "op": "eq",
+              "value": "변전소"
+            },
+            {
+              "property": "capacity_kw",
+              "op": "gt",
+              "value": 1000
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": {
+            "fn": "avg",
+            "property": "risk_grade",
+            "group_by": []
+          },
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. 조회 조건(시설 · 시설 유형 = 변전소 · 설비 용량(kW) > 1,000 · 위험등급 평균)의 결과를 아래 근거 목록에서 직접 확인해 주세요.",
+        "raw_answer": "평균 위험등급은 2.56입니다. [[q:1#평균(위험등급)]]",
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 1,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 4788,
+          "querying": 1,
+          "answering": 5209,
+          "verifying": 0
+        },
+        "total_ms": 10001
+      },
+      {
+        "id": "q11",
+        "question": "위험등급이 9인 시설 보여줘",
+        "expected": "empty",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": true,
+        "values_ok": true,
+        "correct": true,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 위험등급 = 9 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "risk_grade",
+              "op": "eq",
+              "value": 9
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 위험등급 = 9 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 3498,
+          "querying": 2
+        },
+        "total_ms": 3501
+      },
+      {
+        "id": "q12",
+        "question": "서울 지역 시설 목록 보여줘",
+        "expected": "failed",
+        "status": "empty",
+        "failure_reason": null,
+        "grade": 1,
+        "status_ok": false,
+        "values_ok": true,
+        "correct": false,
+        "first_structured_ok": true,
+        "first_valid": true,
+        "plan_attempts": [
+          {
+            "structured_ok": true,
+            "errors": []
+          }
+        ],
+        "conditions": "시설 · 지역 코드 = 서울 · 최대 20건",
+        "plan": {
+          "target": "Facility",
+          "filters": [
+            {
+              "property": "region_code",
+              "op": "eq",
+              "value": "서울"
+            }
+          ],
+          "traverse": [],
+          "context_refs": [],
+          "aggregate": null,
+          "sort": [],
+          "limit": null
+        },
+        "answer": "조회 조건(시설 · 지역 코드 = 서울 · 최대 20건)에 맞는 객체가 없습니다.",
+        "raw_answer": null,
+        "removed_citations": [],
+        "estimated": 0,
+        "fact_sentences": 0,
+        "verified_sentences": 0,
+        "latency_ms": {
+          "planning": 13845,
+          "querying": 1
+        },
+        "total_ms": 13848
+      }
+    ]
+  }
+}
