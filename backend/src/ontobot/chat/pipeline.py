@@ -1,8 +1,9 @@
 """질의 파이프라인(TRD 7.1) — 계획 → 검증 → 컴파일·실행 → 조회 조건 → 답변 → 대조·등급.
 
-Phase 1.5 스파이크판이다. 단일 타입 질의만 다룬다(탐색·맥락은 Phase 4). SSE 와 트레이스 저장은
-Phase 4 에서 이 함수의 결과(``PipelineResult``)를 그대로 받아 붙인다 — 단계 구분과 상태·등급
-규칙은 여기서 이미 최종 모양이다.
+이 함수는 저장하지 않는다. 대화·메시지·트레이스·맥락 기록은 호출부(``api.chat``)가
+``PipelineResult`` 로 한다 — 평가(Phase 7)가 같은 함수를 인프로세스로 돌리기 위해서다.
+진행 상황(``stage``·``conditions``)은 ``emit`` 으로 바로 알린다. 답변 본문은 대조를 마친 결과에만
+있다(TRD 8.3).
 
 상태와 등급은 다른 축이다(TRD 7.3): ``failed``·``not_query`` 는 등급이 없고, ``empty`` 는 ①이다.
 """
@@ -10,13 +11,16 @@ Phase 4 에서 이 함수의 결과(``PipelineResult``)를 그대로 받아 붙�
 from __future__ import annotations
 
 import time
-from collections.abc import Set
+from collections.abc import Awaitable, Callable, Set
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.chat import answerer, templates
+from ontobot.graph import client as graph
+from ontobot.graph.projector import LAG_WARN_SECONDS, lag
 from ontobot.grounding.grader import grade
 from ontobot.grounding.types import Evidence, GroundingContext
 from ontobot.llm.gateway import LLMGateway, LlmUnavailable
@@ -24,13 +28,22 @@ from ontobot.llm.structured import StructuredOutputError
 from ontobot.ontology.registry import PublishedSchema
 from ontobot.ontology.summary import schema_summary
 from ontobot.query import conditions, planner, records
-from ontobot.query.compiler import compile_plan
-from ontobot.query.executor import execute
+from ontobot.query.coverage import coverage_errors
+from ontobot.query.executor import execute_plan
 from ontobot.query.plan import PlannerOutput
-from ontobot.query.references import check_references
+from ontobot.query.references import (
+    check_raw_references,
+    check_references,
+    rewrite_fk_names,
+)
 from ontobot.query.validator import PlanInvalid, ValidatedPlan, validate
 
 Status = Literal["ok", "empty", "failed", "not_query"]
+Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
+
+
+async def _silent(_event: str, _data: dict[str, Any]) -> None:
+    return None
 
 
 @dataclass
@@ -44,6 +57,11 @@ class PipelineResult:
     # 계획 시도마다 (구조화 출력 성공 여부, 검증 오류). 스파이크의 plan_invalid 측정 근거.
     plan_attempts: list[dict[str, Any]] = field(default_factory=list)
     sql: str | None = None
+    cypher: str | None = None
+    # 투영 지연이 임계값을 넘었을 때만: 관계 정보가 반영된 시각(TRD 5.5, 14.2 conditions).
+    graph_as_of: str | None = None
+    # 이 답으로 바꿀 대화 맥락. None 이면 맥락을 그대로 둔다.
+    context_refs: list[dict[str, str]] | None = None
     citations: list[dict[str, Any]] = field(default_factory=list)
     removed_citations: list[dict[str, Any]] = field(default_factory=list)
     estimated_sentences: list[int] = field(default_factory=list)
@@ -81,7 +99,7 @@ def _failed(res: PipelineResult, reason: str) -> PipelineResult:
 
 def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
     terms: set[str] = set()
-    for f in vp.filters:
+    for f in (*vp.filters, *(f for h in vp.hops for f in h.filters)):
         values = f.value if isinstance(f.value, tuple) else (f.value,)
         for v in values:
             if isinstance(v, bool):
@@ -119,13 +137,15 @@ async def _plan_and_validate(
     schema: PublishedSchema,
     readable: Set[str],
     question: str,
+    context: list[dict[str, str]],
     res: PipelineResult,
 ) -> ValidatedPlan | PipelineResult:
     summary = schema_summary(schema.document, readable)
+    allowed = frozenset((c["type"], c["pk"]) for c in context)
     errors: list[str] | None = None
     for _ in range(2):  # 최초 + 검증 오류를 붙인 재계획 1회(TRD 7.1 3단계)
         try:
-            out: PlannerOutput = await planner.plan(llm, summary, question, errors)
+            out: PlannerOutput = await planner.plan(llm, summary, question, errors, context)
         except StructuredOutputError as e:
             res.plan_attempts.append({"structured_ok": False, "errors": e.errors})
             return _failed(res, "plan_invalid")
@@ -142,23 +162,41 @@ async def _plan_and_validate(
             errors = ["kind 가 query 이면 plan 이 있어야 합니다"]
             res.plan_attempts.append({"structured_ok": True, "errors": errors})
             continue
-        res.plan = out.plan.model_dump(mode="json")
+        plan, rewrites = await rewrite_fk_names(db, schema.document, out.plan)
+        res.plan = plan.model_dump(mode="json")
         try:
-            vp = validate(schema.document, readable, out.plan)
+            vp = validate(schema.document, readable, plan, allowed)
         except PlanInvalid as e:
-            res.plan_attempts.append({"structured_ok": True, "errors": e.errors})
             if e.forbidden:
+                res.plan_attempts.append({"structured_ok": True, "errors": e.errors})
                 return _failed(res, "forbidden")
-            errors = e.errors
+            errors = (
+                e.errors
+                + await check_raw_references(db, schema.document, plan)
+                + coverage_errors(question, plan)
+            )
+            res.plan_attempts.append(
+                {"structured_ok": True, "errors": errors, "rewrites": rewrites}
+            )
             continue
-        ref_errors = await check_references(db, schema.document, vp)
+        ref_errors = await check_references(db, schema.document, vp) + coverage_errors(
+            question, plan
+        )
         if ref_errors:
-            res.plan_attempts.append({"structured_ok": True, "errors": ref_errors})
+            res.plan_attempts.append(
+                {"structured_ok": True, "errors": ref_errors, "rewrites": rewrites}
+            )
             errors = ref_errors
             continue
-        res.plan_attempts.append({"structured_ok": True, "errors": []})
+        res.plan_attempts.append({"structured_ok": True, "errors": [], "rewrites": rewrites})
         return vp
     return _failed(res, "plan_invalid")
+
+
+def _as_of(oldest_pending_at: str) -> tuple[str, str]:
+    """(ISO, 'HH:MM') — 미반영 이벤트 중 가장 오래된 것의 시각. 그 전까지는 반영됐다."""
+    at = datetime.fromisoformat(oldest_pending_at).astimezone()
+    return at.isoformat(), at.strftime("%H:%M")
 
 
 async def run(
@@ -169,23 +207,36 @@ async def run(
     question: str,
     *,
     grade2_enabled: bool = True,
+    context: list[dict[str, str]] | None = None,
+    graph_driver: graph.AsyncDriver | None = None,
+    emit: Emit = _silent,
 ) -> PipelineResult:
+    """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``)."""
     res = PipelineResult(status="failed", answer="")
     timer = _Timer(res.stage_latency_ms)
     if schema is None:
         return _failed(res, "no_schema")
     try:
+        await emit("stage", {"stage": "planning"})
         with timer.stage("planning"):
-            planned = await _plan_and_validate(db, llm, schema, readable, question, res)
+            planned = await _plan_and_validate(
+                db, llm, schema, readable, question, context or [], res
+            )
         if isinstance(planned, PipelineResult):
             return planned
         vp = planned
         res.conditions = conditions.describe(vp)
 
+        await emit("stage", {"stage": "querying"})
         with timer.stage("querying"):
-            compiled = compile_plan(vp)
-            ex = await execute(db, compiled)
-        res.sql = ex.sql
+            ex = await execute_plan(db, graph_driver, vp)
+        res.sql, res.cypher = ex.sql or None, ex.cypher
+        if vp.hops and ex.failure_reason != "graph_unavailable":
+            lagged = await lag(db)
+            if lagged["projection_lag_seconds"] > LAG_WARN_SECONDS and lagged["oldest_pending_at"]:
+                res.graph_as_of, hhmm = _as_of(lagged["oldest_pending_at"])
+                res.conditions += f" · 관계 정보는 {hhmm} 기준"
+        await emit("conditions", {"text": res.conditions, "graph_as_of": res.graph_as_of})
         if ex.status == "failed":
             return _failed(res, ex.failure_reason or "execution_error")
         if ex.status == "empty":
@@ -193,9 +244,11 @@ async def run(
             return res
 
         rs = records.build(vp, ex.rows)
+        await emit("stage", {"stage": "answering"})
         with timer.stage("answering"):
             raw = await answerer.answer(llm, question, res.conditions, records.render_for_llm(rs))
         res.raw_answer = raw
+        await emit("stage", {"stage": "verifying"})
         with timer.stage("verifying"):
             g = grade(
                 raw, _evidence(rs, readable, _condition_terms(vp)), grade2_enabled=grade2_enabled
@@ -216,4 +269,8 @@ async def run(
     res.removed_citations = [r.__dict__ for r in g.removed]
     res.estimated_sentences = g.estimated_sentences
     res.fact_sentences, res.verified_sentences = g.fact_sentences, g.verified_sentences
+    if vp.aggregate is None:
+        res.context_refs = [
+            {"type": r.type, "pk": r.ref.split("/", 1)[1]} for r in rs.records if r.type
+        ]
     return res

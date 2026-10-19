@@ -94,6 +94,10 @@ async def project_all(db: AsyncSession, driver: AsyncDriver) -> int:
     return total
 
 
+# 이 지연을 넘으면 조회 조건 문장에 "관계 정보는 HH:MM 기준"을 덧붙인다(TRD 5.5).
+LAG_WARN_SECONDS = 600
+
+
 async def lag(db: AsyncSession) -> dict[str, Any]:
     """반영 지연(TRD 5.2): 가장 오래된 미처리 이벤트의 나이."""
     row = (

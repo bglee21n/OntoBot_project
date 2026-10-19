@@ -1,0 +1,134 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# OntoBot (가칭) — 온톨로지 기반 챗봇
+
+게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
+답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
+
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.7) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+[구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 4 완료(채팅 SSE·화면·
+링크 탐색·대화 맥락), 다음은 Phase 5(보안 마감·LLM 게이트웨이 확장)·6(워크숍)·7(평가 게이트).
+
+## 운영 전제
+
+- **폐쇄망 온프레미스(Windows Server)가 기본, Docker 를 쓰지 않는다**(ADR-0007). 개발·CI·운영 모두 네이티브 설치.
+  실행 중 외부 네트워크를 호출하는 코드를 넣지 않는다(외부 LLM 공급자를 켠 경우만 예외).
+- LLM 은 로컬 Ollama. 역할별 모델은 [config/llm.yaml](config/llm.yaml) 에만 적는다(코드에 모델 ID 금지).
+  planner·answerer 기본값 `gemma4:e4b` 는 ADR-0004 의 측정 결과다 — 바꾸려면 다시 잰다.
+- 저장소: PostgreSQL 이 **기록의 원본**, Neo4j Community 는 링크 **투영**(언제든 PostgreSQL 에서 재구축).
+- 개발 PC: PostgreSQL 18(`ontobot_db` 개발, `ontobot_test`·`ontobot_source_test` 통합 테스트,
+  `ontobot_source_dev` 개발용 원천), Neo4j 개발 7687 / 테스트 7688(Windows 서비스 `neo4j-ontobot-dev`·`-test`).
+  상세는 [deploy/windows/README.md](deploy/windows/README.md). 비밀값은 루트 `.env` 에만 있다(커밋 금지).
+
+## 명령
+
+명령의 정본은 [scripts/task.py](scripts/task.py) 다(Windows 에 make 가 없다. `Makefile` 은 이것을 부르기만 한다).
+가상환경은 uv 가 `backend/.venv` 에 만든다.
+
+```bash
+uv run --project backend python scripts/task.py lint          # ruff·ruff format --check·mypy·import-linter·eslint·tsc
+uv run --project backend python scripts/task.py test-unit
+uv run --project backend python scripts/task.py test-int      # 실제 PostgreSQL·Neo4j(테스트 전용 DB·인스턴스)
+uv run --project backend python scripts/task.py test-contract # OpenAPI 스냅샷
+uv run --project backend python scripts/task.py migrate       # alembic upgrade head (.env 의 DB)
+uv run --project backend python scripts/task.py openapi       # API 를 바꾸면 반드시 — 프론트 타입 재생성
+uv run --project backend python scripts/task.py dev-api       # :8000
+uv run --project backend python scripts/task.py dev-web       # :5173 (/api 를 :8000 으로 프록시)
+uv run --project backend python scripts/task.py worker        # 동기화·그래프 투영·주기 작업
+```
+
+테스트 하나만(backend 에서):
+
+```bash
+cd backend && uv run pytest tests/unit/test_grounding.py::test_grade_one_when_every_fact_is_cited -q
+cd backend && uv run pytest tests/integration/test_sync_graph.py -q -m integration
+```
+
+그 밖: `scripts/seed_domain_pack.py --pack sample`(샘플 온톨로지 게시 + 시드 객체),
+`scripts/spike_plan.py --models <모델…>`(골든 문항으로 모델 측정, 결과는 `docs/adr/data/`),
+`scripts/graph_rebuild.py [--check]`(Neo4j 재구축/대사), 사용자 생성
+`cd backend && uv run python -m ontobot.security.cli create-user --username … --display-name … --role modeler`.
+
+- 통합 테스트는 세션 시작 때 `test_db_name`(이름에 `test` 필수) 의 public 스키마를 지우고 마이그레이션을 다시 건다.
+  `audit_log` 가 추가 전용(트리거)이라 테스트 사이에 데이터를 지우지 않는다 — 각 테스트가 uuid 로 고유 데이터를 만든다.
+- 테스트 Neo4j(`Start-Service neo4j-ontobot-test`)가 없으면 그래프 테스트만 건너뛴다.
+- `alembic.ini` 는 **ASCII 만**(configparser 가 cp949 로 읽는다). 새 마이그레이션은 `alembic revision --autogenerate`
+  후 검토, `test_schema.py::test_migration_matches_models` 가 모델과 어긋남을 잡는다.
+- 한국어 Windows 콘솔(cp949) 때문에 스크립트 출력이 깨지면 `PYTHONUTF8=1`.
+
+## 아키텍처
+
+```
+backend/src/ontobot/
+  api/        라우터 — 검증과 위임만(업무 규칙 금지). deps.py(세션·현재 사용자·require_role), errors.py(RFC 7807)
+  ontology/   정의 문서 모델·임포트/익스포트·버전 비교·draft→게시(versioning)·게시 버전 캐시(registry)·플래너 요약
+  objects/    reader.py = object 표의 유일한 읽기 경로 / store.py = 쓰기·스테이징 병합 / indexes.py = 속성 인덱스 DDL
+  sync/       커넥터(MVP 는 postgres) · mapping(검증·행 변환) · runner(스테이징 → 한 트랜잭션 병합 → 아웃박스)
+  graph/      client.py(neo4j import 는 여기만) · outbox(쓰기) · projector(아웃박스 → Neo4j) · reconcile(대사·재구축)
+  query/      plan(QueryPlan) → planner(LLM) → validator → references(FK 값 실재) → compiler → executor, conditions·records
+  grounding/  인용 파싱·정규화·사실 문장 판정·등급 — 순수 함수(LLM·DB 를 모른다)
+  chat/       pipeline(7.1 단계 오케스트레이션)·answerer·templates(사용자 문구의 정본)
+  llm/        gateway(역할 → 공급자·모델) · structured(스키마 검증·1회 재시도) · adapters/(SDK·HTTP 는 여기만)
+  security/   auth(로컬 계정 argon2 + 서버 세션)·oidc(Code + PKCE)·rbac(권한 판정의 유일한 자리)·audit·pii·secrets
+  jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
+frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
+domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
+```
+
+### 질의 한 건 (chat/pipeline.py)
+
+계획(LLM 구조화 출력: `query` / `not_query` / `cannot_answer`) → 검증(속성 자료형으로 값 변환, 권한) →
+참조 값 대조 → 실패면 오류를 붙여 **1회 재계획** → 컴파일(값·속성 키 전부 바인드) → 실행(타임아웃) →
+결정론적 조회 조건 문장 → `ok` 일 때만 답변 LLM → 근거 대조·등급. 상태(`ok/empty/failed/not_query`)와
+등급은 다른 축이다 — `failed` 를 `empty` 처럼 보이게 하지 않는다. `traverse` 는 대상에서 1홉 조건의 AND:
+끝 객체 조건은 PG 에서 pk 집합 → Neo4j `EXISTS` 로 대상 pk → PG 대상 조회(Neo4j 불가면 `graph_unavailable`,
+PG `link` 로 대체하지 않는다). API(`api/chat.py`)가 메시지·트레이스·맥락을 저장하고, 파이프라인은 저장하지 않는다
+(평가가 같은 함수를 인프로세스로 돈다). SSE 이벤트 순서와 모양의 정본은 `chat/stream.py`(`ChatEvents`).
+
+### 쓰기 경로 (sync/runner.py → graph/projector.py)
+
+동기화는 `sync_run(running)` 을 따로 커밋한 뒤, 스테이징 임시 표 → row_hash 변경 판별 → upsert →
+(전체 모드) 원천별 삭제 표시 → FK 링크 규칙 → **같은 트랜잭션에서** `graph_outbox` → `succeeded`.
+워커의 투영기가 아웃박스를 id 순서로 묶음 반영한다(묶음 = Neo4j 트랜잭션 = 처리 표시 하나, 실패하면 다시).
+
+## 깨면 조용히 틀리는 규칙
+
+TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit/test_dependency_rules.py` 가 막는다:
+어떤 모듈도 `api` 를 import 하지 않는다 · `grounding` 은 llm·db·graph·sync·sqlalchemy 금지 ·
+`neo4j` 는 `graph/client.py` 만 · LLM SDK 는 `llm/adapters/` 만 · `object` 표 SQL 은 `objects/` 안에서만 ·
+권한 판정 함수는 `security/rbac.py` 만.
+
+- **DB 세션은 `async with session_scope() as db:` 로만 연다.** 비동기 제너레이터를 `async for` 로 돌리고 본문에서
+  `return` 하면 트랜잭션이 열린 채 남는다 — 워커가 그 상태로 `CREATE INDEX CONCURRENTLY` 를 실행해 자기 자신을 기다렸다.
+  워커는 작업을 집은 세션을 닫은 뒤 처리기를 돌린다(`queue.claim` 은 ORM 이 아니라 값을 돌려준다).
+- **근거 대조에 유사도를 넣지 않는다.** 정규화는 NFC·공백·천 단위 구분·날짜 ISO 뿐이고 판정은 "그대로 포함". 등급은 LLM 이
+  매기지 않는다. 사실 문장 판정 전에 조회 조건 값을 걷어 낸다(TRD 8.2-2 v0.5).
+- **LLM 은 SQL·Cypher 를 쓰지 않는다.** 값·속성 키는 바인드, 라벨·관계 타입은 바인드할 수 없으므로 식별자 정규식
+  (`ontology/models.py` 의 `TYPE_NAME`/`MEMBER_NAME`)을 **조립 직전에 다시** 확인한다. 정규식을 느슨하게 하지 말 것.
+- 데이터 블록은 줄마다 `인용키 | 이름 | 값` 이다(ADR-0004). 라벨을 키 옆에 괄호로 적으면 모델이 인용에 베낀다.
+  평균은 서버가 반올림한다. 깨진 인용도 `removed_citations` 에 남긴다.
+- 플래너가 표현할 수 없는 조건은 **빼지 말고** `cannot_answer` → `failed(plan_invalid)`. 코드 속성에 이름을 넣는 계획은
+  `query/references.py` 가 막는다(값이 모두 그 타입 제목과 **정확히** 같으면 `traverse` 로 옮기고, 아니면 재계획).
+  질문의 숫자가 계획에 없으면 `query/coverage.py` 가 재계획시킨다. 그 밖의 조건 누락은 결정론적으로 막을 수 없다
+  (골든 `required_conditions` 로 감시). 재계획은 1회뿐이니 오류는 **한꺼번에** 붙인다.
+- **플래너 프롬프트 예시의 키 순서는 `QueryPlan` 필드 순서와 같아야 한다.** 구조화 출력은 스키마 순서대로 생성돼,
+  예시가 순서를 어기면 모델이 앞 필드(`filters`)를 비운 채 지나간다(측정 0/6 → 6/6, 단위 테스트가 고정).
+- 답변 모델은 레코드를 스스로 다시 거르지 않는다(프롬프트 규칙). 걸러 버리면 조건 누락이 감춰진다.
+- 프롬프트·스키마 요약을 바꾸면 `scripts/spike_plan.py --models gemma4:e4b` 로 다시 잰다(골든 16문항, 근거는
+  `docs/adr/data/`). 측정 결과를 ADR-0004 에 남긴다.
+- 동기화에서 행 하나라도 변환 실패면 **실행 전체 실패**(건너뛰지 않는다). Neo4j 노드에는 `pk`·`title`·`stub` 만
+  (속성 값·PII 금지, PII 제목은 null). 링크 끝점이 없으면 `stub` 노드, 대사가 수를 보고한다.
+- 게시본은 불변(편집은 draft 만, `ontology/versioning.py`). 게시 버전은 부분 유일 인덱스로 하나뿐, 번호 발급·게시는
+  advisory lock 으로 직렬화. 레지스트리는 **커밋 뒤** reload 한다. 타입·속성 `api_name` 은 바꾸지 않는다.
+- `audit.record` 는 호출자 트랜잭션에 넣는다(변경과 기록이 함께). payload 는 마스킹된다. 감사 로그는 DB 트리거로 추가 전용.
+- `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
+  P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).
+- 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
+  `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
+- 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.
+  화면 문구는 `frontend/src/i18n/ko/index.ts`, 서버 안내 문구는 `chat/templates.py` 가 정본.
+- TypeScript 는 5.9.3 고정(openapi-typescript·typescript-eslint 호환). 프롬프트·안내 문구 파일
+  (`chat/templates.py`·`chat/answerer.py`·`query/planner.py`)만 줄 길이 규칙(E501)에서 뺐다.

@@ -15,12 +15,15 @@ from fastapi import FastAPI, Request, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from ontobot.api import auth as auth_api
+from ontobot.api import chat as chat_api
 from ontobot.api import errors
 from ontobot.api import graph as graph_api
+from ontobot.api import objects as objects_api
 from ontobot.api import ontology as ontology_api
 from ontobot.api import sources as sources_api
 from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
+from ontobot.jobs.handlers import graph_driver
 from ontobot.ontology import registry
 
 log = logging.getLogger(__name__)
@@ -30,14 +33,19 @@ _UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 @asynccontextmanager
-async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         async with session_scope() as db:
             await registry.reload(db)
     except (SQLAlchemyError, OSError):
         # DB 없이도 프로세스는 뜬다(/healthz). 게시 스키마가 없다는 사실은 읽는 쪽이 밝힌다.
         log.exception("게시 스키마를 읽지 못했습니다 — 레지스트리가 비어 있습니다")
+    # 탐색 질의용 Neo4j 드라이버. 만들기만 하고 접속은 첫 질의 때 한다 — Neo4j 가 내려가 있어도
+    # 프로세스는 뜨고, 탐색 질의만 failed(graph_unavailable) 로 밝힌다(TRD 5.5).
+    app.state.graph = graph_driver()
     yield
+    if app.state.graph is not None:
+        await app.state.graph.close()
     await dispose_engine()
 
 
@@ -68,6 +76,8 @@ def create_app() -> FastAPI:
     app.include_router(sources_api.router, prefix=API_PREFIX)
     app.include_router(graph_api.router, prefix=API_PREFIX)
     app.include_router(graph_api.jobs_router, prefix=API_PREFIX)
+    app.include_router(chat_api.router, prefix=API_PREFIX)
+    app.include_router(objects_api.router, prefix=API_PREFIX)
     return app
 
 

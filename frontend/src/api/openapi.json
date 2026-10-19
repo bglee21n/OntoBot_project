@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AnswerData": {
+        "properties": {
+          "estimated_sentences": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Estimated Sentences",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "estimated_sentences"
+        ],
+        "title": "AnswerData",
+        "type": "object"
+      },
       "ChangeOut": {
         "properties": {
           "after": {
@@ -60,6 +81,103 @@
         "title": "ChangeOut",
         "type": "object"
       },
+      "ChatEvents": {
+        "description": "이벤트 이름 → 데이터. 한 응답에 이 필드들이 모두 오는 것이 아니다(순서는 모듈 설명).",
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/AnswerData"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationData"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ConditionsData"
+          },
+          "done": {
+            "$ref": "#/components/schemas/DoneData"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ErrorData"
+          },
+          "grade": {
+            "$ref": "#/components/schemas/GradeData"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/StageData"
+          }
+        },
+        "required": [
+          "stage",
+          "conditions",
+          "answer",
+          "citations",
+          "grade",
+          "error",
+          "done"
+        ],
+        "title": "ChatEvents",
+        "type": "object"
+      },
+      "ChatRequest": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "question": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
+      "CitationData": {
+        "properties": {
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "synced_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synced At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "title",
+          "synced_at"
+        ],
+        "title": "CitationData",
+        "type": "object"
+      },
       "ColumnsIn": {
         "properties": {
           "query": {
@@ -88,6 +206,62 @@
         "title": "ColumnsIn",
         "type": "object"
       },
+      "ConditionsData": {
+        "properties": {
+          "graph_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph As Of"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "graph_as_of"
+        ],
+        "title": "ConditionsData",
+        "type": "object"
+      },
+      "ConversationOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "updated_at"
+        ],
+        "title": "ConversationOut",
+        "type": "object"
+      },
       "CreateVersion": {
         "properties": {
           "parent_id": {
@@ -103,6 +277,29 @@
           }
         },
         "title": "CreateVersion",
+        "type": "object"
+      },
+      "DoneData": {
+        "properties": {
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "integer"
+          },
+          "message_id": {
+            "title": "Message Id",
+            "type": "integer"
+          },
+          "trace_id": {
+            "title": "Trace Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_id",
+          "trace_id"
+        ],
+        "title": "DoneData",
         "type": "object"
       },
       "Enqueued": {
@@ -128,6 +325,88 @@
           "already_queued"
         ],
         "title": "Enqueued",
+        "type": "object"
+      },
+      "ErrorData": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "const": "failed",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reason",
+          "message"
+        ],
+        "title": "ErrorData",
+        "type": "object"
+      },
+      "FieldOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "display_name",
+          "value"
+        ],
+        "title": "FieldOut",
+        "type": "object"
+      },
+      "GradeData": {
+        "properties": {
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "empty",
+              "not_query"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "grade"
+        ],
+        "title": "GradeData",
         "type": "object"
       },
       "GraphStatus": {
@@ -742,6 +1021,182 @@
         "title": "Me",
         "type": "object"
       },
+      "MessageMeta": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationData"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          },
+          "estimated_sentences": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Estimated Sentences",
+            "type": "array"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "graph_as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph As Of"
+          }
+        },
+        "title": "MessageMeta",
+        "type": "object"
+      },
+      "MessageOut": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MessageMeta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ok",
+                  "empty",
+                  "failed",
+                  "not_query"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "content",
+          "status",
+          "grade",
+          "meta",
+          "created_at"
+        ],
+        "title": "MessageOut",
+        "type": "object"
+      },
+      "ObjectCard": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldOut"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Synced At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "type_display_name": {
+            "title": "Type Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "type_display_name",
+          "pk",
+          "title",
+          "fields",
+          "synced_at"
+        ],
+        "title": "ObjectCard",
+        "type": "object"
+      },
       "ObjectTypeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -1221,6 +1676,25 @@
           }
         },
         "title": "SourcePatch",
+        "type": "object"
+      },
+      "StageData": {
+        "properties": {
+          "stage": {
+            "enum": [
+              "planning",
+              "querying",
+              "answering",
+              "verifying"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage"
+        ],
+        "title": "StageData",
         "type": "object"
       },
       "SyncRunOut": {
@@ -1743,6 +2217,119 @@
         ]
       }
     },
+    "/api/v1/chat": {
+      "post": {
+        "operationId": "chat_api_v1_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatEvents"
+                }
+              },
+              "text/event-stream": {}
+            },
+            "description": "SSE(TRD 14.2). 이벤트 이름별 data 모양은 ChatEvents 의 같은 이름 필드"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "operationId": "conversations_api_v1_conversations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConversationOut"
+                  },
+                  "title": "Response Conversations Api V1 Conversations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Conversations",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/messages": {
+      "get": {
+        "operationId": "messages_api_v1_conversations__conversation_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MessageOut"
+                  },
+                  "title": "Response Messages Api V1 Conversations  Conversation Id  Messages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Messages",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/api/v1/graph/rebuild": {
       "post": {
         "operationId": "rebuild_api_v1_graph_rebuild_post",
@@ -2036,6 +2623,57 @@
         "summary": "Trigger Sync",
         "tags": [
           "sync"
+        ]
+      }
+    },
+    "/api/v1/objects/{object_type}/{pk}": {
+      "get": {
+        "operationId": "card_api_v1_objects__object_type___pk__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "title": "Pk",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Card",
+        "tags": [
+          "objects"
         ]
       }
     },

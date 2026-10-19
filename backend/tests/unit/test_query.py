@@ -1,5 +1,6 @@
 """QueryPlan 검증·컴파일·조회 조건 문장(TRD 7절)."""
 
+import json
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -8,9 +9,10 @@ import pytest
 
 from ontobot.objects.reader import render_sql
 from ontobot.ontology import importer
-from ontobot.query.compiler import compile_plan
+from ontobot.query.compiler import compile_hop, compile_plan, compile_traverse
 from ontobot.query.conditions import describe
 from ontobot.query.plan import QueryPlan
+from ontobot.query.planner import SYSTEM
 from ontobot.query.validator import PlanInvalid, validate
 
 SAMPLE = Path(__file__).resolve().parents[3] / "domain-packs" / "sample" / "ontology.yaml"
@@ -81,9 +83,90 @@ def test_unknown_and_unreadable_types() -> None:
     assert "Facility" not in hidden.value.errors[0]
 
 
-def test_traverse_is_refused_until_phase4() -> None:
-    with pytest.raises(PlanInvalid, match="traverse"):
-        validate(DOC, ALL, plan(traverse=[{"link": "owned_by", "to": "Organization"}]))
+OWNED_BY_GANGNAM = {
+    "link": "owned_by",
+    "direction": "out",
+    "to": "Organization",
+    "filters": [{"property": "name", "op": "eq", "value": "강남지사"}],
+}
+
+
+def test_traverse_is_validated_against_the_far_side_type() -> None:
+    vp = validate(DOC, ALL, plan(traverse=[OWNED_BY_GANGNAM]))
+    (hop,) = vp.hops
+    assert hop.outgoing and hop.to.api_name == "Organization"
+    assert [(f.prop.api_name, f.value) for f in hop.filters] == [("name", "강남지사")]
+    # 역방향: 조직이 대상이고 시설 쪽 조건으로 좁힌다.
+    vp = validate(
+        DOC,
+        ALL,
+        plan(
+            target="Organization",
+            traverse=[
+                {
+                    "link": "owned_by",
+                    "direction": "in",
+                    "to": "Facility",
+                    "filters": [{"property": "risk_grade", "op": "gte", "value": "4"}],
+                }
+            ],
+        ),
+    )
+    assert not vp.hops[0].outgoing and vp.hops[0].filters[0].value == 4
+
+
+@pytest.mark.parametrize(
+    ("traverse", "fragment"),
+    [
+        ([{"link": "funded_by", "to": "Organization"}], "링크 'funded_by' 이 없습니다"),
+        ([{"link": "owned_by", "direction": "in", "to": "Organization"}], "direction 을 'out'"),
+        ([{"link": "owned_by", "to": "Region"}], "'Organization' 입니다"),
+        (
+            [
+                {
+                    "link": "owned_by",
+                    "to": "Organization",
+                    "filters": [{"property": "risk_grade", "op": "eq", "value": 1}],
+                }
+            ],
+            "'Organization' 에 속성 'risk_grade' 이 없습니다",
+        ),
+        ([OWNED_BY_GANGNAM] * 4, "3개까지"),
+    ],
+)
+def test_traverse_errors_explain_themselves(traverse: list[object], fragment: str) -> None:
+    with pytest.raises(PlanInvalid) as e:
+        validate(DOC, ALL, plan(traverse=traverse))
+    assert fragment in " ".join(e.value.errors)
+    assert not e.value.forbidden
+
+
+def test_traverse_into_unreadable_type_is_forbidden_not_replanned() -> None:
+    # 링크 반대쪽 타입을 읽을 수 없으면 계획 오류가 아니라 권한 없음이다(재계획하지 않는다).
+    with pytest.raises(PlanInvalid) as e:
+        validate(DOC, ALL - {"Organization"}, plan(traverse=[OWNED_BY_GANGNAM]))
+    assert e.value.forbidden
+
+
+def test_context_refs_must_come_from_the_conversation() -> None:
+    ctx = frozenset({("Facility", "F-0001"), ("Organization", "ORG-01")})
+    vp = validate(
+        DOC,
+        ALL,
+        plan(
+            context_refs=[
+                {"type": "Facility", "pk": "F-0001"},
+                {"type": "Organization", "pk": "ORG-01"},
+            ],
+            traverse=[{"link": "owned_by", "to": "Organization"}],
+        ),
+        ctx,
+    )
+    assert vp.target_pks == ("F-0001",) and vp.hops[0].pks == ("ORG-01",)
+    with pytest.raises(PlanInvalid, match="대화 맥락에 없는"):
+        validate(DOC, ALL, plan(context_refs=[{"type": "Facility", "pk": "F-9999"}]), ctx)
+    with pytest.raises(PlanInvalid, match="traverse 의 to 도 아닙니다"):
+        validate(DOC, ALL, plan(context_refs=[{"type": "Organization", "pk": "ORG-01"}]), ctx)
 
 
 def test_aggregate_rules() -> None:
@@ -164,3 +247,95 @@ def test_conditions_sentence_is_deterministic_and_human_readable() -> None:
         == "시설 · 위험등급 ≥ 3 · 설비 용량(kW) > 1,000 · 시설 유형별 건수 · 최대 100건"
     )
     assert describe(vp) == describe(vp)
+
+
+# ---------------------------------------------------------------- 탐색 컴파일
+
+
+def test_traverse_compiles_to_bound_sql_and_cypher() -> None:
+    hostile = "강남' }) DETACH DELETE n //"
+    vp = validate(
+        DOC,
+        ALL,
+        plan(
+            traverse=[
+                {
+                    **OWNED_BY_GANGNAM,
+                    "filters": [{"property": "name", "op": "eq", "value": hostile}],
+                }
+            ]
+        ),
+    )
+    hop_q = compile_hop(vp.hops[0])
+    assert hop_q is not None and hop_q.object_type == "Organization"
+    assert hostile not in render_sql(hop_q) and _values(hop_q.params) == [hostile]
+
+    cypher, params = compile_traverse(vp, [["ORG-01", "ORG-02"]])
+    assert "ORG-01" not in cypher and params["p0"] == ["ORG-01", "ORG-02"]
+    assert "MATCH (t:`Facility`)" in cypher
+    assert "(t)-[:`owned_by`]->(n:`Organization`)" in cypher
+    # stub(원천에 없는 끝점)과의 관계로는 대상을 통과시키지 않는다.
+    assert "NOT coalesce(n.stub, false)" in cypher and "NOT coalesce(t.stub, false)" in cypher
+
+    q = compile_plan(vp, ["F-0001"])
+    assert "o.pk = ANY(CAST(:v0 AS text[]))" in render_sql(q)
+    assert q.params["v0"] == ["F-0001"]
+
+
+def test_hop_without_conditions_needs_no_sql_and_reverse_arrow_points_in() -> None:
+    vp = validate(
+        DOC,
+        ALL,
+        plan(
+            target="Organization",
+            traverse=[{"link": "owned_by", "direction": "in", "to": "Facility"}],
+        ),
+    )
+    assert compile_hop(vp.hops[0]) is None
+    cypher, params = compile_traverse(vp, [None])
+    assert "(t)<-[:`owned_by`]-(n:`Facility`)" in cypher and "p0" not in params
+
+
+def test_traverse_conditions_sentence() -> None:
+    vp = validate(DOC, ALL, plan(traverse=[OWNED_BY_GANGNAM]))
+    assert describe(vp) == "시설 · 소유 조직[조직: 조직명 = 강남지사] · 최대 20건"
+    vp = validate(
+        DOC,
+        ALL,
+        plan(
+            target="Organization",
+            traverse=[{"link": "owned_by", "direction": "in", "to": "Facility"}],
+        ),
+    )
+    assert describe(vp) == "조직 · 소유 조직(역방향)[시설 있음] · 최대 20건"
+    vp = validate(
+        DOC, ALL, plan(context_refs=[{"type": "Facility", "pk": "F-1"}]), {("Facility", "F-1")}
+    )
+    assert describe(vp) == "시설 · 직전 결과 1건 중 · 최대 20건"
+
+
+# ---------------------------------------------------------------- 플래너 프롬프트
+
+
+def test_prompt_examples_follow_the_schema_key_order() -> None:
+    # 구조화 출력은 스키마의 속성 순서대로 생성된다. 예시가 context_refs 를 filters 보다 먼저
+    # 적자 모델이 filters 를 빈 채로 지나쳐 "그 중 위험등급 4 이상"의 조건이 빠졌다
+    # (Phase 4 측정: 예시 순서를 고치기 전 0/6, 고친 뒤 6/6).
+    order = list(QueryPlan.model_fields)
+    examples = []
+    i = SYSTEM.find('{"kind"')
+    while i >= 0:
+        examples.append(_decode(i)[0])
+        i = SYSTEM.find('{"kind"', i + 1)
+    plans = [e["plan"] for e in examples if e.get("plan")]
+    assert len(plans) >= 6
+    for p in plans:
+        keys = [k for k in p if k in order]
+        assert keys == sorted(keys, key=order.index), p
+        QueryPlan.model_validate(p)
+
+
+def _decode(start: int) -> tuple[dict, int]:
+    # 예시는 보기 좋게 줄을 나눴다 — 줄바꿈을 지운 뒤 JSON 하나를 읽는다.
+    text = SYSTEM[start:].replace("\n", "")
+    return json.JSONDecoder().raw_decode(text)

@@ -11,6 +11,7 @@ export function Layout() {
       <header className="topbar">
         <strong>{ko.appTitle}</strong>
         <nav>
+          <NavLink to="/chat">{ko.nav.chat}</NavLink>
           <NavLink to="/ontology">{ko.nav.ontology}</NavLink>
           <NavLink to="/sources">{ko.nav.sources}</NavLink>
         </nav>

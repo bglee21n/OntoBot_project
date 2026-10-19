@@ -11,7 +11,7 @@ import json
 from typing import Any, Protocol
 
 from ontobot.llm.types import Message
-from ontobot.query.plan import AGG_VALUE, DEFAULT_LIMIT, MAX_LIMIT, PlannerOutput
+from ontobot.query.plan import AGG_VALUE, DEFAULT_LIMIT, MAX_LIMIT, MAX_TRAVERSE, PlannerOutput
 
 
 class StructuredLLM(Protocol):
@@ -26,18 +26,26 @@ SYSTEM = f"""너는 사용자 질문을 데이터 조회 계획(JSON)으로 바�
 - 아래 <schema> 에 있는 객체 타입·속성 이름(name)만 쓴다. 이름을 지어내지 않는다.
 - 답이 되는 타입을 target 에 둔다. 조건은 filters 에 둔다.
 - aggregate 는 질문이 개수·합계·평균·최댓값·최솟값을 물을 때만 쓴다. 목록·이름·속성 값을 묻는 질문에는 aggregate 를 쓰지 않는다(null).
-- 식별자(pk) 속성이나 다른 타입을 가리키는 코드 속성에는 질문에 그 코드가 그대로 있을 때만 조건을 건다. 이름을 코드 자리에 넣지 않는다.
+- 식별자(pk) 속성이나 다른 타입을 가리키는 코드 속성(refers_to 가 있는 속성)에는 질문에 그 코드가 그대로 있을 때만 조건을 건다.
+  이름을 코드 자리에 넣지 않는다. 다른 타입의 이름으로 좁힐 때는 refers_to 에 적힌 링크로 traverse 한다.
 - 연산자: eq ne gt gte lt lte in contains between is_null. 표현식·SQL 을 쓰지 않는다.
 - 값 형식: int·decimal 은 숫자, date 는 YYYY-MM-DD, datetime 은 ISO 8601, enum 은 목록의 값 그대로.
   in 은 값 목록, between 은 [하한, 상한].
 - "~이전"은 lt, "~이후"는 gt, "~이상"은 gte, "~이하"는 lte, "~넘는"·"초과"는 gt, "미만"은 lt.
 - 집계 결과를 정렬하려면 sort.property 에 "{AGG_VALUE}" 를 쓴다.
+- 다른 타입의 객체(이름 등)로 대상을 좁힐 때는 traverse 를 쓴다. 항목 하나 = 대상에서 <schema> 의 링크 하나를
+  건너간 객체에 거는 조건이다. 대상이 링크의 from 이면 direction "out", to 이면 "in". to 에는 건너간 쪽 타입을 쓴다.
+  traverse 의 filters 는 건너간 쪽 타입의 속성이다. 항목은 최대 {MAX_TRAVERSE}개이고 모두 만족해야 한다(AND).
+- 질문이 "그 시설", "이 중", "위 결과"처럼 직전 답을 가리키면 <context> 의 객체를 context_refs 에 {{"type","pk"}} 로 넣는다.
+  <context> 에 없는 식별자를 지어내지 않는다. context_refs 는 범위를 좁힐 뿐이다 — "그 중 위험등급 4 이상"이면
+  context_refs 와 함께 위험등급 조건을 filters 에 반드시 넣는다. 질문의 조건을 하나도 빼지 않는다.
 - 목록 질문의 limit 은 질문이 말한 개수, 없으면 {DEFAULT_LIMIT}. 최대 {MAX_LIMIT}.
 - 질문의 조건을 스키마의 속성으로 표현할 수 없으면 그 조건을 **빼고 계획을 내지 않는다**.
   대신 {{"kind": "cannot_answer", "reason": "표현할 수 없는 조건"}} 을 낸다. 조건을 빼면 다른 답이 된다.
 - 인사·잡담처럼 데이터 조회가 아닌 말이면 {{"kind": "not_query"}} 를 낸다.
 
-예시(가상의 스키마 — Ticket 타입, priority:int, status:enum[open,closed], opened_on:date):
+예시(가상의 스키마 — Ticket 타입, priority:int, status:enum[open,closed], opened_on:date, team_id:string /
+Team 타입, name:string / 링크 assigned_to: Ticket→Team):
 질문: "우선순위 4 이상인 열린 티켓 몇 개야?"
 {{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"priority","op":"gte","value":4}},
 {{"property":"status","op":"eq","value":"open"}}],"aggregate":{{"fn":"count","property":null,"group_by":[]}}}}}}
@@ -47,19 +55,37 @@ SYSTEM = f"""너는 사용자 질문을 데이터 조회 계획(JSON)으로 바�
 질문: "우선순위가 높은 순으로 열린 티켓 10개 보여줘"
 {{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"status","op":"eq","value":"open"}}],
 "aggregate":null,"sort":[{{"property":"priority","dir":"desc"}}],"limit":10}}}}
+질문: "결제팀에 배정된 열린 티켓 목록"
+{{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"status","op":"eq","value":"open"}}],
+"traverse":[{{"link":"assigned_to","direction":"out","to":"Team","filters":[{{"property":"name","op":"eq","value":"결제팀"}}]}}]}}}}
+질문: "우선순위 5 티켓이 배정된 팀은?"
+{{"kind":"query","plan":{{"target":"Team","traverse":[{{"link":"assigned_to","direction":"in","to":"Ticket",
+"filters":[{{"property":"priority","op":"eq","value":5}}]}}]}}}}
+질문(<context> 에 Ticket/T-7, Ticket/T-9 가 있을 때): "그 중 열린 것만"
+{{"kind":"query","plan":{{"target":"Ticket","filters":[{{"property":"status","op":"eq","value":"open"}}],
+"context_refs":[{{"type":"Ticket","pk":"T-7"}},{{"type":"Ticket","pk":"T-9"}}]}}}}
 질문: "고마워!"
 {{"kind":"not_query"}}
 """
 
 
+def _context_block(context: list[dict[str, str]]) -> str:
+    lines = [f"{c['type']}/{c['pk']} — {c.get('title') or c['pk']}" for c in context]
+    return "<context>\n직전 답의 객체(type/pk — 제목):\n" + "\n".join(lines) + "\n</context>"
+
+
 def messages(
-    summary: dict[str, Any], question: str, errors: list[str] | None = None
+    summary: dict[str, Any],
+    question: str,
+    errors: list[str] | None = None,
+    context: list[dict[str, str]] | None = None,
 ) -> list[Message]:
     schema = json.dumps(summary, ensure_ascii=False)
-    msgs = [
-        Message("system", f"{SYSTEM}\n<schema>\n{schema}\n</schema>"),
-        Message("user", question),
-    ]
+    system = f"{SYSTEM}\n<schema>\n{schema}\n</schema>"
+    if context:
+        # 맥락은 식별자와 (지금 다시 읽은) 제목뿐이다 — 값은 조회 단계에서 다시 읽는다(TRD 7.1 1단계).
+        system += "\n" + _context_block(context)
+    msgs = [Message("system", system), Message("user", question)]
     if errors:
         msgs.append(
             Message(
@@ -72,6 +98,12 @@ def messages(
 
 
 async def plan(
-    llm: StructuredLLM, summary: dict[str, Any], question: str, errors: list[str] | None = None
+    llm: StructuredLLM,
+    summary: dict[str, Any],
+    question: str,
+    errors: list[str] | None = None,
+    context: list[dict[str, str]] | None = None,
 ) -> PlannerOutput:
-    return await llm.structured("planner", messages(summary, question, errors), PlannerOutput)
+    return await llm.structured(
+        "planner", messages(summary, question, errors, context), PlannerOutput
+    )

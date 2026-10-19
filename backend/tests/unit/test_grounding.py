@@ -42,6 +42,9 @@ CTX = GroundingContext(
         ("2015년 8월 2일에 설치", "2015-08-02"),
         ("2015.08.02 설치", "2015-08-02"),
         ("강남   변전소\n01호", "강남 변전소 01호"),
+        # 천 단위 숫자 뒤에 구두점 쉼표가 바로 와도 천 단위 표기다(Phase 4 측정에서 놓쳤다).
+        ("용량(kW)는 2,400, 설치일은 2015-08-02", "2400"),
+        ("1,234,567, 그리고", "1234567"),
     ],
 )
 def test_normalization_bridges_only_formatting(sentence: str, value: str) -> None:
@@ -63,6 +66,9 @@ def test_no_fuzzy_matching(sentence: str, value: str) -> None:
 def test_thousands_are_not_confused_with_decimals() -> None:
     assert normalize("1,234.5") == "1234.5"
     assert normalize("2.5,3") == "2.5,3"
+    # 쉼표 뒤에 숫자가 이어지면 천 단위가 아니다 — 목록 "1,2345" 를 12345 로 붙이지 않는다.
+    assert normalize("1,2345") == "1,2345"
+    assert normalize("12,345,6") == "12,345,6"
 
 
 # ---------------------------------------------------------------- 문장 나누기
@@ -171,3 +177,91 @@ def test_restating_the_query_condition_is_not_a_fact() -> None:
     assert g.grade == 1 and g.fact_sentences == 1
     # 조건 값을 걷어 내도 결과 값이 남으면 여전히 사실 문장이다.
     assert grade("2015년 이전 철탑은 7개입니다.", ctx).fact_sentences == 1
+
+
+# ---------------------------------------------------------------- Phase 3 완료 기준(계획 문서)
+
+TWO = GroundingContext(
+    evidence={
+        **CTX.evidence,
+        "o:Facility/F-0002": Evidence(
+            "o:Facility/F-0002",
+            "Facility",
+            "수원 철탑 02호",
+            {"risk_grade": ("4", "4"), "capacity_kw": ("150", "150")},
+        ),
+    },
+    readable=CTX.readable,
+    titles=frozenset({"강남 변전소 01호", "수원 철탑 02호"}),
+    enum_values=CTX.enum_values,
+)
+
+
+def test_citing_another_objects_value_is_removed() -> None:
+    # 문장의 값(2)은 F-0001 의 것인데 F-0002(값 4)를 인용했다 — 그 인용은 이 문장을 증명하지 못한다.
+    g = grade("강남 변전소 01호의 위험등급은 2입니다. [[o:Facility/F-0002#risk_grade]]", TWO)
+    assert g.grade == 3
+    assert [(r.citation, r.reason) for r in g.removed] == [
+        ("o:Facility/F-0002#risk_grade", "value_mismatch")
+    ]
+
+
+def test_rounded_number_citation_is_removed_and_sentence_becomes_estimate() -> None:
+    answer = (
+        "위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]\n"
+        "용량은 약 2,000kW입니다. [[o:Facility/F-0001#capacity_kw]]"
+    )
+    g = grade(answer, TWO)
+    assert g.grade == 2 and g.estimated_sentences == [1]
+    assert [(r.sentence, r.reason) for r in g.removed] == [(1, "value_mismatch")]
+    # 지운 인용 표기는 본문에 남지 않는다.
+    assert g.text is not None and "[[" not in g.text
+
+
+def test_aggregate_row_citation_passes() -> None:
+    g = grade("위험등급 3 이상 시설은 18개입니다. [[q:1#value]]", CTX)
+    assert g.grade == 1 and [c.key for c in g.citations] == ["q:1#value"]
+
+
+def test_same_citation_twice_is_listed_once() -> None:
+    answer = (
+        "위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]\n"
+        "다시 말해 위험등급 2입니다. [[o:Facility/F-0001#risk_grade]]"
+    )
+    assert [c.key for c in grade(answer, CTX).citations] == ["o:Facility/F-0001#risk_grade"]
+
+
+@pytest.mark.parametrize(
+    ("answer", "grade2", "expected"),
+    [
+        # 사실 문장 모두 통과 → ①
+        ("위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]", True, 1),
+        # 통과 + 미통과 섞임 → ② (끄면 ③)
+        ("위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]\n용량 9kW.", True, 2),
+        ("위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]\n용량 9kW.", False, 3),
+        # 통과한 인용 없음 → ③ (사실 문장이 있든 없든)
+        ("용량 9kW.", True, 3),
+        ("다음과 같습니다.", True, 3),
+        # 통과한 인용이 있고 사실 문장이 아닌 문장이 섞여도 ①
+        ("다음과 같습니다.\n위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]", True, 1),
+    ],
+)
+def test_grade_table(answer: str, grade2: bool, expected: int) -> None:
+    assert grade(answer, CTX, grade2_enabled=grade2).grade == expected
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]\n용량 9kW.\n설치 2010년.",
+        "- 강남 변전소 01호 [[o:Facility/F-0001#name]]\n- 수원 철탑 02호\n"
+        "- 위험등급 4 [[q:1#value]]",
+        "18개입니다. [[q:1#value]] 그리고 30개입니다. [[q:1#value]]",
+    ],
+)
+def test_citation_rate_invariant(answer: str) -> None:
+    # 근거 인용률 100%(TRD 13.2): ①·②의 본문에서 '추정'이 아닌 사실 문장은 모두 통과 인용을 가진다.
+    g = grade(answer, TWO)
+    if g.grade in (1, 2):
+        assert g.fact_sentences - len(g.estimated_sentences) == g.verified_sentences
+        assert g.text is not None and g.text.count(ESTIMATE_MARK) == len(g.estimated_sentences)

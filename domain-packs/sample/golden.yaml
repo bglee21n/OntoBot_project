@@ -4,6 +4,9 @@
 # expected_status: ok / empty / failed / not_query
 # expected_failure: failed 일 때 사유
 # required_values: 답변 본문에 그대로 있어야 하는 값(근거 대조와 같은 정규화로 비교)
+# absent_values: 답변 본문에 있으면 안 되는 값
+# required_conditions: 조회 조건 문장에 있어야 하는 조각(조건 누락 감시)
+# context: 대화 맥락으로 줄 직전 답의 객체 [{type, pk}]
 # note: 왜 이 문항이 있는가
 items:
   - id: q01
@@ -72,6 +75,36 @@ items:
 
   - id: q12
     question: 서울 지역 시설 목록 보여줘
-    expected_status: failed
-    expected_failure: plan_invalid
-    note: 링크 탐색이 필요하다(Phase 4). 지금은 지어낸 조건 없이 실패로 밝혀야 한다
+    expected_status: ok
+    required_values: ["강남 변전소 01호", "강남 철탑 05호"]
+    note: 링크 탐색(located_in). Phase 1.5 에서는 plan_invalid 가 정답이었다(지역 이름을 코드 자리에 넣는 함정)
+
+  # ---- Phase 4: 링크 탐색(traverse) — Neo4j 왕복이 필요하다
+  - id: q21
+    question: 강남지사가 소유한 시설 목록 보여줘
+    expected_status: ok
+    required_values: ["강남 철탑 05호", "강남 전주 09호"]
+    note: traverse out + 끝 타입 이름 조건(FK 속성에 이름을 넣는 함정)
+
+  - id: q22
+    question: 서울에 있는 변전소는?
+    expected_status: ok
+    required_values: ["강남 변전소 01호", "강남 변전소 13호", "강남 변전소 25호"]
+    note: traverse located_in + 대상 enum 조건
+
+  # ---- Phase 4: 대화 맥락(context) — 직전 답의 객체를 맥락으로 주고 묻는다
+  - id: q23
+    question: 그 중 위험등급이 4 이상인 것만
+    context: [{type: Facility, pk: F-0005}, {type: Facility, pk: F-0009}, {type: Facility, pk: F-0017}, {type: Facility, pk: F-0021}]
+    expected_status: ok
+    required_values: ["강남 전주 09호", "강남 철탑 17호"]
+    absent_values: ["강남 철탑 05호", "강남 전주 21호"]
+    required_conditions: ["위험등급 ≥ 4"]
+    note: context_refs + 조건. 조건을 빼면(실측) 답변 모델이 스스로 거르거나 전부 나열한다
+
+  - id: q24
+    question: 그 시설들의 설비 용량 합계는?
+    context: [{type: Facility, pk: F-0005}, {type: Facility, pk: F-0009}]
+    expected_status: ok
+    required_values: ["200"]
+    note: context_refs + 집계

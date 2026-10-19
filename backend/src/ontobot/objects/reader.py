@@ -72,6 +72,23 @@ async def resolve(
     }
 
 
+async def existing_values(
+    db: AsyncSession, object_type: str, prop: str, values: Sequence[str]
+) -> set[str]:
+    """``values`` 중 그 타입의 어떤 살아 있는 객체의 ``prop`` 값과 **정확히** 같은 것."""
+    if not values:
+        return set()
+    rows = await db.scalars(
+        text(
+            "SELECT DISTINCT properties ->> CAST(:p AS text) FROM object "
+            "WHERE type = :t AND deleted_at IS NULL "
+            "AND properties ->> CAST(:p AS text) = ANY(:vs)"
+        ),
+        {"t": object_type, "p": prop, "vs": list(values)},
+    )
+    return set(rows)
+
+
 def render_sql(q: CompiledQuery) -> str:
     """실행할 SQL 전문. 트레이스(마스킹 전 값은 바인드라 SQL 에 없다)와 테스트가 함께 쓴다."""
     where = " AND ".join(["o.type = :__type", "o.deleted_at IS NULL", *q.where])

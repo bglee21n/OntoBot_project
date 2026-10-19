@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncManagedTransaction
+from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncManagedTransaction, Query
 from neo4j.exceptions import Neo4jError, ServiceUnavailable, SessionExpired
 
 from ontobot.ontology.models import IDENT_MEMBER_RE, IDENT_TYPE_RE
@@ -21,6 +21,14 @@ Statement = tuple[str, dict[str, Any]]
 
 class GraphUnavailable(Exception):
     """Neo4j 에 닿지 못했다. 탐색 질의는 ``failed(graph_unavailable)`` 로 밝힌다(TRD 5.5)."""
+
+
+class GraphTimeout(Exception):
+    """읽기가 시간 제한을 넘었다. 탐색 질의는 ``failed(timeout)`` 으로 밝힌다(TRD 7.1 4단계)."""
+
+
+class GraphQueryError(Exception):
+    """Cypher 실행 오류(문법·제약 등). ``failed(execution_error)``."""
 
 
 @dataclass(frozen=True)
@@ -100,17 +108,31 @@ async def run_schema(driver: AsyncDriver, cypher: str) -> None:
 
 
 async def read(
-    driver: AsyncDriver, cypher: str, params: dict[str, Any] | None = None
+    driver: AsyncDriver,
+    cypher: str,
+    params: dict[str, Any] | None = None,
+    *,
+    timeout_s: float | None = None,
 ) -> list[dict[str, Any]]:
     try:
-        records, _, _ = await driver.execute_query(cypher, params or {}, routing_="r")
+        records, _, _ = await driver.execute_query(
+            Query(cypher, timeout=timeout_s),
+            params or {},
+            routing_="r",
+        )
     except _UNAVAILABLE as e:
         raise GraphUnavailable(type(e).__name__) from e
+    except Neo4jError as e:
+        if "TransactionTimedOut" in (e.code or ""):
+            raise GraphTimeout(e.code or "timeout") from e
+        raise GraphQueryError(e.code or type(e).__name__) from e
     return [dict(r) for r in records]
 
 
 __all__ = [
     "AsyncDriver",
+    "GraphQueryError",
+    "GraphTimeout",
     "GraphUnavailable",
     "Neo4jError",
     "ServerInfo",

@@ -5,16 +5,27 @@
 
 ``FROM object`` 와 타입·삭제 조건은 ``objects.reader`` 가 붙인다(16.3-5). GROUP BY 는 열 번호로
 쓴다 — 같은 식을 바인드로 두 번 쓰면 자리표시자 번호가 달라져 Postgres 가 같은 식으로 보지 않는다.
+
+링크 탐색(traverse)은 세 조각이다. Neo4j 노드에는 속성 값이 없으므로(``pk``·``title``·``stub`` 뿐)
+링크 끝 객체의 조건은 PostgreSQL 에서 pk 집합으로 먼저 구하고(``compile_hop``), Neo4j 는 "그 집합의
+객체와 연결된 대상"의 pk 만 돌려준다(``compile_traverse``). 대상 조회는 그 pk 집합으로 좁힌다.
+Cypher 의 라벨·관계 타입은 바인드할 수 없으므로 ``graph.client.label``·``rel`` 이 식별자 형식을
+조립 직전에 다시 확인한다.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
+from ontobot.graph.client import label, rel
 from ontobot.objects.reader import CompiledQuery
 from ontobot.ontology.models import PropertyDef
 from ontobot.query.plan import AGG_VALUE
-from ontobot.query.validator import ValidatedPlan
+from ontobot.query.validator import CheckedFilter, CheckedHop, ValidatedPlan
+
+# 탐색이 돌려주는 pk 상한. 넘으면 failed(too_broad) — 큰 집합을 넘기는 대신 좁혀 달라고 한다.
+PK_CAP = 10_000
 
 _CAST = {
     "string": "text",
@@ -48,10 +59,9 @@ class _Binds:
         return f"(o.properties ->> CAST(:{self._keys[p.api_name]} AS text))::{_CAST[p.data_type]}"
 
 
-def compile_plan(vp: ValidatedPlan) -> CompiledQuery:
-    b = _Binds()
+def _where(b: _Binds, filters: Sequence[CheckedFilter]) -> list[str]:
     where: list[str] = []
-    for f in vp.filters:
+    for f in filters:
         expr = b.prop(f.prop)
         cast = _CAST[f.prop.data_type]
         if f.op in _CMP:
@@ -70,6 +80,68 @@ def compile_plan(vp: ValidatedPlan) -> CompiledQuery:
             where.append(f"{expr} IS NULL" if f.value else f"{expr} IS NOT NULL")
         else:  # pragma: no cover — 검증기가 막는다
             raise AssertionError(f.op)
+    return where
+
+
+def _pk_in(b: _Binds, pks: Sequence[str]) -> str:
+    return f"o.pk = ANY(CAST({b.value(list(pks))} AS text[]))"
+
+
+def compile_hop(hop: CheckedHop) -> CompiledQuery | None:
+    """링크 끝 객체 조건 → 그 타입의 pk 조회. 조건도 맥락 제한도 없으면 None(아무 객체나)."""
+    if not hop.filters and hop.pks is None:
+        return None
+    b = _Binds()
+    where = _where(b, hop.filters)
+    if hop.pks is not None:
+        where.append(_pk_in(b, hop.pks))
+    return CompiledQuery(
+        object_type=hop.to.api_name,
+        declared_properties=(),
+        where=where,
+        order_by=["o.pk"],
+        limit=PK_CAP + 1,
+        params=b.params,
+    )
+
+
+def compile_traverse(
+    vp: ValidatedPlan, hop_pks: Sequence[Sequence[str] | None]
+) -> tuple[str, dict[str, object]]:
+    """대상 pk 를 돌려주는 Cypher. ``hop_pks[i]`` 는 i 번째 홉 끝 객체의 pk 집합(None = 제한 없음).
+
+    링크 끝이 stub(원천에 없는 객체를 가리키는 링크)이면 연결된 것으로 치지 않는다 — 존재하지 않는
+    객체와의 관계로 대상을 통과시키면 근거 없는 답이 된다.
+    """
+    params: dict[str, object] = {"cap": PK_CAP + 1}
+    clauses = ["NOT coalesce(t.stub, false)"]
+    for i, (hop, pks) in enumerate(zip(vp.hops, hop_pks, strict=True)):
+        arrow = (
+            f"-[:{rel(hop.link.api_name)}]->" if hop.outgoing else f"<-[:{rel(hop.link.api_name)}]-"
+        )
+        cond = "NOT coalesce(n.stub, false)"
+        if pks is not None:
+            params[f"p{i}"] = list(pks)
+            cond += f" AND n.pk IN $p{i}"
+        clauses.append(f"EXISTS {{ MATCH (t){arrow}(n:{label(hop.to.api_name)}) WHERE {cond} }}")
+    if vp.target_pks is not None:
+        params["tp"] = list(vp.target_pks)
+        clauses.append("t.pk IN $tp")
+    cypher = (
+        f"MATCH (t:{label(vp.target.api_name)}) WHERE "
+        + " AND ".join(clauses)
+        + " RETURN t.pk AS pk ORDER BY pk LIMIT $cap"
+    )
+    return cypher, params
+
+
+def compile_plan(vp: ValidatedPlan, target_pks: Sequence[str] | None = None) -> CompiledQuery:
+    """``target_pks`` 는 탐색 결과(또는 맥락)로 좁힌 대상 pk. None 이면 제한 없음."""
+    b = _Binds()
+    where = _where(b, vp.filters)
+    pks = target_pks if target_pks is not None else vp.target_pks
+    if pks is not None:
+        where.append(_pk_in(b, pks))
 
     declared = [p.api_name for p in vp.target.properties]
     if vp.aggregate is None:

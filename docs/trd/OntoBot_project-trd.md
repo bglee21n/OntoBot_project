@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.6                                     |
+| 문서      | 기술 요구사항 문서(TRD) v0.7                                     |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -179,9 +179,9 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 | 테이블                 | 주요 컬럼                                                                                                                                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `conversation`         | `user_id`, `title`, `updated_at`                                                                                                                                                                                                                      |
-| `message`              | `conversation_id`, `role`, `content`, `status`(ok/empty/failed/not_query), `grade`(1/2/3/null), `trace_id`                                                                                                                                            |
+| `message`              | `conversation_id`, `role`, `content`, `status`(ok/empty/failed/not_query), `grade`(1/2/3/null), `trace_id`, `meta`(jsonb: 조회 조건 문장·`graph_as_of`·인용 목록·추정 문장 번호·실패 사유 — 기록에서 답을 다시 그리는 데 쓴다. 근거 **값**은 담지 않는다) |
 | `conversation_context` | `conversation_id`, `refs`(jsonb: `[{type, pk}]`) — **식별자만**, 값은 담지 않는다(PRD 5.2)                                                                                                                                                            |
-| `trace`                | `user_id`, `message_id`, `plan`(jsonb), `sql_masked`, `cypher_masked`, `status`, `failure_reason`, `grade`, `fact_sentences`, `verified_sentences`, `removed_citations`(jsonb), `stage_latency_ms`(jsonb), `llm_calls`(jsonb, 마스킹된 프롬프트·응답) |
+| `trace`                | `user_id`, `message_id`, `plan`(jsonb), `sql_masked`, `cypher_masked`, `status`, `failure_reason`, `grade`, `fact_sentences`, `verified_sentences`, `removed_citations`(jsonb), `stage_latency_ms`(jsonb), `llm_calls`(jsonb: 역할·모델·지연·토큰·성공 여부. 프롬프트·응답 본문은 Phase 5 마스킹과 함께 싣는다) |
 
 ### 6.6 보안
 
@@ -218,7 +218,7 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 | ----------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. 맥락 로드      | `chat.context`                     | 대화의 객체 식별자를 읽는다. 값은 4단계에서 다시 조회한다                                                                               |
 | 2. 계획           | `query.planner`                    | 권한으로 거른 스키마 요약 + 질문 + 맥락 식별자 → QueryPlan(JSON, 구조화 출력). 질의가 아니면 `not_query`, 조건을 스키마로 표현할 수 없으면 `cannot_answer`(→ `failed(plan_invalid)`) — 표현할 수 없는 조건을 **빼고** 계획을 내지 않는다 |
-| 3. 검증           | `query.validator`                  | 타입·속성·링크 실재, 연산자 허용 목록, 값 타입 변환, enum·참조 값 실재 대조(링크 FK 속성의 eq·in 값이 대상 타입 pk 로 있는가 — `query.references`), 권한, 탐색 깊이(기본 3홉). 실패하면 오류를 붙여 1회 재계획 |
+| 3. 검증           | `query.validator`                  | 타입·속성·링크 실재, 연산자 허용 목록, 값 타입 변환, enum·참조 값 실재 대조(링크 FK 속성의 eq·in 값이 대상 타입 pk 로 있는가 — `query.references`, 링크 끝 조건 포함), 권한, `traverse` 항목 수(3). 질문의 숫자가 계획 어디에도 없으면 오류(`query.coverage`, v0.7). 실패하면 **모든 오류를 한꺼번에** 붙여 1회 재계획. 검증 전 결정론적 재작성 하나: FK 속성의 eq·in 값이 pk 가 아니고 **모두** 그 타입 객체의 제목과 정확히 같으면 같은 뜻의 `traverse` 로 옮긴다(조건을 빼지 않는다, 유사도 없음) |
 | 4. 컴파일·실행    | `query.compiler`, `query.executor` | 바인딩 SQL/Cypher 생성 → 실행(타임아웃: SQL 10초, Cypher 5초 기본) → `status = ok / empty / failed`                                     |
 | 5. 조회 조건 문장 | `query.conditions`                 | QueryPlan에서 **결정론적으로** 생성("시설 · 지역 = 서울 · 위험등급 ≥ 3 · 소유 조직 = 강남지사"). LLM이 만들지 않는다                    |
 | 6. 답변           | `chat.answerer`                    | `ok`일 때만 LLM 호출. `empty`·`failed`·`not_query`는 템플릿(`chat.templates`)                                                           |
@@ -246,6 +246,9 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 ```
 
 - `traverse`는 **대상(target)을 좁히는 조건**이다. "링크로 연결된 객체가 이 조건을 만족하는 대상만 남긴다"는 뜻 하나로만 쓴다. 답이 되는 타입은 언제나 `target`이다.
+- MVP 의 `traverse` 항목은 **대상에서 링크 하나를 건너간 1홉 조건**이고 항목끼리는 AND 다(최대 3개). 여러 홉을 잇는 경로는 아직 표현하지 않는다. 실행(v0.7): 링크 끝 객체의 조건은 PostgreSQL 에서 pk 집합으로 먼저 구하고(Neo4j 노드에는 속성 값이 없다), Neo4j 는 `EXISTS { MATCH (t)-[:link]->(n:To) WHERE n.pk IN $p }` 로 대상 pk 만 돌려준다(stub 끝점은 연결로 치지 않는다). 대상 조회는 그 pk 집합(`= ANY(:pks)`)으로 좁힌다. 링크 끝 조건에 맞는 객체가 없으면 그래프를 보지 않고 `empty` 다.
+- 링크의 양 끝 중 하나라도 읽을 수 없으면 대상 타입과 같은 규칙으로 `failed(forbidden)` 이다(재계획하지 않는다).
+- `context_refs` 는 대화 맥락(직전 `ok` 객체 목록 답의 식별자, 최대 20개)에서만 고를 수 있다. 대상 타입이면 대상 pk 를, `traverse` 의 끝 타입이면 그 끝 객체 pk 를 좁힌다. 맥락은 집계·0건·실패 답으로 바뀌지 않는다.
 - 연산자는 `eq, ne, gt, gte, lt, lte, in, contains, between, is_null` 고정이다. 표현식은 받지 않는다.
 - 값은 언제나 바인드 변수로 나간다.
 
@@ -441,7 +444,9 @@ class LLMGateway:
 | `citations`  | `[{"ref": "o:Facility/F-001#risk_grade", "title": "…", "synced_at": "…"}]` | `answer` 직후      |
 | `grade`      | `{"status": "ok", "grade": 1}`                                             | `answer` 직후      |
 | `error`      | `{"status": "failed", "reason": "timeout", "message": "…"}`                | 실패 시            |
-| `done`       | `{"message_id": "…", "trace_id": "…"}`                                     | 마지막             |
+| `done`       | `{"conversation_id": …, "message_id": …, "trace_id": …}`                   | 마지막             |
+
+순서: 진행 이벤트(`stage`·`conditions`) 뒤에 성공·0건·질의 아님은 `answer → citations → grade → done`, 실패는 `error → done` 이다. `failed` 는 `answer` 로 나가지 않는다. 스트림 본문은 OpenAPI 로 기술할 수 없어, 이벤트별 데이터 모양을 문서 모델 `ChatEvents` 로 싣고 프론트는 그 생성 타입으로 읽는다(계약 테스트가 실제 페이로드를 그 모델로 검증한다). 예기치 못한 서버 오류도 `error(internal_error)` 로 밝힌다.
 
 ## 15. 비기능 요구사항
 
@@ -699,4 +704,5 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.7 | 2026-10-20 | Phase 3·4 구현 반영 — `traverse` 의미(1홉 조건의 AND, 최대 3)와 실행 방식(PG pk 집합 → Neo4j EXISTS → PG), 링크 권한은 `forbidden`, `context_refs` 범위, FK 이름 → `traverse` 결정론적 재작성, 질문 숫자 반영 검사(`query.coverage`), 재계획 오류 일괄 전달, `message.meta`, `llm_calls` 본문 미저장(Phase 5 까지), SSE `done.conversation_id`·이벤트 순서·`ChatEvents`, 근거 카드 404(권한 없음 = 없음). 측정은 ADR-0004 Phase 4 보강 |
 | v0.6 | 2026-10-20 | Phase 2 구현 반영 — 동기화 병합 규칙(행 실패 = 실행 실패, 원천별 삭제 표시, 링크 삭제 순서, 자료형 있는 워터마크), `secret_ref` 형식, stub 노드, 투영 묶음·재시도, 재구축 절차. 세션은 `async with session_scope()` 로만 연다(열린 트랜잭션이 `CREATE INDEX CONCURRENTLY` 를 막은 실측) |

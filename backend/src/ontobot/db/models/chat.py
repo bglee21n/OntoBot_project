@@ -38,6 +38,9 @@ class Message(IdMixin, Base):
     status: Mapped[str | None] = mapped_column(String(16))
     grade: Mapped[int | None] = mapped_column(Integer)
     trace_id: Mapped[int | None] = mapped_column(BigInteger)
+    # 답변을 다시 그릴 때 필요한 것: 조회 조건 문장, 인용 목록, 추정 문장 번호, 실패 사유.
+    # 근거 값 자체는 담지 않는다 — 근거 카드는 열 때마다 다시 읽는다(PRD 5.2).
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class ConversationContext(IdMixin, Base):

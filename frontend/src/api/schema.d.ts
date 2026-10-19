@@ -109,6 +109,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Chat */
+        post: operations["chat_api_v1_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Conversations */
+        get: operations["conversations_api_v1_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Messages */
+        get: operations["messages_api_v1_conversations__conversation_id__messages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/graph/rebuild": {
         parameters: {
             query?: never;
@@ -224,6 +275,23 @@ export interface paths {
         put?: never;
         /** Trigger Sync */
         post: operations["trigger_sync_api_v1_mappings__mapping_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/objects/{object_type}/{pk}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Card */
+        get: operations["card_api_v1_objects__object_type___pk__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -549,6 +617,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnswerData */
+        AnswerData: {
+            /** Estimated Sentences */
+            estimated_sentences: number[];
+            /** Text */
+            text: string;
+        };
         /** ChangeOut */
         ChangeOut: {
             /** After */
@@ -572,6 +647,36 @@ export interface components {
             /** Path */
             path: string;
         };
+        /**
+         * ChatEvents
+         * @description 이벤트 이름 → 데이터. 한 응답에 이 필드들이 모두 오는 것이 아니다(순서는 모듈 설명).
+         */
+        ChatEvents: {
+            answer: components["schemas"]["AnswerData"];
+            /** Citations */
+            citations: components["schemas"]["CitationData"][];
+            conditions: components["schemas"]["ConditionsData"];
+            done: components["schemas"]["DoneData"];
+            error: components["schemas"]["ErrorData"];
+            grade: components["schemas"]["GradeData"];
+            stage: components["schemas"]["StageData"];
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Conversation Id */
+            conversation_id?: number | null;
+            /** Question */
+            question: string;
+        };
+        /** CitationData */
+        CitationData: {
+            /** Ref */
+            ref: string;
+            /** Synced At */
+            synced_at: string | null;
+            /** Title */
+            title: string;
+        };
         /** ColumnsIn */
         ColumnsIn: {
             /** Query */
@@ -579,10 +684,38 @@ export interface components {
             /** Table */
             table?: string | null;
         };
+        /** ConditionsData */
+        ConditionsData: {
+            /** Graph As Of */
+            graph_as_of: string | null;
+            /** Text */
+            text: string;
+        };
+        /** ConversationOut */
+        ConversationOut: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** CreateVersion */
         CreateVersion: {
             /** Parent Id */
             parent_id?: number | null;
+        };
+        /** DoneData */
+        DoneData: {
+            /** Conversation Id */
+            conversation_id: number;
+            /** Message Id */
+            message_id: number;
+            /** Trace Id */
+            trace_id: number;
         };
         /** Enqueued */
         Enqueued: {
@@ -590,6 +723,37 @@ export interface components {
             already_queued: boolean;
             /** Job Id */
             job_id: number | null;
+        };
+        /** ErrorData */
+        ErrorData: {
+            /** Message */
+            message: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "failed";
+        };
+        /** FieldOut */
+        FieldOut: {
+            /** Display Name */
+            display_name: string;
+            /** Name */
+            name: string;
+            /** Value */
+            value: string;
+        };
+        /** GradeData */
+        GradeData: {
+            /** Grade */
+            grade: (1 | 2 | 3) | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "not_query";
         };
         /** GraphStatus */
         GraphStatus: {
@@ -797,6 +961,56 @@ export interface components {
             /** Roles */
             roles: string[];
         };
+        /** MessageMeta */
+        MessageMeta: {
+            /** Citations */
+            citations?: components["schemas"]["CitationData"][];
+            /** Conditions */
+            conditions?: string | null;
+            /** Estimated Sentences */
+            estimated_sentences?: number[];
+            /** Failure Reason */
+            failure_reason?: string | null;
+            /** Graph As Of */
+            graph_as_of?: string | null;
+        };
+        /** MessageOut */
+        MessageOut: {
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Grade */
+            grade: number | null;
+            /** Id */
+            id: number;
+            meta: components["schemas"]["MessageMeta"] | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Status */
+            status: ("ok" | "empty" | "failed" | "not_query") | null;
+        };
+        /** ObjectCard */
+        ObjectCard: {
+            /** Fields */
+            fields: components["schemas"]["FieldOut"][];
+            /** Pk */
+            pk: string;
+            /** Synced At */
+            synced_at: string | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** Type Display Name */
+            type_display_name: string;
+        };
         /** ObjectTypeCreate */
         ObjectTypeCreate: {
             /** Api Name */
@@ -943,6 +1157,14 @@ export interface components {
             secret_ref?: string | null;
             /** Status */
             status?: ("active" | "disabled") | null;
+        };
+        /** StageData */
+        StageData: {
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "planning" | "querying" | "answering" | "verifying";
         };
         /** SyncRunOut */
         SyncRunOut: {
@@ -1200,6 +1422,91 @@ export interface operations {
             };
         };
     };
+    chat_api_v1_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description SSE(TRD 14.2). 이벤트 이름별 data 모양은 ChatEvents 의 같은 이름 필드 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatEvents"];
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    conversations_api_v1_conversations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationOut"][];
+                };
+            };
+        };
+    };
+    messages_api_v1_conversations__conversation_id__messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     rebuild_api_v1_graph_rebuild_post: {
         parameters: {
             query?: never;
@@ -1426,6 +1733,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Enqueued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    card_api_v1_objects__object_type___pk__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                object_type: string;
+                pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectCard"];
                 };
             };
             /** @description Validation Error */

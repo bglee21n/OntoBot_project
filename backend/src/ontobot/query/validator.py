@@ -15,15 +15,17 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from ontobot.ontology.models import ObjectTypeDef, OntologyDocument, PropertyDef
+from ontobot.ontology.models import LinkTypeDef, ObjectTypeDef, OntologyDocument, PropertyDef
 from ontobot.query.plan import (
     AGG_VALUE,
     DEFAULT_LIMIT,
     MAX_LIMIT,
+    MAX_TRAVERSE,
     AggFn,
     Op,
     QueryPlan,
     Scalar,
+    Traverse,
 )
 
 MAX_IN_VALUES = 100
@@ -59,12 +61,26 @@ class CheckedSort:
 
 
 @dataclass(frozen=True)
+class CheckedHop:
+    """대상에서 링크 하나를 건너간 객체에 거는 조건. ``pks`` 는 대화 맥락으로 좁힌 끝 객체."""
+
+    link: LinkTypeDef
+    outgoing: bool  # 참 = 대상이 링크의 from 쪽
+    to: ObjectTypeDef
+    filters: tuple[CheckedFilter, ...]
+    pks: tuple[str, ...] | None = None
+
+
+@dataclass(frozen=True)
 class ValidatedPlan:
     target: ObjectTypeDef
     filters: tuple[CheckedFilter, ...]
     aggregate: CheckedAggregate | None
     sort: tuple[CheckedSort, ...]
     limit: int
+    hops: tuple[CheckedHop, ...] = ()
+    # 대화 맥락으로 좁힌 대상 pk. None 이면 제한 없음.
+    target_pks: tuple[str, ...] | None = None
 
 
 class PlanInvalid(Exception):
@@ -146,7 +162,101 @@ def _check_filter(t: ObjectTypeDef, f: Any, errors: list[str]) -> CheckedFilter 
         return None
 
 
-def validate(doc: OntologyDocument, readable: Set[str], plan: QueryPlan) -> ValidatedPlan:
+def _check_hop(
+    doc: OntologyDocument,
+    readable: Set[str],
+    target: ObjectTypeDef,
+    tr: Traverse,
+    errors: list[str],
+) -> CheckedHop | None:
+    link = next((lk for lk in doc.link_types if lk.api_name == tr.link), None)
+    if link is not None and not {link.from_type, link.to_type} <= set(readable):
+        # 대상 타입과 같은 규칙: 있지만 읽을 수 없는 것은 계획 오류가 아니라 권한 없음이다(TRD 7.3).
+        # 재계획시키지 않는다 — 다른 경로로 돌아가 같은 정보를 얻으려는 시도를 막는다.
+        raise PlanInvalid([f"조회할 수 없는 링크입니다: {tr.link}"], forbidden=True)
+    if link is None:
+        names = ", ".join(
+            sorted(
+                lk.api_name
+                for lk in doc.link_types
+                if target.api_name in {lk.from_type, lk.to_type}
+                and lk.from_type in readable
+                and lk.to_type in readable
+            )
+        )
+        errors.append(
+            f"링크 '{tr.link}' 이 없습니다 ('{target.api_name}' 의 링크: {names or '없음'})"
+        )
+        return None
+    outgoing = tr.direction == "out"
+    start, end = (link.from_type, link.to_type) if outgoing else (link.to_type, link.from_type)
+    if start != target.api_name:
+        other = "in" if outgoing else "out"
+        hint = (
+            f" — direction 을 '{other}' 로 쓰세요"
+            if target.api_name in {link.from_type, link.to_type}
+            else ""
+        )
+        errors.append(
+            f"링크 '{link.api_name}'({link.from_type}→{link.to_type})는 direction '{tr.direction}' "
+            f"으로 '{target.api_name}' 에서 출발할 수 없습니다{hint}"
+        )
+        return None
+    if tr.to != end:
+        errors.append(
+            f"링크 '{link.api_name}' 를 {tr.direction} 으로 건너면 '{end}' 입니다 "
+            f"(받은 to: {tr.to})"
+        )
+        return None
+    to = doc.object_type(end)
+    if to is None:  # 게시 전 문서 검사(check_document)가 막는다 — 막지 못했다면 계획 오류로 밝힌다
+        errors.append(f"링크 '{link.api_name}' 의 끝 타입 '{end}' 이 없습니다")
+        return None
+    filters = tuple(cf for f in tr.filters if (cf := _check_filter(to, f, errors)) is not None)
+    return CheckedHop(link, outgoing, to, filters)
+
+
+def _narrow(
+    plan: QueryPlan,
+    target: ObjectTypeDef,
+    hops: list[CheckedHop],
+    readable: Set[str],
+    context: Set[tuple[str, str]],
+    errors: list[str],
+) -> tuple[tuple[str, ...] | None, list[CheckedHop]]:
+    """``context_refs`` 를 대상 또는 링크 끝 객체의 pk 제한으로 바꾼다."""
+    by_type: dict[str, list[str]] = {}
+    for ref in plan.context_refs:
+        if (ref.type, ref.pk) not in context or ref.type not in readable:
+            # 맥락에 없는 식별자는 지어낸 것이다 — 값이 맞아 보여도 받지 않는다.
+            errors.append(f"대화 맥락에 없는 객체입니다: {ref.type}/{ref.pk}")
+            continue
+        by_type.setdefault(ref.type, []).append(ref.pk)
+    target_pks: tuple[str, ...] | None = None
+    out_hops = list(hops)
+    for typ, pks in by_type.items():
+        if typ == target.api_name:
+            target_pks = tuple(dict.fromkeys(pks))
+            continue
+        idx = [i for i, h in enumerate(out_hops) if h.to.api_name == typ]
+        if not idx:
+            errors.append(
+                f"맥락 객체 타입 '{typ}' 이 대상('{target.api_name}')도 traverse 의 to 도 아닙니다"
+            )
+            continue
+        for i in idx:
+            h = out_hops[i]
+            out_hops[i] = CheckedHop(h.link, h.outgoing, h.to, h.filters, tuple(dict.fromkeys(pks)))
+    return target_pks, out_hops
+
+
+def validate(
+    doc: OntologyDocument,
+    readable: Set[str],
+    plan: QueryPlan,
+    context: Set[tuple[str, str]] = frozenset(),
+) -> ValidatedPlan:
+    """``context`` 는 대화 맥락에 있는 (타입, pk) — ``context_refs`` 는 이 안에서만 고를 수 있다."""
     t = doc.object_type(plan.target)
     if t is None or plan.target not in readable:
         # 없는 타입과 읽을 수 없는 타입을 같은 말로 거른다 — 존재 여부도 정보다.
@@ -155,12 +265,14 @@ def validate(doc: OntologyDocument, readable: Set[str], plan: QueryPlan) -> Vali
             raise PlanInvalid([f"조회할 수 없는 타입입니다: {plan.target}"], forbidden=True)
         raise PlanInvalid([f"객체 타입 '{plan.target}' 이 없습니다 (있는 타입: {known})"])
     errors: list[str] = []
-    if plan.traverse:
-        errors.append(
-            "링크 탐색(traverse)은 아직 지원하지 않습니다 — 단일 타입 조건으로 표현하세요"
-        )
-    if plan.context_refs:
-        errors.append("대화 맥락 참조(context_refs)는 아직 지원하지 않습니다")
+    if len(plan.traverse) > MAX_TRAVERSE:
+        errors.append(f"traverse 는 {MAX_TRAVERSE}개까지입니다")
+    hops = [
+        h
+        for tr in plan.traverse[:MAX_TRAVERSE]
+        if (h := _check_hop(doc, readable, t, tr, errors)) is not None
+    ]
+    target_pks, hops = _narrow(plan, t, hops, readable, context, errors)
 
     filters = [cf for f in plan.filters if (cf := _check_filter(t, f, errors)) is not None]
 
@@ -211,4 +323,6 @@ def validate(doc: OntologyDocument, readable: Set[str], plan: QueryPlan) -> Vali
         aggregate=agg,
         sort=tuple(sorts),
         limit=plan.limit or (MAX_LIMIT if agg is not None else DEFAULT_LIMIT),
+        hops=tuple(hops),
+        target_pks=target_pks,
     )

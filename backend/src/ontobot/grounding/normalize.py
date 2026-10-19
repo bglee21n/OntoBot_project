@@ -9,7 +9,9 @@ from __future__ import annotations
 import re
 import unicodedata
 
-_THOUSANDS = re.compile(r"(?<![\d.])(\d{1,3}(?:,\d{3})+)(?![\d,])")
+# 뒤에 숫자나 ",숫자" 가 이어지면 천 단위 표기가 아니다. 쉼표 하나는 문장 구두점일 수 있다 —
+# "용량 2,400, 설치일 …" 을 놓쳐 맞는 인용이 지워졌다(Phase 4 측정에서 실측).
+_THOUSANDS = re.compile(r"(?<![\d.])(\d{1,3}(?:,\d{3})+)(?!\d|,\d)")
 _DATE_DOT = re.compile(r"(?<!\d)(\d{4})[./](\d{1,2})[./](\d{1,2})(?!\d)")
 _DATE_KO = re.compile(r"(?<!\d)(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일")
 _SPACE = re.compile(r"\s+")

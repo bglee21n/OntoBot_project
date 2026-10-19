@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { ChatPage } from "../features/chat/ChatPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
 import { SourcesPage } from "../features/sources/SourcesPage";
@@ -17,7 +18,9 @@ export function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/ontology" replace />} />
+        <Route index element={<Navigate to="/chat" replace />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat/:conversationId" element={<ChatPage />} />
         <Route path="/ontology" element={<VersionsPage />} />
         <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
         <Route path="/sources" element={<SourcesPage />} />

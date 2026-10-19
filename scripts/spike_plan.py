@@ -22,10 +22,12 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ontobot.chat import context as chat_context
 from ontobot.chat import pipeline
 from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.grounding.normalize import contains
+from ontobot.jobs.handlers import graph_driver
 from ontobot.llm import config as llm_config
 from ontobot.llm.gateway import LLMGateway
 from ontobot.ontology import registry
@@ -39,7 +41,15 @@ def _check(item: dict[str, Any], res: pipeline.PipelineResult) -> dict[str, Any]
         or res.failure_reason == item.get("expected_failure", res.failure_reason)
     )
     values = item.get("required_values", [])
-    values_ok = all(contains(res.answer, v) for v in values)
+    # absent_values: 답에 있으면 안 되는 값(조건이 빠져 걸러져야 할 객체가 남았는지)
+    values_ok = all(contains(res.answer, v) for v in values) and not any(
+        contains(res.answer, v) for v in item.get("absent_values", [])
+    )
+    # required_conditions: 조회 조건 문장에 있어야 할 조각. 플래너가 조건을 빼고 답변 모델이 스스로
+    # 걸러 "맞는 답"이 나온 경우를 정답으로 세지 않는다(Phase 4 측정에서 실측).
+    values_ok = values_ok and all(
+        c in (res.conditions or "") for c in item.get("required_conditions", [])
+    )
     first = res.plan_attempts[0] if res.plan_attempts else {}
     return {
         "id": item["id"],
@@ -68,12 +78,29 @@ def _check(item: dict[str, Any], res: pipeline.PipelineResult) -> dict[str, Any]
 
 async def run_model(model: str, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     cfg = llm_config.load(get_settings().llm_config_path)
+    driver = graph_driver()  # 탐색 문항(Phase 4)은 Neo4j 가 필요하다
     out = []
+    try:
+        return await _run_items(model, items, cfg, driver, out)
+    finally:
+        if driver is not None:
+            await driver.close()
+
+
+async def _run_items(
+    model: str, items: list[dict[str, Any]], cfg: Any, driver: Any, out: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     for item in items:
         llm = LLMGateway(cfg, overrides={"planner": model, "answerer": model})
         async with session_scope() as db:
             schema = registry.current() or await registry.reload(db)
             readable = {t.api_name for t in schema.document.object_types} if schema else set()
+            # 맥락 문항: 직전 답의 객체를 대화 맥락으로 준다(제목은 지금 다시 읽는다).
+            ctx = (
+                await chat_context.with_titles(db, schema.document, readable, item["context"])
+                if schema and item.get("context")
+                else []
+            )
             started = time.perf_counter()
             res = await pipeline.run(
                 db,
@@ -82,6 +109,8 @@ async def run_model(model: str, items: list[dict[str, Any]]) -> list[dict[str, A
                 readable,
                 item["question"],
                 grade2_enabled=get_settings().grade2_enabled,
+                graph_driver=driver,
+                context=ctx,
             )
             await db.rollback()
         row = _check(item, res)

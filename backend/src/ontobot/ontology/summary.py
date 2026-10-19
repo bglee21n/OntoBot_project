@@ -15,6 +15,18 @@ from ontobot.ontology.models import OntologyDocument
 
 
 def schema_summary(doc: OntologyDocument, readable: Set[str]) -> dict[str, Any]:
+    visible_links = [
+        link for link in doc.link_types if link.from_type in readable and link.to_type in readable
+    ]
+    # FK 속성에는 "어느 링크의 식별자인가"를 적는다. 없으면 모델이 이름을 코드 자리에 넣는다
+    # ("강남지사 소유 시설" → owner_org_id = '강남지사', Phase 4 브라우저 확인에서 실측).
+    fk_note = {
+        (link.from_type, link.source.property): (
+            f"{link.to_type} 의 식별자(pk). 이름으로 찾으려면 traverse 링크 '{link.api_name}'"
+        )
+        for link in visible_links
+        if link.source.kind == "fk_property" and link.source.property
+    }
     types = [
         {
             "name": t.api_name,
@@ -28,6 +40,11 @@ def schema_summary(doc: OntologyDocument, readable: Set[str]) -> dict[str, Any]:
                     "display_name": p.display_name,
                     "type": p.data_type,
                     **({"enum": p.enum_values} if p.enum_values else {}),
+                    **(
+                        {"refers_to": fk_note[(t.api_name, p.api_name)]}
+                        if (t.api_name, p.api_name) in fk_note
+                        else {}
+                    ),
                 }
                 for p in t.properties
             ],
@@ -43,7 +60,6 @@ def schema_summary(doc: OntologyDocument, readable: Set[str]) -> dict[str, Any]:
             "to": link.to_type,
             "cardinality": link.cardinality,
         }
-        for link in doc.link_types
-        if link.from_type in readable and link.to_type in readable
+        for link in visible_links
     ]
     return {"object_types": types, "link_types": links}

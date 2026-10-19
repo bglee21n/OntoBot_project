@@ -33,7 +33,8 @@ async def test_migration_matches_models() -> None:
 async def test_seeded_roles_match_code_constants() -> None:
     async with session_scope() as db:
         names = set(await db.scalars(select(Role.name)))
-    assert names == set(KNOWN_ROLES)
+    # 테스트가 만든 역할(test_ 접두어)은 시드가 아니다.
+    assert {n for n in names if not n.startswith("test_")} == set(KNOWN_ROLES)
 
 
 @pytest.mark.parametrize(

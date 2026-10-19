@@ -13,7 +13,7 @@ from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.jobs import Job
 from ontobot.graph import client as graph
-from ontobot.graph.projector import lag
+from ontobot.graph.projector import LAG_WARN_SECONDS, lag
 from ontobot.jobs import handlers, queue
 from ontobot.security import audit
 from ontobot.security.rbac import ROLE_ADMIN, ROLE_MODELER
@@ -21,9 +21,6 @@ from ontobot.security.rbac import ROLE_ADMIN, ROLE_MODELER
 router = APIRouter(prefix="/graph", tags=["graph"])
 Admin = Annotated[CurrentUser, Depends(require_role(ROLE_ADMIN))]
 Viewer = Annotated[CurrentUser, Depends(require_role(ROLE_MODELER, ROLE_ADMIN))]
-
-# 이 지연을 넘으면 조회 조건 문장에 "관계 정보는 HH:MM 기준"을 덧붙인다(TRD 5.5).
-LAG_WARN_SECONDS = 600
 
 
 class GraphStatus(BaseModel):

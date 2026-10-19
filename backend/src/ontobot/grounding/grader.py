@@ -13,23 +13,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from ontobot.grounding.citations import ANY_BRACKET, CITATION, Citation, find, strip
+from ontobot.grounding.citations import Citation, strip
 from ontobot.grounding.facts import Sentence, is_fact, split
-from ontobot.grounding.normalize import contains
 from ontobot.grounding.types import GroundingContext
+from ontobot.grounding.verifier import RemovalReason, Removed, verify_sentence
 
 ESTIMATE_MARK = "(추정) "
-
-RemovalReason = Literal[
-    "malformed", "unknown_ref", "unknown_field", "forbidden_type", "value_mismatch"
-]
-
-
-@dataclass(frozen=True)
-class Removed:
-    sentence: int
-    citation: str
-    reason: RemovalReason
 
 
 @dataclass
@@ -43,21 +32,6 @@ class GradeResult:
     verified_sentences: int = 0
 
 
-def _check(c: Citation, sentence_plain: str, ctx: GroundingContext) -> RemovalReason | None:
-    ev = ctx.evidence.get(c.ref)
-    if ev is None:
-        return "unknown_ref"
-    if ev.object_type is not None and ev.object_type not in ctx.readable:
-        return "forbidden_type"
-    pair = ev.values.get(c.field)
-    if pair is None:
-        return "unknown_field"
-    raw, shown = pair
-    if contains(sentence_plain, raw) or contains(sentence_plain, shown):
-        return None
-    return "value_mismatch"
-
-
 def grade(answer: str, ctx: GroundingContext, *, grade2_enabled: bool = True) -> GradeResult:
     sentences = split(answer)
     removed: list[Removed] = []
@@ -68,18 +42,11 @@ def grade(answer: str, ctx: GroundingContext, *, grade2_enabled: bool = True) ->
 
     for s in sentences:
         plain = s.plain
-        ok_here = False
-        # 형식이 깨진 인용도 지운 사실을 남긴다 — 조용히 사라지면 모델이 무엇을 틀리는지 모른다.
-        for m in ANY_BRACKET.finditer(s.raw):
-            if not CITATION.fullmatch(m.group(0)):
-                removed.append(Removed(s.index, m.group(0), "malformed"))
-        for c in find(s.raw):
-            reason = _check(c, plain, ctx)
-            if reason is None:
-                ok_here = True
-                passed.setdefault(c.key, c)
-            else:
-                removed.append(Removed(s.index, c.key, reason))
+        verdict = verify_sentence(s.index, s.raw, plain, ctx)
+        removed.extend(verdict.removed)
+        ok_here = bool(verdict.passed)
+        for c in verdict.passed:
+            passed.setdefault(c.key, c)
         fact = is_fact(s, ctx)
         if fact:
             facts += 1
@@ -107,4 +74,12 @@ def grade(answer: str, ctx: GroundingContext, *, grade2_enabled: bool = True) ->
     )
 
 
-__all__ = ["ESTIMATE_MARK", "GradeResult", "Removed", "Sentence", "grade", "strip"]
+__all__ = [
+    "ESTIMATE_MARK",
+    "GradeResult",
+    "RemovalReason",
+    "Removed",
+    "Sentence",
+    "grade",
+    "strip",
+]

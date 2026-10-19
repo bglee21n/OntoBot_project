@@ -199,5 +199,19 @@ def test_summary_hides_unreadable_types_and_links_touching_them() -> None:
     assert "Organization" not in repr(s)
 
 
+def test_summary_marks_fk_properties_only_through_visible_links() -> None:
+    def props(s: dict, type_name: str) -> dict:
+        t = next(t for t in s["object_types"] if t["name"] == type_name)
+        return {p["name"]: p for p in t["properties"]}
+
+    full = props(schema_summary(sample(), {"Facility", "Region", "Organization"}), "Facility")
+    assert "owned_by" in full["owner_org_id"]["refers_to"]
+    assert "located_in" in full["region_code"]["refers_to"]
+    # 조직을 읽을 수 없으면 owner_org_id 가 무엇을 가리키는지도 싣지 않는다.
+    partial = props(schema_summary(sample(), {"Facility", "Region"}), "Facility")
+    assert "refers_to" not in partial["owner_org_id"]
+    assert "refers_to" in partial["region_code"]
+
+
 def test_summary_with_no_permission_is_empty() -> None:
     assert schema_summary(sample(), set()) == {"object_types": [], "link_types": []}
