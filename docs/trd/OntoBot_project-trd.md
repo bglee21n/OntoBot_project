@@ -2,8 +2,8 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.2                                     |
-| 작성일    | 2026-10-19 (v0.2: 2026-10-19, 착수 전 정정 — 22절)              |
+| 문서      | 기술 요구사항 문서(TRD) v0.3                                     |
+| 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
 
@@ -33,6 +33,7 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 6. 저장소              | **PostgreSQL + Neo4j** (사용자 결정, 5절)             | —                                          |
 | 7. 기존 시스템         | 신규 저장소로 구축                                    | 확장이면 이 문서 전체 재검토               |
 | 8. write-back          | 하지 않음                                             | 하면 `actions/`에 원천 쓰기 어댑터 추가    |
+| (추가) 설치 수단       | **Docker 미사용 — Windows Server 네이티브 설치** (사용자 결정, ADR-0007) | Linux 지원이 필요하면 설치 스크립트 추가 |
 
 ## 3. 기술 스택
 
@@ -51,9 +52,9 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 프론트엔드       | React + TypeScript + Vite, TanStack Query, React Router                            | 상태가 많은 편집·검토 화면             |
 | API 타입         | OpenAPI → `openapi-typescript`로 프론트 타입 생성                                  | 백엔드·프론트 스키마 일치              |
 | 정적 분석        | ruff, mypy, import-linter / eslint, tsc                                            | 16절 의존 규칙 강제                    |
-| 테스트           | pytest, pytest-asyncio, 통합 테스트용 compose 프로파일                             | 19절                                   |
+| 테스트           | pytest, pytest-asyncio, 로컬 설치 PostgreSQL·Neo4j의 테스트 전용 DB·인스턴스       | 19절                                   |
 | 관측성           | JSON 구조화 로그 + DB `trace` 테이블                                               | 외부 APM 의존 없음(폐쇄망)             |
-| 패키징           | Docker Compose + 오프라인 번들(wheelhouse, 이미지 tar)                             | 폐쇄망 설치                            |
+| 패키징           | Windows Server 네이티브 설치 + 오프라인 번들(uv·Python, wheelhouse, 프론트 빌드 산출물, PostgreSQL·pgvector·Neo4j·JRE 설치본, 설치 스크립트). api·worker는 Windows 서비스로 등록. **Docker는 쓰지 않는다**(ADR-0007) | 폐쇄망 설치, 운영 대상 최소화 |
 
 ## 4. 시스템 아키텍처
 
@@ -553,9 +554,8 @@ OntoBot_project/
 ├── domain-packs/
 │   └── sample/                     # ontology.yaml mappings.yaml golden.yaml seed/(CSV)
 ├── deploy/
-│   ├── docker-compose.yml          # api · worker · postgres(pgvector) · neo4j · ollama(선택)
-│   ├── compose.test.yml            # 통합 테스트용
-│   ├── offline/                    # build_bundle.sh (wheelhouse · 이미지 tar) · INSTALL.md
+│   ├── windows/                    # 설치 스크립트(PowerShell) · 서비스 등록 · INSTALL.md
+│   ├── offline/                    # build_bundle.ps1 (uv·Python · wheelhouse · 프론트 빌드 · DB 설치본)
 │   └── env.example
 ├── scripts/
 │   ├── seed_domain_pack.py
@@ -651,7 +651,7 @@ OntoBot_project/
 | 층          | 대상                                                                                                                                       | 비고                                         |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
 | 단위        | 근거 대조 규칙(정규화·사실 문장·등급), QueryPlan 검증, 컴파일러(값이 언제나 바인드로 나가는지), RBAC, PII 토큰화 왕복, 근거 발언 정확 포함 | `grounding`은 순수 함수라 픽스처만으로 검증  |
-| 통합        | PostgreSQL + Neo4j(`compose.test.yml`): 동기화 → 아웃박스 → 투영, 그래프 재구축·대사, 탐색 질의                                            | 폐쇄망: 테스트 이미지는 오프라인 번들에 포함 |
+| 통합        | 로컬 설치 PostgreSQL(테스트 전용 DB `ontobot_test`, 원천 역할 `ontobot_source_test`) + Neo4j(테스트 전용 인스턴스 — Community는 사용자 DB가 하나뿐이라 개발 그래프와 분리한다): 동기화 → 아웃박스 → 투영, 그래프 재구축·대사, 탐색 질의 | CI도 Docker 없이 러너에 직접 설치한다 |
 | 계약        | SSE 이벤트 순서·스키마, OpenAPI 스냅샷                                                                                                     | 프론트 타입 생성과 함께 깨지면 알 수 있게    |
 | 권한 침투   | 역할별 문항: 읽을 수 없는 타입을 대상·필터·탐색 경로로 묻기, 데이터 값 속 지시문                                                           | `golden_item.test_role`·`forbidden_values`   |
 | 장애        | 실행기 오류·타임아웃·Neo4j 중단 시 `failed`로 나가는지                                                                                     | `golden_item.fault`                          |
@@ -679,6 +679,7 @@ OntoBot_project/
 | 0004 | 플래너 구조화 출력                 | 로컬 소형 모델의 JSON 실패율을 골든셋으로 측정해, `plan_invalid` 비율이 임계를 넘으면 모델 상향                      |
 | 0005 | IdP                                | OIDC 기본. 사내가 LDAP/AD뿐이면 LDAP 어댑터 추가                                                                     |
 | 0006 | 답변 본문 비스트리밍(검증 후 전송) | 체감 지연이 문제 되면 "검증 중" 표시와 함께 스트리밍 후 교체 방식 검토                                               |
+| 0007 | Docker 미사용, Windows Server 네이티브 | 서비스 등록·업그레이드·롤백을 설치 스크립트가 맡는다. Linux 운영이 필요해지면 systemd 설치 스크립트를 추가한다 |
 
 ## 22. 개정 이력
 
@@ -686,3 +687,4 @@ OntoBot_project/
 | ---- | ---------- | ---- |
 | v0.1 | 2026-10-19 | 최초 작성 |
 | v0.2 | 2026-10-19 | 착수 전 정정 — `link` 부분 유일키, `golden_item.golden_set_id`, `eval_run`·`eval_result` 컬럼 확정, `graph_outbox` 소비 순서·처리 위치, 식별자 형식(Neo4j 라벨 안전성), 속성 인덱스는 게시 작업이 생성, 권한 지문 참조 절, 문서 위치 |
+| v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |

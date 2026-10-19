@@ -36,28 +36,27 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  # Docker 없이(ADR-0007): Windows 러너에 미리 설치된 PostgreSQL 서비스를 켜서 쓴다(운영과 같은 OS).
+  # Neo4j 는 Phase 2에서 zip + JRE 로 러너에 직접 설치하는 단계를 더한다.
   integration:
     needs: backend
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     defaults: {run: {working-directory: backend}}
-    services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env: {POSTGRES_DB: ontobot_test, POSTGRES_USER: ontobot, POSTGRES_PASSWORD: ontobot-test}
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U ontobot -d ontobot_test" --health-interval 5s --health-retries 20
-      neo4j:
-        image: neo4j:5-community
-        env: {NEO4J_AUTH: neo4j/ontobot-test}
-        ports: ["7687:7687"]
     env:
       ONTOBOT_DB_NAME: ontobot_test
       ONTOBOT_DB_USER: ontobot
       ONTOBOT_DB_PASSWORD: ontobot-test
-      ONTOBOT_NEO4J_PASSWORD: ontobot-test
     steps:
       - uses: actions/checkout@v4
+      - name: PostgreSQL 서비스 기동 · 테스트 DB 생성
+        shell: pwsh
+        run: |
+          $svc = Get-Service -Name "postgresql*"
+          Set-Service -InputObject $svc -StartupType Manual
+          Start-Service -InputObject $svc
+          $psql = Join-Path $env:PGBIN "psql.exe"
+          & $psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ontobot LOGIN PASSWORD 'ontobot-test'"
+          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_test OWNER ontobot"
       - uses: astral-sh/setup-uv@v6
         with: {version: "0.11.7"}
       - run: uv sync --frozen --python 3.12

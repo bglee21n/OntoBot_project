@@ -13,8 +13,9 @@
 
 - Python 3.12 — 가상환경은 **uv**가 만든다(`backend/.venv`). 전체 고정은 `backend/uv.lock`.
 - Node 22 — 프론트 의존성은 `frontend/package-lock.json`에 고정.
-- PostgreSQL — 개발 PC의 로컬 인스턴스(`ontobot_db` / 계정 `ontobot`) 또는 `deploy/docker-compose.yml`.
-- Neo4j — Phase 2부터 필요하다(`deploy/docker-compose.yml`).
+- PostgreSQL — 개발 PC에 설치한 인스턴스(`ontobot_db` / 계정 `ontobot`).
+- Neo4j Community — Phase 2부터 필요하다. 설치 절차는 [deploy/windows/README.md](deploy/windows/README.md).
+- **Docker는 쓰지 않는다**(개발·CI·운영 모두 네이티브, [ADR-0007](docs/adr/0007-no-docker-windows-native.md)).
 
 ```bash
 cp deploy/env.example .env           # 비밀번호를 채운다. .env 는 커밋하지 않는다

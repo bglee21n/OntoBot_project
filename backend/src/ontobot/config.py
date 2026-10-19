@@ -16,7 +16,7 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
-# 저장소 루트의 .env — backend/ 밖에 두어 compose 와 같은 파일을 쓴다.
+# 저장소 루트의 .env — 백엔드와 설치 스크립트(deploy/windows)가 같은 파일을 쓴다.
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 
 

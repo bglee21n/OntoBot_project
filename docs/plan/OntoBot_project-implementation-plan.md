@@ -15,7 +15,7 @@ TRD는 MVP(P0)를 구현할 수 있는 수준으로 정해 두었고, 20절에 1
 
 | 항목 | 가정 | 근거 |
 | --- | --- | --- |
-| 첫 커넥터 | **PostgreSQL**(원천도 PG). Oracle·MySQL·CSV는 `connectors/base.py` 인터페이스만 둔다 | TRD 20절 "커넥터 1종". 통합 테스트용 compose에 원천 PG를 하나 더 띄우면 끝난다 |
+| 첫 커넥터 | **PostgreSQL**(원천도 PG). Oracle·MySQL·CSV는 `connectors/base.py` 인터페이스만 둔다 | TRD 20절 "커넥터 1종". 통합 테스트는 로컬 PG의 원천 역할 테스트 DB(`ontobot_source_test`)를 쓴다 |
 | 샘플 도메인 | `domain-packs/sample`: Facility / Organization / Region 3타입, 링크 2종(`owned_by`, `located_in`) | TRD 7.2 예시와 같은 모양. 실제 도메인(PRD 10절 1번)이 정해지면 팩만 추가 |
 | 평가 게이트 수치 | PRD 7절 공란 → `gate.yaml`에 **임시값**을 넣고 "가안" 주석. 불변식(인용률 100%, 실패 은폐 0건, 권한 위반 0건, 답 없음 문항 ①② 0%)만 확정값 | PRD 7절 |
 | 등급 ② | 허용(설정 `GRADE2_ENABLED=true`) | TRD 2절 4번 |
@@ -23,6 +23,7 @@ TRD는 MVP(P0)를 구현할 수 있는 수준으로 정해 두었고, 20절에 1
 | 인증 | 로컬 계정을 W1에 먼저, OIDC는 같은 세션 계층 위에 붙인다 | 폐쇄망 IdP 부재 대비(TRD 9.1) |
 | 개발 DB | 로컬 PostgreSQL 18 `ontobot_db`, 계정 `ontobot`(DB 소유자). 비밀번호는 루트 `.env`에만 둔다(커밋 금지) | 사용자 결정 |
 | 가상환경 | **uv** — `backend/.venv`, 전체 고정은 `backend/uv.lock` | 사용자 결정 |
+| 설치 수단 | **Docker 미사용** — 개발·CI·운영 모두 네이티브. 운영은 Windows Server(ADR-0007) | 사용자 결정 |
 
 ## TRD에서 착수 전에 고쳐 둘 것 (구현 중 판단을 막는 빈칸)
 
@@ -46,9 +47,9 @@ TRD는 MVP(P0)를 구현할 수 있는 수준으로 정해 두었고, 20절에 1
 - `backend/pyproject.toml`(pinned, uv 관리 — 개발 의존성은 `[dependency-groups]`), ruff·mypy(strict 아님, `grounding/`·`query/`만 strict), pytest-asyncio.
 - **import-linter 계약을 첫날 넣는다**(16.3의 1~4번). 5번(object 직접 SELECT 금지)·6번(권한 계산 금지)은 소스를 훑는 테스트 `tests/unit/test_dependency_rules.py`로.
 - `frontend/` Vite+React+TS, eslint, tsc. `src/i18n/ko`.
-- `deploy/docker-compose.yml`(api·worker·postgres(pgvector 이미지)·neo4j·ollama 선택), `deploy/compose.test.yml`(+ 원천 PG).
+- ~~compose~~ → **Docker 미사용**(ADR-0007). 구성 요소는 로컬에 직접 설치하고 `deploy/windows/`에 설치 절차를 둔다.
 - 작업 실행기 `scripts/task.py`가 명령의 정본(Windows에 make가 없다). `Makefile`은 그것을 부르기만 한다.
-- CI 파이프라인: lint → unit → contract → (compose) integration → eval gate.
+- CI 파이프라인: lint → unit → contract → integration(Windows 러너, 설치된 PostgreSQL) → eval gate.
 
 **완료 기준**: 빈 앱이 `/healthz` 200, CI 녹색, import-linter가 위반 샘플을 실제로 잡는지 확인하는 테스트 1개.
 
@@ -163,7 +164,7 @@ TRD는 MVP(P0)를 구현할 수 있는 수준으로 정해 두었고, 20절에 1
 
 - 부하 측정(동시 사용자·P95) → PRD 7절 공란 수치 확정 제안.
 - `/readyz`(PG·Neo4j·LLM), 매일 대사 스케줄 확인.
-- `deploy/offline/build_bundle.sh`(wheelhouse, npm 빌드 산출물, 이미지 tar), `INSTALL.md`. 프론트 자산은 빌드에 포함, CDN 없음.
+- `deploy/offline/build_bundle.ps1`(uv·Python, wheelhouse, 프론트 빌드 산출물, PostgreSQL·pgvector·Neo4j·JRE·Ollama 설치본), `deploy/windows/install.ps1`(설치·서비스 등록·업그레이드·롤백), `INSTALL.md`. 서비스 래퍼(WinSW 또는 NSSM)를 이 Phase에서 확정한다. 프론트 자산은 빌드에 포함, CDN 없음.
 - **완료 기준**: 인터넷 없는 장비에서 번들만으로 설치·기동, 샘플 팩 시드 → 질의까지.
 
 ---
@@ -182,19 +183,20 @@ TRD는 MVP(P0)를 구현할 수 있는 수준으로 정해 두었고, 20절에 1
 ```
 make lint            # ruff·mypy·import-linter·eslint·tsc
 make test-unit       # grounding·query·security·workshop·evaluation
-make test-int        # compose.test.yml: PG + 원천 PG + Neo4j
+make test-int        # 로컬 PG 테스트 DB(ontobot_test·ontobot_source_test) + Neo4j 테스트 인스턴스
 make test-contract   # SSE 순서·OpenAPI 스냅샷
 make eval            # 골든셋 게이트(gate.yaml)
 ```
 
-엔드투엔드: `make up` → 샘플 팩 시드(`scripts/seed_domain_pack.py`) → 브라우저에서 로그인 → 온톨로지 게시 → 동기화 → 채팅으로 TRD 7.3 상태 표의 각 행(정상·0건·권한 없음·Neo4j 중단·과다)을 재현하고, 근거 카드·조회 조건·등급 배지·실패 표시가 서로 다른 모양으로 나오는지 화면에서 확인.
+엔드투엔드: 로컬 서비스(PostgreSQL·Neo4j·Ollama) 기동 + `task.py dev-api`·`dev-web` → 샘플 팩 시드(`scripts/seed_domain_pack.py`) → 브라우저에서 로그인 → 온톨로지 게시 → 동기화 → 채팅으로 TRD 7.3 상태 표의 각 행(정상·0건·권한 없음·Neo4j 중단·과다)을 재현하고, 근거 카드·조회 조건·등급 배지·실패 표시가 서로 다른 모양으로 나오는지 화면에서 확인.
 
 ## 첫 착수 범위 제안
 
-승인되면 **Phase 0 + TRD v0.2 정정(위 8개)**부터 진행합니다. 결과물: 디렉터리 골격, CI, import-linter 계약, compose, `/healthz`, 문서 이동.
+승인되면 **Phase 0 + TRD v0.2 정정(위 8개)**부터 진행합니다. 결과물: 디렉터리 골격, CI, import-linter 계약, `/healthz`, 문서 이동.
 
 ## 진행 기록
 
 | 일자 | Phase | 내용 |
 | --- | --- | --- |
 | 2026-10-19 | 0 | 문서 이동(`docs/prd`·`docs/trd`·`docs/plan`), TRD v0.2 정정 8건, ADR 0001~0006, 백엔드 골격(uv·`/healthz`·설정·DB 세션), 의존 규칙(import-linter 4계약 + 소스 검사), 프론트 골격(Vite·React·TS — TypeScript는 `openapi-typescript`·`typescript-eslint` 호환을 위해 **5.9.3** 고정), compose·CI. ⚠ pgvector 확장은 `ontobot_db`에 아직 설치되지 않았다(`CREATE EXTENSION vector`는 슈퍼유저 필요 — 사용은 P1) |
+| 2026-10-19 | 0 | Docker 제거(Dockerfile·compose), TRD v0.3, ADR-0007, CI 통합 잡을 Windows 러너 + 설치된 PostgreSQL로 전환. Neo4j 네이티브 설치는 Phase 2 착수 시 |

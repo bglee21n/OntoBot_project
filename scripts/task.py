@@ -37,21 +37,6 @@ TASKS: dict[str, list[tuple[Path, list[str]]]] = {
     "build": [(FRONTEND, [NPM, "run", "build"])],
     "dev-api": [(BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])],
     "dev-web": [(FRONTEND, [NPM, "run", "dev"])],
-    "up": [
-        (
-            ROOT,
-            [
-                "docker",
-                "compose",
-                "-f",
-                "deploy/docker-compose.yml",
-                "--env-file",
-                ".env",
-                "up",
-                "-d",
-            ],
-        )
-    ],
 }
 
 # pytest 는 수집된 테스트가 없으면 5를 돌려준다.

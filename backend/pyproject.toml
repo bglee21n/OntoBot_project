@@ -43,7 +43,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "integration: PostgreSQL·Neo4j가 필요한 테스트 (deploy/compose.test.yml)",
+    "integration: 로컬 설치 PostgreSQL·Neo4j의 테스트 전용 DB가 필요한 테스트 (ADR-0007)",
 ]
 addopts = "-ra --strict-markers"
 
