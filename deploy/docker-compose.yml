@@ -1,0 +1,49 @@
+# 단일 노드 구성(TRD 15절): api 1 + PostgreSQL + Neo4j (+ Ollama 선택).
+# worker 는 Phase 2(작업 큐)에서 추가한다.
+# 실행: docker compose -f deploy/docker-compose.yml --env-file .env up -d
+# 개발 PC 에 PostgreSQL 이 이미 설치돼 있으면 api 없이 neo4j 만 띄워도 된다.
+# ⚠ 이미지 태그는 오프라인 번들을 만들 때(Phase 8) 다이제스트로 고정한다 — 지금은 개발용 부동 태그다.
+name: ontobot
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17   # pgvector 확장 설치(사용은 P1)
+    environment:
+      POSTGRES_DB: ${ONTOBOT_DB_NAME}
+      POSTGRES_USER: ${ONTOBOT_DB_USER}
+      POSTGRES_PASSWORD: ${ONTOBOT_DB_PASSWORD}
+    ports: ["5433:5432"]            # 개발 PC 의 로컬 PostgreSQL(5432)과 겹치지 않게
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+
+  neo4j:
+    image: neo4j:5-community        # ADR-0002: Community(GPLv3) 기준
+    environment:
+      NEO4J_AUTH: ${ONTOBOT_NEO4J_USER}/${ONTOBOT_NEO4J_PASSWORD}
+    ports: ["7474:7474", "7687:7687"]
+    volumes: [neo4jdata:/data]
+
+  api:
+    build: ../backend
+    env_file: ../.env
+    environment:
+      ONTOBOT_DB_HOST: postgres
+      ONTOBOT_DB_PORT: "5432"
+      ONTOBOT_NEO4J_URI: bolt://neo4j:7687
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["llm"]               # 선택: docker compose --profile llm up
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+
+volumes:
+  pgdata:
+  neo4jdata:
+  ollama:

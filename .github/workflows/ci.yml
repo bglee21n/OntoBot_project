@@ -1,0 +1,66 @@
+# TRD 3절·19절: lint → unit → contract → integration → eval gate.
+# 명령은 scripts/task.py 와 같은 것을 부른다(로컬과 CI가 갈라지지 않게).
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: backend}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.11.7"}
+      - run: uv sync --frozen --python 3.12
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run ruff check --config pyproject.toml ../scripts
+      - run: uv run mypy
+      - run: uv run lint-imports
+      - run: uv run pytest tests/unit -q
+      # 아직 비어 있는 층은 '수집된 테스트 없음'(5)을 통과로 본다 — scripts/task.py 와 같은 규칙.
+      - run: uv run pytest tests/contract -q || [ $? -eq 5 ]
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: frontend}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22", cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  integration:
+    needs: backend
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: backend}}
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env: {POSTGRES_DB: ontobot_test, POSTGRES_USER: ontobot, POSTGRES_PASSWORD: ontobot-test}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ontobot -d ontobot_test" --health-interval 5s --health-retries 20
+      neo4j:
+        image: neo4j:5-community
+        env: {NEO4J_AUTH: neo4j/ontobot-test}
+        ports: ["7687:7687"]
+    env:
+      ONTOBOT_DB_NAME: ontobot_test
+      ONTOBOT_DB_USER: ontobot
+      ONTOBOT_DB_PASSWORD: ontobot-test
+      ONTOBOT_NEO4J_PASSWORD: ontobot-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.11.7"}
+      - run: uv sync --frozen --python 3.12
+      - run: uv run pytest tests/integration -q -m integration
+
+  # 평가 게이트(TRD 13절)는 Phase 7에서 붙인다 — 실제 모델 게이트와 PR별 녹화 응답 픽스처 모드.

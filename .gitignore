@@ -1,0 +1,29 @@
+# 비밀값 — 접속 정보는 .env 에만 둔다(TRD 9.3). 예시는 deploy/env.example
+.env
+.env.*
+!deploy/env.example
+
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+*.egg-info/
+build/
+dist/
+
+# 프론트
+node_modules/
+frontend/dist/
+
+# 오프라인 번들 산출물
+deploy/offline/out/
+
+# 편집기
+.idea/
+.vscode/
+*.swp
+*.tsbuildinfo
