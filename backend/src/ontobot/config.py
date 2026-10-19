@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: SecretStr = SecretStr("")
 
+    # 통합 테스트 전용 Neo4j 인스턴스. Community는 사용자 DB가 하나뿐이고 테스트가 그래프를
+    # 비우므로 개발 인스턴스와 반드시 분리한다(ADR-0007). 운영 설정에는 두지 않는다.
+    test_neo4j_uri: str = "bolt://localhost:7688"
+    test_neo4j_user: str = "neo4j"
+    test_neo4j_password: SecretStr = SecretStr("")
+
     # 등급 ②(일부 근거)를 허용할지. 끄면 ②를 ③으로 처리한다(TRD 2절 4번, 8.2-6).
     grade2_enabled: bool = True
 

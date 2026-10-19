@@ -200,3 +200,4 @@ make eval            # 골든셋 게이트(gate.yaml)
 | --- | --- | --- |
 | 2026-10-19 | 0 | 문서 이동(`docs/prd`·`docs/trd`·`docs/plan`), TRD v0.2 정정 8건, ADR 0001~0006, 백엔드 골격(uv·`/healthz`·설정·DB 세션), 의존 규칙(import-linter 4계약 + 소스 검사), 프론트 골격(Vite·React·TS — TypeScript는 `openapi-typescript`·`typescript-eslint` 호환을 위해 **5.9.3** 고정), compose·CI. ⚠ pgvector 확장은 `ontobot_db`에 아직 설치되지 않았다(`CREATE EXTENSION vector`는 슈퍼유저 필요 — 사용은 P1) |
 | 2026-10-19 | 0 | Docker 제거(Dockerfile·compose), TRD v0.3, ADR-0007, CI 통합 잡을 Windows 러너 + 설치된 PostgreSQL로 전환. Neo4j 네이티브 설치는 Phase 2 착수 시 |
+| 2026-10-20 | 0 | 개발 PC 준비: `ontobot` 슈퍼유저 권한(사용자), 테스트 DB 2개·pgvector 확장, Neo4j Community 5.26.32 LTS 개발(7687)·테스트(7688) 인스턴스를 Windows 서비스로 설치, `graph/client.py` 최소판과 접속 스모크 테스트 |
