@@ -344,9 +344,12 @@ async def test_object_card_respects_type_permission(schema, client, make_user) -
     assert r.status_code == 200
     card = r.json()
     assert card["title"] == "파이프 변전소 1" and card["synced_at"] is not None
-    assert {"name": "capacity_kw", "display_name": "설비 용량(kW)", "value": "2,400"} in card[
-        "fields"
-    ]
+    assert {
+        "name": "capacity_kw",
+        "display_name": "설비 용량(kW)",
+        "value": "2,400",
+        "edit": None,
+    } in card["fields"]
     assert (await client.get("/api/v1/objects/Facility/NOPE")).status_code == 404
     # 읽을 수 없는 타입은 없는 객체와 같은 404 다.
     blind = await _reader(make_user, "Region")

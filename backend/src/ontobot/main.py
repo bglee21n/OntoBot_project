@@ -160,6 +160,7 @@ def create_app() -> FastAPI:
     app.include_router(graph_api.jobs_router, prefix=API_PREFIX)
     app.include_router(chat_api.router, prefix=API_PREFIX)
     app.include_router(objects_api.router, prefix=API_PREFIX)
+    app.include_router(objects_api.edits_router, prefix=API_PREFIX)
     app.include_router(admin_api.router, prefix=API_PREFIX)
     app.include_router(workshop_api.router, prefix=API_PREFIX)
     app.include_router(eval_api.router, prefix=API_PREFIX)

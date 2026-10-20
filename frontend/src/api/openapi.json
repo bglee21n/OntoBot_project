@@ -314,6 +314,46 @@
         "title": "ConditionsData",
         "type": "object"
       },
+      "ConflictOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "new_source_value": {
+            "title": "New Source Value",
+            "type": "string"
+          },
+          "source_synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Synced At"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "acknowledged"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "new_source_value",
+          "source_synced_at"
+        ],
+        "title": "ConflictOut",
+        "type": "object"
+      },
       "ConversationOut": {
         "properties": {
           "id": {
@@ -383,6 +423,65 @@
           "trace_id"
         ],
         "title": "DoneData",
+        "type": "object"
+      },
+      "EditOut": {
+        "properties": {
+          "action_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Run Id"
+          },
+          "conflict": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConflictOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "edit_id": {
+            "title": "Edit Id",
+            "type": "integer"
+          },
+          "edited_at": {
+            "format": "date-time",
+            "title": "Edited At",
+            "type": "string"
+          },
+          "edited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited By"
+          },
+          "source_value": {
+            "title": "Source Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edit_id",
+          "edited_by",
+          "edited_at",
+          "action_run_id",
+          "source_value",
+          "conflict"
+        ],
+        "title": "EditOut",
         "type": "object"
       },
       "ElementOut": {
@@ -915,6 +1014,16 @@
           "display_name": {
             "title": "Display Name",
             "type": "string"
+          },
+          "edit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EditOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "name": {
             "title": "Name",
@@ -2435,6 +2544,16 @@
             "title": "Pk",
             "type": "string"
           },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLineageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "synced_at": {
             "anyOf": [
               {
@@ -2466,7 +2585,8 @@
           "pk",
           "title",
           "fields",
-          "synced_at"
+          "synced_at",
+          "source"
         ],
         "title": "ObjectCard",
         "type": "object"
@@ -3174,6 +3294,68 @@
         "title": "SourceIn",
         "type": "object"
       },
+      "SourceLineageOut": {
+        "properties": {
+          "data_source": {
+            "title": "Data Source",
+            "type": "string"
+          },
+          "mapping_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapping Id"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "run_finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Finished At"
+          },
+          "sync_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Run Id"
+          }
+        },
+        "required": [
+          "data_source",
+          "mapping_id",
+          "origin",
+          "sync_run_id",
+          "run_finished_at"
+        ],
+        "title": "SourceLineageOut",
+        "type": "object"
+      },
       "SourceOut": {
         "properties": {
           "created_at": {
@@ -3277,6 +3459,125 @@
           "stage"
         ],
         "title": "StageData",
+        "type": "object"
+      },
+      "SyncConflictOut": {
+        "properties": {
+          "base_source_value": {
+            "title": "Base Source Value",
+            "type": "string"
+          },
+          "edit_id": {
+            "title": "Edit Id",
+            "type": "integer"
+          },
+          "edit_value": {
+            "title": "Edit Value",
+            "type": "string"
+          },
+          "edited_at": {
+            "format": "date-time",
+            "title": "Edited At",
+            "type": "string"
+          },
+          "edited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited By"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "new_source_value": {
+            "title": "New Source Value",
+            "type": "string"
+          },
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "property": {
+            "title": "Property",
+            "type": "string"
+          },
+          "property_display_name": {
+            "title": "Property Display Name",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "source_synced_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Synced At"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "acknowledged",
+              "cleared"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "edit_id",
+          "type",
+          "pk",
+          "property",
+          "property_display_name",
+          "edit_value",
+          "base_source_value",
+          "new_source_value",
+          "source_synced_at",
+          "edited_by",
+          "edited_at",
+          "resolved_by",
+          "resolved_at"
+        ],
+        "title": "SyncConflictOut",
         "type": "object"
       },
       "SyncRunOut": {
@@ -5422,6 +5723,42 @@
         ]
       }
     },
+    "/api/v1/object-edits/{edit_id}": {
+      "delete": {
+        "description": "편집을 해제한다 — 보이는 값이 원천 값으로 돌아간다(PRD 5.3).",
+        "operationId": "clear_edit_api_v1_object_edits__edit_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "edit_id",
+            "required": true,
+            "schema": {
+              "title": "Edit Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Edit",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
     "/api/v1/objects/{object_type}/{pk}": {
       "get": {
         "operationId": "card_api_v1_objects__object_type___pk__get",
@@ -6521,6 +6858,101 @@
         "summary": "Test Source",
         "tags": [
           "sync"
+        ]
+      }
+    },
+    "/api/v1/sync-conflicts": {
+      "get": {
+        "description": "편집 충돌. 상태를 주지 않으면 살아 있는 것(open·acknowledged).",
+        "operationId": "list_conflicts_api_v1_sync_conflicts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "acknowledged",
+                    "cleared"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SyncConflictOut"
+                  },
+                  "title": "Response List Conflicts Api V1 Sync Conflicts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Conflicts",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
+    "/api/v1/sync-conflicts/{conflict_id}/acknowledge": {
+      "post": {
+        "description": "충돌을 확인했다고 표시한다. 편집 값은 그대로 이긴다 — 낡았으면 편집을 해제한다.",
+        "operationId": "acknowledge_conflict_api_v1_sync_conflicts__conflict_id__acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conflict_id",
+            "required": true,
+            "schema": {
+              "title": "Conflict Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge Conflict",
+        "tags": [
+          "objects"
         ]
       }
     },

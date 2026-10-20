@@ -1,15 +1,19 @@
 """객체 읽기 — 유일한 읽기 경로(TRD 6.2, 16.3-5).
 
-여기가 지키는 것 둘:
+여기가 지키는 것 셋:
 
 1. **삭제 표시된 객체는 보이지 않는다.** ``deleted_at IS NULL`` 을 호출부마다 적게 두면 언젠가
-   한 곳이 빠진다. 그래서 컴파일러는 조건 조각만 만들고 ``FROM object`` 와 타입·삭제 조건은
+   한 곳이 빠진다. 그래서 컴파일러는 조건 조각만 만들고 ``FROM`` 과 타입·삭제 조건은
    이 파일만 붙인다.
 2. **게시 버전에 선언된 속성만 내보낸다.** 버전에서 빠진 속성의 값이 jsonb 에 남아 있어도
    보이지 않는다(TRD 6.1). 호출부가 선언된 속성 목록을 넘긴다.
+3. **보이는 값 = 활성 편집 값, 없으면 원천 값**(편집 레이어, TRD 6.3·17.1-1). 근거 카드만이
+   아니라 조회 조건·집계·참조 값 대조도 같은 값을 본다 — 그래서 객체를 읽는 SQL 은 모두 ``object``
+   가 아니라 편집을 덮은 파생 행(``_OBJECTS``, 별칭 ``o``)에서 읽는다. 카드는 편집 값인데 필터는
+   원천 값이면 "위험등급 4 이상" 질문에서 편집으로 4가 된 시설이 조용히 빠진다.
 
-MVP 는 원천 값을 그대로 돌려준다. P1 에서 편집 레이어, P3 에서 시나리오를 여기서 덮는다 —
-호출부는 바뀌지 않는다.
+P3 의 시나리오도 여기서 덮는다 — 호출부는 바뀌지 않는다. 그래프 대사·재구축용 읽기(아래 묶음)는
+원천 값을 본다: Neo4j 에는 pk·제목만 있고, Action 은 pk·FK·제목 속성을 바꾸지 못한다(TRD 17.1-3).
 """
 
 from __future__ import annotations
@@ -29,6 +33,21 @@ class ObjectRow:
     pk: str
     properties: dict[str, Any]
     synced_at: datetime | None
+    # 보이는 값이 편집 값인 속성(선언된 것만). 편집자·원천 값 같은 자세한 것은 ``objects.edits``.
+    edited: frozenset[str] = frozenset()
+
+
+# 편집을 덮은 객체 행. ``properties`` 는 보이는 값, ``edited`` 는 활성 편집 묶음(없으면 NULL).
+# 타입 조건을 안쪽에도 걸어 편집 대조를 그 타입으로 좁힌다. 편집이 있는 타입에서는 속성 표현식
+# 인덱스가 덮인 값에는 쓰이지 않는다 — 규모가 커져 문제가 되면 ADR-0003 과 함께 다시 본다.
+_OBJECTS = (
+    "(SELECT ob.id, ob.type, ob.pk, ob.source_id, ob.synced_at, ob.deleted_at, "
+    "ob.properties || COALESCE(ed.patch, CAST('{}' AS jsonb)) AS properties, ed.patch AS edited "
+    "FROM object ob LEFT JOIN LATERAL ("
+    "SELECT jsonb_object_agg(e.property, e.value) AS patch FROM object_edit e "
+    "WHERE e.type = ob.type AND e.pk = ob.pk AND e.cleared_at IS NULL) ed ON true "
+    "WHERE ob.type = :__type) o"
+)
 
 
 @dataclass(frozen=True)
@@ -53,6 +72,11 @@ def _project(props: dict[str, Any], declared: Sequence[str]) -> dict[str, Any]:
     return {k: props[k] for k in declared if k in props}
 
 
+def _row(object_type: str, r: Any, declared: Sequence[str]) -> ObjectRow:
+    edited = frozenset(k for k in (r.edited or {}) if k in declared)
+    return ObjectRow(object_type, r.pk, _project(r.properties, declared), r.synced_at, edited)
+
+
 async def resolve(
     db: AsyncSession, object_type: str, pks: Sequence[str], declared: Sequence[str]
 ) -> dict[str, ObjectRow]:
@@ -61,15 +85,12 @@ async def resolve(
         return {}
     rows = await db.execute(
         text(
-            "SELECT pk, properties, synced_at FROM object "
-            "WHERE type = :t AND pk = ANY(:pks) AND deleted_at IS NULL"
+            f"SELECT o.pk, o.properties, o.synced_at, o.edited FROM {_OBJECTS} "  # noqa: S608 — 고정 틀
+            "WHERE o.pk = ANY(:pks) AND o.deleted_at IS NULL"
         ),
-        {"t": object_type, "pks": list(pks)},
+        {"__type": object_type, "pks": list(pks)},
     )
-    return {
-        r.pk: ObjectRow(object_type, r.pk, _project(r.properties, declared), r.synced_at)
-        for r in rows
-    }
+    return {r.pk: _row(object_type, r, declared) for r in rows}
 
 
 async def existing_values(
@@ -80,11 +101,10 @@ async def existing_values(
         return set()
     rows = await db.scalars(
         text(
-            "SELECT DISTINCT properties ->> CAST(:p AS text) FROM object "
-            "WHERE type = :t AND deleted_at IS NULL "
-            "AND properties ->> CAST(:p AS text) = ANY(:vs)"
+            f"SELECT DISTINCT o.properties ->> CAST(:p AS text) FROM {_OBJECTS} "  # noqa: S608
+            "WHERE o.deleted_at IS NULL AND o.properties ->> CAST(:p AS text) = ANY(:vs)"
         ),
-        {"t": object_type, "p": prop, "vs": list(values)},
+        {"__type": object_type, "p": prop, "vs": list(values)},
     )
     return set(rows)
 
@@ -95,8 +115,8 @@ def render_sql(q: CompiledQuery) -> str:
     if q.aggregate_select:
         select = ", ".join(f"{expr} AS {alias}" for alias, expr in q.aggregate_select)
     else:
-        select = "o.pk, o.properties, o.synced_at"
-    sql = f"SELECT {select} FROM object o WHERE {where}"  # noqa: S608 — 조각은 컴파일러의 고정 틀
+        select = "o.pk, o.properties, o.synced_at, o.edited"
+    sql = f"SELECT {select} FROM {_OBJECTS} WHERE {where}"  # noqa: S608 — 조각은 컴파일러의 고정 틀
     if q.group_by:
         sql += " GROUP BY " + ", ".join(q.group_by)
     if q.order_by:
@@ -113,10 +133,7 @@ async def run_query(db: AsyncSession, q: CompiledQuery) -> list[ObjectRow] | lis
     result = await db.execute(text(render_sql(q)), params)
     if q.aggregate_select:
         return [dict(r._mapping) for r in result]
-    return [
-        ObjectRow(q.object_type, r.pk, _project(r.properties, q.declared_properties), r.synced_at)
-        for r in result
-    ]
+    return [_row(q.object_type, r, q.declared_properties) for r in result]
 
 
 # ---------------------------------------------------------------- 그래프 대사·재구축용 (TRD 5.5)

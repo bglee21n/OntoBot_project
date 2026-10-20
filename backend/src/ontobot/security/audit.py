@@ -38,6 +38,8 @@ WORKSHOP_SUBMITTED = "workshop.submitted"
 WORKSHOP_PUBLISHED = "workshop.published"
 GOLDEN_CHANGED = "eval.golden_changed"
 EVAL_RUN_STARTED = "eval.run_started"
+OBJECT_EDIT_CLEARED = "objects.edit_cleared"
+EDIT_CONFLICT_ACKNOWLEDGED = "objects.conflict_acknowledged"
 
 
 def record(

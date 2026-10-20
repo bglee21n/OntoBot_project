@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { api } from "../../api/client";
-import type { CitationData, MessageOut, ObjectCard } from "../../api/types";
+import type { CitationData, FieldOut, MessageOut, ObjectCard } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 
@@ -138,7 +138,10 @@ export function AnswerView(p: AnswerProps) {
   );
 }
 
-/** 근거 카드 — 인용한 객체의 지금 값과 마지막 동기화 시각(열 때마다 다시 읽는다). */
+/**
+ * 근거 카드 — 인용한 객체의 지금 보이는 값과 값 출처(열 때마다 다시 읽는다).
+ * 편집된 값은 "편집됨 · 원천 값 ○○"을 함께 보여 준다 — 편집 값이 낡았는지 사람이 판단할 수 있어야 한다.
+ */
 export function ObjectCardPanel({ selection, onClose }: { selection: Selection; onClose: () => void }) {
   // 대상: o:Type/pk (pk 에 / 가 있을 수 있어 첫 / 만 가른다) 또는 q:n(집계 행)
   const { target, fields } = selection;
@@ -176,12 +179,28 @@ export function ObjectCardPanel({ selection, onClose }: { selection: Selection; 
           </div>
           <dl>
             {card.data.fields.map((f) => (
-              <FieldRow key={f.name} label={f.display_name} value={f.value} cited={fields.includes(f.name)} />
+              <FieldRow key={f.name} field={f} cited={fields.includes(f.name)} />
             ))}
           </dl>
           <div className="muted">
             {t.card.syncedAt}:{" "}
             {card.data.synced_at ? new Date(card.data.synced_at).toLocaleString() : t.card.neverSynced}
+          </div>
+          <div className="muted">
+            {t.card.lineage}:{" "}
+            {card.data.source
+              ? [
+                  t.card.lineageSource(card.data.source.data_source, card.data.source.origin ?? "—"),
+                  card.data.source.sync_run_id != null && card.data.source.run_finished_at
+                    ? t.card.lineageRun(
+                        card.data.source.sync_run_id,
+                        new Date(card.data.source.run_finished_at).toLocaleString(),
+                      )
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : t.card.lineageNone}
           </div>
         </>
       )}
@@ -189,11 +208,30 @@ export function ObjectCardPanel({ selection, onClose }: { selection: Selection; 
   );
 }
 
-function FieldRow({ label, value, cited }: { label: string; value: string; cited: boolean }) {
+function FieldRow({ field, cited }: { field: FieldOut; cited: boolean }) {
+  const e = field.edit;
+  const when = (v: string) => new Date(v).toLocaleString();
   return (
     <>
-      <dt>{label}</dt>
-      <dd>{cited ? <strong>{value}</strong> : value}</dd>
+      <dt>{field.display_name}</dt>
+      <dd>
+        {cited ? <strong>{field.value}</strong> : field.value}
+        {e && (
+          <div className="edited">
+            <span className="badge">{t.card.edited}</span> {t.card.sourceValue(e.source_value)}
+            <span className="muted"> · {t.card.editedBy(e.edited_by ?? t.card.unknownUser, when(e.edited_at))}</span>
+            {e.conflict && (
+              <div className={e.conflict.status === "open" ? "error-text" : "muted"}>
+                {t.card.conflict(
+                  e.conflict.new_source_value,
+                  e.conflict.source_synced_at ? when(e.conflict.source_synced_at) : "—",
+                )}
+                {e.conflict.status === "acknowledged" && ` · ${t.card.conflictAcknowledged}`}
+              </div>
+            )}
+          </div>
+        )}
+      </dd>
     </>
   );
 }

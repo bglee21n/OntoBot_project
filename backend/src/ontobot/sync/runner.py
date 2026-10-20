@@ -11,8 +11,9 @@
 같은 매핑의 병합은 advisory lock 으로 줄을 세운다. 병합은 멱등이라(같은 행 → 같은 결과) 겹쳐 읽은
 행을 두 번 병합해도 결과가 같다.
 
-P1 편집 레이어 자리: 값이 바뀐 객체마다 ``on_source_change`` 를 부른다. MVP 는 아무것도 하지 않는다
-— P1 에서 편집된 속성의 새 원천 값이 ``base_source_value`` 와 다르면 ``sync_conflict`` 를 남긴다.
+편집 레이어(TRD 6.3·11절): 값이 바뀐 객체마다 같은 트랜잭션에서 ``on_source_change`` 를 부른다.
+병합은 ``object_edit`` 를 건드리지 않고(편집 레이어 우선), 편집된 속성의 새 원천 값이 편집 당시
+값과 다르면 ``objects.edits`` 가 ``sync_conflict`` 를 남긴다.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ontobot.db.models.sync import DataSource, Mapping, SyncRun
 from ontobot.db.session import session_scope
 from ontobot.graph import outbox
-from ontobot.objects import store
+from ontobot.objects import edits, store
 from ontobot.ontology import registry
 from ontobot.ontology.models import ObjectTypeDef, OntologyDocument
 from ontobot.security.secrets import SecretRefError, resolve_db
@@ -40,11 +41,8 @@ from ontobot.sync.mapping import MappingSpec, RowErrors, check, convert
 SourceChangeHook = Callable[[AsyncSession, str, list[str]], Awaitable[None]]
 
 
-async def _no_edit_layer(db: AsyncSession, object_type: str, changed: list[str]) -> None:
-    """P1 편집 레이어가 여기서 sync_conflict 를 기록한다(TRD 11절). MVP 는 할 일이 없다."""
-
-
-on_source_change: SourceChangeHook = _no_edit_layer
+# 병합 트랜잭션 안에서 바뀐 객체의 편집을 대조한다. 테스트가 바꿔 끼울 수 있게 이름으로 둔다.
+on_source_change: SourceChangeHook = edits.record_source_changes
 
 
 # ---------------------------------------------------------------- 워터마크(자료형 보존)

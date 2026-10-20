@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.12) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.13) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
-설치는 미검증), v1 착수 결정 확정(TRD 17.1) — 다음은 Phase 9(편집 레이어·값 계보). 설치 정본은
+설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보) 완료 — 다음은 Phase 10(Action). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md).
 
 ## 운영 전제
@@ -169,8 +169,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   로 보낸다 — 함수 반환값에 섞인다.
 - 채팅 한 건은 답이 끝날 때까지 DB 연결을 쥔다. 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`)이 동시 채팅 상한이다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
-- `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
-  P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).
+- `objects.reader` 가 삭제 표시 제외·**게시 버전에 선언된 속성만** 내보내기·**편집 레이어 덮어 읽기**를 맡는다.
+  객체 값을 읽는 SQL 은 `FROM object` 가 아니라 reader 의 파생 행(`_OBJECTS`)에서 읽어야 한다 — 카드는 편집 값인데
+  필터·집계가 원천 값이면 결과가 조용히 틀린다. P3 시나리오도 여기서 덮는다. 동기화는 `object_edit` 를 건드리지 않고
+  `on_source_change` 훅(`objects.edits.record_source_changes`)이 충돌만 남긴다. 편집은 Action(Phase 10)만 만든다.
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

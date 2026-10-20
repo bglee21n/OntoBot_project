@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.12                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.13                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -163,10 +163,19 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 
 | 테이블          | 주요 컬럼                                                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `object_edit`   | `type`, `pk`, `property`, `value`, `base_source_value`(편집 당시 원천 값), `action_run_id`, `edited_by`, `edited_at`, `cleared_at` |
-| `sync_conflict` | `edit_id`, `new_source_value`, `source_synced_at`, `status`(open/acknowledged/cleared)                                             |
+| `object_edit`   | `type`, `pk`, `property`, `value`, `base_source_value`(편집 당시 원천 값), `action_run_id`, `edited_by`, `edited_at`, `cleared_at`, `cleared_by` — 활성 편집은 부분 유일 `(type, pk, property) WHERE cleared_at IS NULL` |
+| `sync_conflict` | `edit_id`, `new_source_value`, `source_synced_at`, `status`(open/acknowledged/cleared), `resolved_by`, `resolved_at` — 살아 있는 충돌은 편집당 하나(부분 유일 `edit_id WHERE status <> 'cleared'`) |
 
 규칙(PRD 5.3, 11절): 보이는 값 = 활성 편집 값이 있으면 그것, 없으면 원천 값. 충돌은 기록하되 편집 값이 이긴다.
+
+v0.13 (Phase 9 구현):
+
+- **덮어 읽기는 `objects.reader` 한 곳**: 객체를 읽는 SQL(`resolve`·`run_query`·`existing_values`)은 모두 `object` 에 활성 편집을 `jsonb_object_agg` 로 덮은 파생 행에서 읽는다. 그래서 근거 카드·조회 조건·집계·참조 값 대조·탐색의 끝 객체 조건이 같은 값을 본다. 그래프 대사·재구축 읽기는 원천 값을 본다(Neo4j 에는 pk·제목만 있고 Action 은 pk·FK·제목을 못 바꾼다 — 17.1-3). 편집이 있는 타입은 속성 표현식 인덱스가 덮인 값에 쓰이지 않는다(규모가 문제 되면 ADR-0003 과 함께 재검토).
+- 값은 `object.properties` 와 같은 JSON 표현이다. JSON null 과 속성 없음은 같은 NULL 로 비교한다.
+- 같은 속성을 다시 편집하면 이전 편집을 해제하고 새로 만든다(편집 당시 원천 값도 새로 적는다).
+- **충돌 판정**(동기화 병합 트랜잭션, `sync.runner.on_source_change` → `objects.edits.record_source_changes`): 바뀐 객체의 활성 편집마다 지금 원천 값이 편집 당시 값과 같으면 살아 있는 충돌을 `cleared` 로 닫고, 다르면 살아 있는 충돌의 값·시각을 고쳐 `open` 으로 되돌리거나(기록한 값과 다를 때만) 새로 `open` 을 만든다. 편집을 해제하면 그 충돌도 `cleared`.
+- **값 계보**(`objects.lineage`): 편집된 속성은 편집(편집자·시각·Action 실행·편집 당시 원천 값·충돌), 아니면 객체의 원천(데이터 소스 → 매핑 → `synced_at` 이전에 시작한 가장 늦은 성공 실행). 원천이 없는 객체(시드)는 원천 없음.
+- 편집을 **만드는** API 는 없다 — Action 실행(Phase 10)만 만든다. 충돌 확인·편집 해제는 모델러·관리자, 읽을 수 있는 타입에만(읽을 수 없으면 404). 감사 이벤트 `objects.conflict_acknowledged`·`objects.edit_cleared`.
 
 ### 6.4 동기화
 
@@ -442,7 +451,7 @@ class LLMGateway:
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
 | 인증     | `GET /auth/providers` · `GET /auth/login` · `GET /auth/callback` · `POST /auth/local/login` · `POST /auth/logout` · `GET /auth/me`                                                                                                                                                                                                                     | —                   |
 | 채팅     | `POST /chat` (SSE) · `GET /conversations` · `GET /conversations/{id}/messages`                                                                                                                                                                                                                      | 사용자              |
-| 객체     | `GET /objects/{type}/{pk}` (근거 카드)                                                                                                                                                                                                                                                              | 타입 읽기 권한      |
+| 객체     | `GET /objects/{type}/{pk}` (근거 카드 — 편집·충돌·값 계보 포함) · `GET /sync-conflicts` · `POST /sync-conflicts/{id}/acknowledge` · `DELETE /object-edits/{id}` (v0.13) | 타입 읽기 권한(충돌·편집 해제는 + 모델러·관리자) |
 | 온톨로지 | `GET·POST /ontology/versions` · `GET /ontology/versions/{id}` · `POST·PATCH·DELETE /ontology/versions/{id}/object-types[/{tid}]` · 같은 형태의 `/properties`, `/link-types` · `POST /ontology/versions/{id}/import` · `GET /ontology/versions/{id}/export` · `GET /ontology/versions/{id}/diff?base=` · `POST /ontology/versions/{id}/publish` | 모델러              |
 | 동기화   | `CRUD /sources` · `POST /sources/{id}/test` · `CRUD /mappings` · `POST /mappings/{id}/sync` · `GET /sync-runs`                                                                                                                                                                                      | 모델러              |
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
@@ -655,7 +664,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | --- | --- | --- |
 | 1 | 편집 레이어와 조회 | 활성 편집은 근거 카드뿐 아니라 **조회 조건에도** 보인다. `objects.reader` 의 `resolve`·`run_query`·`existing_values` 가 `object` 에 활성 `object_edit` 를 덮은 같은 파생 행을 읽는다 |
 | 2 | Action·Function 정의 위치 | `OntologyDocument` 에 `action_types`·`functions` 를 더한다. draft 에서 편집·게시, 게시본 불변, 버전 비교·영향 분석 대상 |
-| 3 | Action 변경 대상 | 일반 속성만. pk·FK(링크 원천) 속성은 게시 전 검사가 거부한다(링크 변경 Action 은 v1.5) |
+| 3 | Action 변경 대상 | 일반 속성만. pk·FK(링크 원천)·**제목** 속성은 게시 전 검사가 거부한다(링크 변경 Action 은 v1.5). 제목은 Neo4j 노드와 참조 값 대조(FK 이름 → `traverse` 재작성)에 쓰여, 편집하면 그래프와 어긋난다(v0.13 추가) |
 | 4 | ★ Action 부수효과 | 앱 안 알림 + **메일(사내 SMTP 릴레이) + SMS(사내 게이트웨이: HTTP JSON 또는 발송 테이블 INSERT)**. 실행 트랜잭션에서 `notification_outbox` 에 쓰고 커밋 뒤 워커가 보낸다(재시도, `(action_run, 채널, 수신자)` 중복 방지). 롤백은 정정 발송. 수신자 = 역할의 사용자 연락처(`app_user.email`·`phone`) 또는 대상 객체의 `pii_kind` phone/email 속성, 실행당 상한. 연락처는 로그·감사에서 마스킹. 발송 문구는 템플릿 + 바인드(LLM 이 쓰지 않는다). **실행 중 외부 호출 금지 규칙의 예외는 외부 LLM 공급자와 운영자가 설정한 메일·SMS 게이트웨이뿐이다.** `/readyz` 는 게이트웨이를 부르지 않는다 |
 | 5 | Action 파라미터 검증 | 객체 참조는 그 타입에 실재하는 pk·제목과 정확 일치, 값은 질문 원문에 그대로 있거나 enum·자료형 변환 통과. 어긋나면 실행 전에 막고 오류를 한꺼번에 붙여 1회 재계획, 그래도 안 되면 사용자가 고른다 |
 | 6 | 멱등성 | `action_run.request_id`(클라이언트 UUID) 유일 인덱스. 재전송은 기존 실행을 돌려준다(발송도 한 번) |
@@ -743,6 +752,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.13 | 2026-10-20 | Phase 9 구현 반영 — 편집 레이어 덮어 읽기(reader 파생 행, 조회 조건·집계·참조 대조 모두), 충돌 판정 규칙·편집당 살아 있는 충돌 하나, 재편집·해제 규칙, 값 계보, 객체·충돌·편집 해제 API, 감사 이벤트 2종, Action 변경 금지에 제목 속성 추가(17.1-3) |
 | v0.12 | 2026-10-20 | v1 착수 결정(17.1) — 편집 레이어는 조회 조건에도 적용, Action·Function 은 온톨로지 문서에, Action 부수효과는 앱 알림·메일·SMS(사내 게이트웨이, 아웃박스 발송, 사용자 결정), 파라미터 검증·멱등성, 선언형 Function, 속성·행 권한, 감사 해시 체인, 임베딩·문서 인용, 폐쇄망 설정과 음성 입력 비활성화(사용자 결정), 공개 API 키. 2절 가정 표에 Action 부수효과·폐쇄망 여부 추가 |
 | v0.11 | 2026-10-20 | Phase 8 구현 반영(ADR-0010·0011) — `/readyz` 판정 규칙(`ok`/`degraded`/`unavailable`, 외부 LLM 은 호출하지 않음), 설치본 프론트 서빙(`ONTOBOT_FRONTEND_DIST`), DB 연결 풀 설정(동시 채팅 상한), 오프라인 번들 구성·WinSW 서비스·릴리스 폴더 + `current` 정션 업그레이드·롤백(롤백 DB 는 업그레이드 직전 `pg_dump` 복원, 내림 마이그레이션 미사용), 부하 측정 결과 |
 | v0.10 | 2026-10-20 | Phase 7 구현 반영(ADR-0009) — 러너 권한(평가 전용 역할 `golden_set.roles`)·장애 주입 지점(실행기)·`graph_down` 은 실제 드라이버, 녹화 응답 카세트(놓침 = 실패), 게이트 판정 규칙(불변식 None 통과·가안 None 실패), 권한 위반은 객체 근거만, 고아 실행 닫기, 골든셋 팩 형식·적재 규칙, `golden_item`·`golden_set`·`eval_result` 컬럼 추가, 평가 API 권한(챗봇 빌더·모델러) |

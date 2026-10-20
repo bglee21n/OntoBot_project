@@ -493,6 +493,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/object-edits/{edit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clear Edit
+         * @description 편집을 해제한다 — 보이는 값이 원천 값으로 돌아간다(PRD 5.3).
+         */
+        delete: operations["clear_edit_api_v1_object_edits__edit_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/objects/{object_type}/{pk}": {
         parameters: {
             query?: never;
@@ -785,6 +805,46 @@ export interface paths {
          * @description 접속 시험. 실패도 200 으로 돌려 화면이 사유를 보여 준다(오류 상태가 아니라 시험 결과다).
          */
         post: operations["test_source_api_v1_sources__source_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync-conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conflicts
+         * @description 편집 충돌. 상태를 주지 않으면 살아 있는 것(open·acknowledged).
+         */
+        get: operations["list_conflicts_api_v1_sync_conflicts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync-conflicts/{conflict_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Acknowledge Conflict
+         * @description 충돌을 확인했다고 표시한다. 편집 값은 그대로 이긴다 — 낡았으면 편집을 해제한다.
+         */
+        post: operations["acknowledge_conflict_api_v1_sync_conflicts__conflict_id__acknowledge_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1087,6 +1147,20 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** ConflictOut */
+        ConflictOut: {
+            /** Id */
+            id: number;
+            /** New Source Value */
+            new_source_value: string;
+            /** Source Synced At */
+            source_synced_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "acknowledged";
+        };
         /** ConversationOut */
         ConversationOut: {
             /** Id */
@@ -1112,6 +1186,23 @@ export interface components {
             message_id: number;
             /** Trace Id */
             trace_id: number;
+        };
+        /** EditOut */
+        EditOut: {
+            /** Action Run Id */
+            action_run_id: number | null;
+            conflict: components["schemas"]["ConflictOut"] | null;
+            /** Edit Id */
+            edit_id: number;
+            /**
+             * Edited At
+             * Format: date-time
+             */
+            edited_at: string;
+            /** Edited By */
+            edited_by: string | null;
+            /** Source Value */
+            source_value: string;
         };
         /** ElementOut */
         ElementOut: {
@@ -1294,6 +1385,7 @@ export interface components {
         FieldOut: {
             /** Display Name */
             display_name: string;
+            edit?: components["schemas"]["EditOut"] | null;
             /** Name */
             name: string;
             /** Value */
@@ -1761,6 +1853,7 @@ export interface components {
             fields: components["schemas"]["FieldOut"][];
             /** Pk */
             pk: string;
+            source: components["schemas"]["SourceLineageOut"] | null;
             /** Synced At */
             synced_at: string | null;
             /** Title */
@@ -1987,6 +2080,19 @@ export interface components {
             /** Secret Ref */
             secret_ref: string;
         };
+        /** SourceLineageOut */
+        SourceLineageOut: {
+            /** Data Source */
+            data_source: string;
+            /** Mapping Id */
+            mapping_id: number | null;
+            /** Origin */
+            origin: string | null;
+            /** Run Finished At */
+            run_finished_at: string | null;
+            /** Sync Run Id */
+            sync_run_id: number | null;
+        };
         /** SourceOut */
         SourceOut: {
             /**
@@ -2021,6 +2127,45 @@ export interface components {
              * @enum {string}
              */
             stage: "planning" | "querying" | "answering" | "verifying";
+        };
+        /** SyncConflictOut */
+        SyncConflictOut: {
+            /** Base Source Value */
+            base_source_value: string;
+            /** Edit Id */
+            edit_id: number;
+            /** Edit Value */
+            edit_value: string;
+            /**
+             * Edited At
+             * Format: date-time
+             */
+            edited_at: string;
+            /** Edited By */
+            edited_by: string | null;
+            /** Id */
+            id: number;
+            /** New Source Value */
+            new_source_value: string;
+            /** Pk */
+            pk: string;
+            /** Property */
+            property: string;
+            /** Property Display Name */
+            property_display_name: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Resolved By */
+            resolved_by: string | null;
+            /** Source Synced At */
+            source_synced_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "acknowledged" | "cleared";
+            /** Type */
+            type: string;
         };
         /** SyncRunOut */
         SyncRunOut: {
@@ -3261,6 +3406,35 @@ export interface operations {
             };
         };
     };
+    clear_edit_api_v1_object_edits__edit_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                edit_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     card_api_v1_objects__object_type___pk__get: {
         parameters: {
             query?: never;
@@ -3987,6 +4161,66 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TestResult"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conflicts_api_v1_sync_conflicts_get: {
+        parameters: {
+            query?: {
+                status?: ("open" | "acknowledged" | "cleared") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncConflictOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_conflict_api_v1_sync_conflicts__conflict_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

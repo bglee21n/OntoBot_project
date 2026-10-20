@@ -17,6 +17,7 @@ import type {
 } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { ConflictsPanel } from "./ConflictsPanel";
 
 const t = ko.sources;
 
@@ -41,6 +42,7 @@ export function SourcesPage() {
     <section className="stack">
       <h1>{t.title}</h1>
       <GraphPanel />
+      <ConflictsPanel />
 
       <h2>{t.sources}</h2>
       {sources.isError && <ErrorBox error={sources.error} />}

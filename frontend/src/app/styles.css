@@ -49,6 +49,9 @@ label.check { flex-direction: row; align-items: center; }
 .badge { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.8em; border: 1px solid var(--line); }
 .badge.published, .badge.added { background: #ecfdf5; border-color: var(--ok); color: var(--ok); }
 .badge.draft, .badge.changed { background: #fffbeb; border-color: var(--warn); color: var(--warn); }
+/* 근거 카드의 편집 표시(편집 레이어) — 편집 값이 원천 값을 덮고 있음을 드러낸다 */
+.edited { font-size: 0.85em; margin-top: 0.15rem; }
+.edited .badge { background: #fffbeb; border-color: var(--warn); color: var(--warn); }
 .badge.archived, .badge.removed { background: #f3f4f6; color: var(--muted); }
 .login { max-width: 360px; margin: 10vh auto; display: flex; flex-direction: column; gap: 1rem; }
 summary { cursor: pointer; font-weight: 600; }
