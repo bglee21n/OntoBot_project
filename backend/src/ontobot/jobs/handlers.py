@@ -12,6 +12,7 @@ from ontobot.graph.reconcile import rebuild, reconcile
 from ontobot.objects.indexes import ensure_property_index
 from ontobot.ontology import registry
 from ontobot.sync.runner import run_mapping
+from ontobot.tracing.retention import Policy, purge
 
 Handler = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 
@@ -19,6 +20,7 @@ SYNC = "sync_mapping"
 GRAPH_REBUILD = "graph_rebuild"
 GRAPH_RECONCILE = "graph_reconcile"
 PROPERTY_INDEX = "create_property_index"
+RETENTION = "retention_purge"
 
 
 class JobFailed(Exception):
@@ -85,9 +87,19 @@ async def create_property_index(payload: dict[str, Any]) -> dict[str, Any]:
     return {"index": name}
 
 
+async def retention_purge(_: dict[str, Any]) -> dict[str, Any]:
+    s = get_settings()
+    policy = Policy(s.retention_trace_days, s.retention_message_days, s.retention_utterance_days)
+    async with session_scope() as db:
+        counts = await purge(db, policy)
+        await db.commit()
+    return counts
+
+
 HANDLERS: dict[str, Handler] = {
     SYNC: sync_mapping,
     GRAPH_REBUILD: graph_rebuild,
     GRAPH_RECONCILE: graph_reconcile,
     PROPERTY_INDEX: create_property_index,
+    RETENTION: retention_purge,
 }

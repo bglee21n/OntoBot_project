@@ -119,7 +119,12 @@ async def _answer(
                 db.add(msg)
                 await db.flush()
                 trace = await recorder.record(
-                    db, user_id=user.id, message_id=msg.id, result=res, llm_calls=llm.calls
+                    db,
+                    user_id=user.id,
+                    message_id=msg.id,
+                    result=res,
+                    llm_calls=llm.calls,
+                    pii_values=llm.protected,
                 )
                 msg.trace_id = trace.id
                 if res.context_refs is not None:

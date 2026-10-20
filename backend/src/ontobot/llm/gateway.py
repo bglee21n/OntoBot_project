@@ -2,22 +2,33 @@
 
 모든 호출은 ``calls`` 에 기록된다(트레이스의 ``llm_calls``). 게이트웨이 하나 = 질의 한 건이라는
 가정으로 기록을 모은다 — 파이프라인이 질의마다 새로 만든다.
+
+PII(TRD 9.2): 호출부가 ``protect`` 로 이번 요청의 PII 값(``pii_kind`` 속성의 실제 값)을 알려 준다.
+- 외부 공급자(``external: true``)면 요청을 가역 토큰(``⟦P1⟧``)으로 바꿔 보내고 응답을 되돌린다.
+  호출부는 언제나 원값만 본다 — 근거 대조도 원값으로 한다.
+- 호출 기록(``calls``)의 프롬프트·응답은 공급자와 무관하게 **마스킹**해서 남긴다.
 """
 
 from __future__ import annotations
 
 import json
 import time
+from collections.abc import Iterable
+from dataclasses import replace
 from typing import Any, TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from ontobot.llm import structured
+from ontobot.llm.adapters.anthropic import AnthropicAdapter
 from ontobot.llm.adapters.base import Adapter
 from ontobot.llm.adapters.ollama import OllamaAdapter
+from ontobot.llm.adapters.openai_compat import OpenAICompatAdapter
 from ontobot.llm.config import LlmConfig, ProviderConfig
 from ontobot.llm.types import CallRecord, Completion, Message
+from ontobot.security.pii import Tokenizer, mask_text
+from ontobot.security.secrets import env_value
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -27,9 +38,14 @@ class LlmUnavailable(Exception):
 
 
 def _adapter(p: ProviderConfig) -> Adapter:
+    key = env_value(p.api_key_env) if p.api_key_env else None
     if p.adapter == "ollama":
         return OllamaAdapter(p.base_url or "http://localhost:11434")
-    raise NotImplementedError(f"adapter {p.adapter!r} 는 Phase 5 에서 붙인다")
+    if p.adapter == "openai_compat":
+        if not p.base_url:
+            raise ValueError("openai_compat 공급자는 base_url 이 필요합니다")
+        return OpenAICompatAdapter(p.base_url, key)
+    return AnthropicAdapter(p.base_url, key)
 
 
 class LLMGateway:
@@ -38,6 +54,45 @@ class LLMGateway:
         # 역할 → 모델 덮어쓰기. 평가·스파이크가 모델을 비교할 때만 쓴다.
         self.overrides = overrides or {}
         self.calls: list[CallRecord] = []
+        self._tokens = Tokenizer()
+
+    def protect(self, values: Iterable[str]) -> None:
+        """이번 요청의 PII 값. 외부 공급자에는 토큰으로, 기록에는 마스킹해서 남긴다."""
+        self._tokens.add(values)
+
+    @property
+    def protected(self) -> frozenset[str]:
+        """``protect`` 로 받은 값(트레이스의 계획 마스킹에 쓴다)."""
+        return self._tokens.known
+
+    def _mask(self, text: str) -> str:
+        return mask_text(text, self._tokens.known)
+
+    def _record(
+        self,
+        role: str,
+        model: str,
+        messages: list[Message],
+        output: str,
+        latency_ms: int,
+        *,
+        external: bool,
+        ok: bool,
+        error: str | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        self.calls.append(
+            CallRecord(
+                role=role,
+                model=model,
+                messages=[{"role": m.role, "content": self._mask(m.content)} for m in messages],
+                output=self._mask(output),
+                latency_ms=latency_ms,
+                ok=ok,
+                error=error,
+                extra={"external": external, **(extra or {})},
+            )
+        )
 
     def model_for(self, role: str) -> str:
         return self.overrides.get(role) or self.config.roles[role].model
@@ -47,37 +102,40 @@ class LLMGateway:
     ) -> Completion:
         role_cfg, provider = self.config.role(role)
         model = self.model_for(role)
+        external = provider.external
+        sent = (
+            [Message(m.role, self._tokens.tokenize(m.content)) for m in messages]
+            if external
+            else messages
+        )
         started = time.perf_counter()
         try:
             out = await _adapter(provider).chat(
-                model, messages, json_schema=schema, timeout_s=role_cfg.timeout_s
+                model, sent, json_schema=schema, timeout_s=role_cfg.timeout_s
             )
-        except (httpx.HTTPError, KeyError) as e:
-            self.calls.append(
-                CallRecord(
-                    role=role,
-                    model=model,
-                    messages=[m.__dict__ for m in messages],
-                    output="",
-                    latency_ms=int((time.perf_counter() - started) * 1000),
-                    ok=False,
-                    error=f"{type(e).__name__}: {e}",
-                )
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            self._record(
+                role,
+                model,
+                messages,
+                "",
+                int((time.perf_counter() - started) * 1000),
+                external=external,
+                ok=False,
+                error=f"{type(e).__name__}: {self._mask(str(e))}",
             )
             raise LlmUnavailable(f"{role}: {type(e).__name__}") from e
-        self.calls.append(
-            CallRecord(
-                role=role,
-                model=model,
-                messages=[m.__dict__ for m in messages],
-                output=out.text,
-                latency_ms=out.latency_ms,
-                ok=True,
-                extra={
-                    "prompt_tokens": out.prompt_tokens,
-                    "completion_tokens": out.completion_tokens,
-                },
-            )
+        if external:
+            out = replace(out, text=self._tokens.restore(out.text))
+        self._record(
+            role,
+            model,
+            messages,
+            out.text,
+            out.latency_ms,
+            external=external,
+            ok=True,
+            extra={"prompt_tokens": out.prompt_tokens, "completion_tokens": out.completion_tokens},
         )
         return out
 

@@ -110,6 +110,23 @@ def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
     return frozenset(terms)
 
 
+def _pii_values(vp: ValidatedPlan, rs: records.RecordSet | None = None) -> list[str]:
+    """이번 요청에서 PII 인 값 — ``pii_kind`` 속성에 건 조건 값과 결과 레코드의 그 속성 값."""
+    out: list[str] = []
+    for f in (*vp.filters, *(f for h in vp.hops for f in h.filters)):
+        if f.prop.pii_kind and not isinstance(f.value, bool):
+            out += [str(v) for v in (f.value if isinstance(f.value, tuple) else (f.value,))]
+    if rs is not None:
+        pii = {p.api_name for p in vp.target.properties if p.pii_kind}
+        out += [
+            f.display for r in rs.records for f in r.fields if f.name in pii and f.raw is not None
+        ]
+        out += [
+            str(f.raw) for r in rs.records for f in r.fields if f.name in pii and f.raw is not None
+        ]
+    return out
+
+
 def _evidence(
     rs: records.RecordSet, readable: Set[str], condition_terms: frozenset[str] = frozenset()
 ) -> GroundingContext:
@@ -225,6 +242,7 @@ async def run(
         if isinstance(planned, PipelineResult):
             return planned
         vp = planned
+        llm.protect(_pii_values(vp))
         res.conditions = conditions.describe(vp)
 
         await emit("stage", {"stage": "querying"})
@@ -244,6 +262,8 @@ async def run(
             return res
 
         rs = records.build(vp, ex.rows)
+        # 외부 공급자로 가면 토큰으로 바뀌고, 기록에는 마스킹된다(게이트웨이). 대조는 원값으로 한다.
+        llm.protect(_pii_values(vp, rs))
         await emit("stage", {"stage": "answering"})
         with timer.stage("answering"):
             raw = await answerer.answer(llm, question, res.conditions, records.render_for_llm(rs))

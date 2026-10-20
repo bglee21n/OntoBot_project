@@ -90,3 +90,11 @@ def _env_file_values() -> dict[str, str | None]:
     if not path or not Path(str(path)).is_file():
         return {}
     return dict(dotenv_values(str(path), encoding="utf-8"))
+
+
+def env_value(name: str) -> SecretStr | None:
+    """환경변수 하나(LLM API 키 등). 프로세스 환경이 먼저, 없으면 ``.env``. 없으면 None."""
+    if not _PREFIX.match(name):
+        raise SecretRefError(f"환경변수 이름 형식이 아닙니다: {name!r}")
+    value = os.environ.get(name) or _env_file_values().get(name)
+    return SecretStr(value) if value else None

@@ -14,6 +14,7 @@ export function Layout() {
           <NavLink to="/chat">{ko.nav.chat}</NavLink>
           <NavLink to="/ontology">{ko.nav.ontology}</NavLink>
           <NavLink to="/sources">{ko.nav.sources}</NavLink>
+          {me.data?.roles.includes("admin") && <NavLink to="/admin">{ko.nav.admin}</NavLink>}
         </nav>
         <span className="spacer" />
         {me.data && (

@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { AdminPage } from "../features/admin/AdminPage";
 import { ChatPage } from "../features/chat/ChatPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
@@ -24,6 +25,7 @@ export function App() {
         <Route path="/ontology" element={<VersionsPage />} />
         <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
         <Route path="/sources" element={<SourcesPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
     </Routes>
   );

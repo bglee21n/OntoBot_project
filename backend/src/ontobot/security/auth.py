@@ -97,3 +97,14 @@ async def revoke_session(db: AsyncSession, token: str) -> int | None:
         .returning(UserSession.user_id)
     )
     return result.scalar_one_or_none()
+
+
+async def revoke_user_sessions(db: AsyncSession, user_id: int) -> int:
+    """사용자의 살아 있는 세션을 모두 폐기한다(계정 정지·역할 회수가 즉시 효력을 갖게)."""
+    result = await db.execute(
+        update(UserSession)
+        .where(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(UTC))
+        .returning(UserSession.id)
+    )
+    return len(result.all())

@@ -22,7 +22,8 @@ from ontobot.db.models.security import Role, TypePermission
 from ontobot.db.session import session_scope
 from ontobot.graph import client as graph
 from ontobot.graph.projector import statement
-from ontobot.llm.adapters import ollama
+from ontobot.llm.adapters import ollama, openai_compat
+from ontobot.llm.config import LlmConfig
 from ontobot.llm.gateway import LLMGateway
 from ontobot.objects.store import upsert_objects
 from ontobot.ontology import importer, registry, versioning
@@ -289,7 +290,7 @@ async def test_chat_streams_events_and_records_history(
         assert trace is not None and trace.user_id == user_id and trace.grade == 1
         assert trace.message_id == data["done"]["message_id"]
         assert {c["role"] for c in trace.llm_calls} == {"planner", "answerer"}
-        assert all("messages" not in c for c in trace.llm_calls)  # 프롬프트 본문은 남기지 않는다
+        assert all(c["messages"] and c["external"] is False for c in trace.llm_calls)
         ctx = await chat_context.load(db, conv_id)
     assert {"type": "Facility", "pk": "PT-1"} in ctx
 
@@ -351,3 +352,88 @@ async def test_object_card_respects_type_permission(schema, client, make_user) -
     blind = await _reader(make_user, "Region")
     assert (await login(client, blind[0], blind[1])).status_code == 200
     assert (await client.get("/api/v1/objects/Facility/PT-1")).status_code == 404
+
+
+# ---------------------------------------------------------------- Phase 5: 외부 공급자 PII
+
+
+EXTERNAL = LlmConfig.model_validate(
+    {
+        "providers": {
+            "cloud": {
+                "adapter": "openai_compat",
+                "base_url": "http://fake-cloud/v1",
+                "external": True,
+            }
+        },
+        "roles": {
+            "planner": {"provider": "cloud", "model": "fake"},
+            "answerer": {"provider": "cloud", "model": "fake"},
+        },
+    }
+)
+
+
+async def test_external_provider_never_sees_pii_and_grounding_uses_originals(
+    monkeypatch, schema
+) -> None:
+    tag = uuid.uuid4().hex[:8]
+    pk, manager, phone = f"PO-{tag}", f"홍길동{tag}", "010-9876-5432"
+    async with session_scope() as db:
+        await upsert_objects(
+            db,
+            "Organization",
+            [
+                (
+                    pk,
+                    {
+                        "org_id": pk,
+                        "name": f"파이프조직-{tag}",
+                        "manager_name": manager,
+                        "manager_phone": phone,
+                    },
+                )
+            ],
+        )
+        await db.commit()
+    sent: list[str] = []
+
+    def cloud(request: httpx.Request) -> httpx.Response:
+        body = request.content.decode()
+        sent.append(body)
+        data = json.loads(body)
+        if "response_format" in data:
+            plan = {
+                "kind": "query",
+                "plan": {
+                    "target": "Organization",
+                    "filters": [{"property": "org_id", "op": "eq", "value": pk}],
+                },
+            }
+            content = json.dumps(plan)
+        else:
+            # 받은 데이터 블록의 토큰을 그대로 되돌려 쓴다 — 모델은 원값을 모른다.
+            prompt = data["messages"][-1]["content"]
+            line = next(
+                x for x in prompt.splitlines() if x.startswith(f"o:Organization/{pk}#manager_name")
+            )
+            token = line.split(" | ")[-1]
+            content = f"담당자는 {token}입니다. [[o:Organization/{pk}#manager_name]]"
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    monkeypatch.setattr(openai_compat, "transport", httpx.MockTransport(cloud))
+    llm = LLMGateway(EXTERNAL)
+    async with session_scope() as db:
+        res = await pipeline.run(db, llm, schema, {"Organization"}, "그 조직 담당자 누구야?")
+    assert len(sent) == 2
+    assert all(manager not in b and phone not in b for b in sent)
+    assert "⟦P" in sent[1]
+    # 응답의 토큰은 원값으로 돌아오고, 근거 대조는 원값으로 통과한다.
+    assert (res.status, res.grade) == ("ok", 1), res.removed_citations
+    assert res.answer == f"담당자는 {manager}입니다."
+    # 호출 기록은 마스킹된 사본이다.
+    recorded = json.dumps(
+        [c.messages for c in llm.calls] + [c.output for c in llm.calls], ensure_ascii=False
+    )
+    assert manager not in recorded and phone not in recorded
+    assert all(c.extra["external"] for c in llm.calls)

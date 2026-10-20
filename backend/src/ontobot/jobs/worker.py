@@ -18,6 +18,8 @@ import signal
 import socket
 import time
 
+from ontobot import logs
+from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.graph import client as graph
 from ontobot.graph.projector import ensure_constraints, project_pending
@@ -106,7 +108,14 @@ class Worker:
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    s = get_settings()
+    logs.setup(
+        level=s.log_level,
+        log_dir=s.log_dir,
+        file_name="worker.log",
+        max_bytes=s.log_max_bytes,
+        backups=s.log_backups,
+    )
     worker = Worker()
 
     def stop(*_: object) -> None:

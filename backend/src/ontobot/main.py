@@ -14,6 +14,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from sqlalchemy.exc import SQLAlchemyError
 
+from ontobot import logs
+from ontobot.api import admin as admin_api
 from ontobot.api import auth as auth_api
 from ontobot.api import chat as chat_api
 from ontobot.api import errors
@@ -34,6 +36,14 @@ _UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    s = get_settings()
+    logs.setup(
+        level=s.log_level,
+        log_dir=s.log_dir,
+        file_name="api.log",
+        max_bytes=s.log_max_bytes,
+        backups=s.log_backups,
+    )
     try:
         async with session_scope() as db:
             await registry.reload(db)
@@ -67,6 +77,20 @@ def create_app() -> FastAPI:
             )
         return await call_next(request)
 
+    @app.middleware("http")
+    async def _request_id(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        # 가장 바깥 미들웨어(마지막에 등록) — 거부 응답에도 요청 ID 가 붙는다.
+        rid = logs.new_request_id(request.headers.get("x-request-id"))
+        token = logs.request_id.set(rid)
+        try:
+            response = await call_next(request)
+        finally:
+            logs.request_id.reset(token)
+        response.headers["X-Request-ID"] = rid
+        return response
+
     @app.get("/healthz", tags=["ops"])
     async def healthz() -> dict[str, str]:
         return {"status": "ok"}
@@ -78,6 +102,7 @@ def create_app() -> FastAPI:
     app.include_router(graph_api.jobs_router, prefix=API_PREFIX)
     app.include_router(chat_api.router, prefix=API_PREFIX)
     app.include_router(objects_api.router, prefix=API_PREFIX)
+    app.include_router(admin_api.router, prefix=API_PREFIX)
     return app
 
 

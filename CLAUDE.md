@@ -7,10 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.7) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.8) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
-구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 4 완료(채팅 SSE·화면·
-링크 탐색·대화 맥락), 다음은 Phase 5(보안 마감·LLM 게이트웨이 확장)·6(워크숍)·7(평가 게이트).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 5 완료(PII 가역 토큰화·외부
+LLM 어댑터·관리 API·감사·보존 기간·JSON 로그), 다음은 Phase 6(인터뷰 워크숍)·7(평가 게이트).
 
 ## 운영 전제
 
@@ -123,7 +123,12 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   (속성 값·PII 금지, PII 제목은 null). 링크 끝점이 없으면 `stub` 노드, 대사가 수를 보고한다.
 - 게시본은 불변(편집은 draft 만, `ontology/versioning.py`). 게시 버전은 부분 유일 인덱스로 하나뿐, 번호 발급·게시는
   advisory lock 으로 직렬화. 레지스트리는 **커밋 뒤** reload 한다. 타입·속성 `api_name` 은 바꾸지 않는다.
-- `audit.record` 는 호출자 트랜잭션에 넣는다(변경과 기록이 함께). payload 는 마스킹된다. 감사 로그는 DB 트리거로 추가 전용.
+- `audit.record` 는 호출자 트랜잭션에 넣는다(변경과 기록이 함께). payload 는 마스킹된다. 감사 로그는 DB 트리거로 추가 전용
+  (보존 기간 작업도 지우지 않는다). 관리 규칙(자기 잠금 방지·세션 폐기)은 `security/admin.py` 에만.
+- **PII 값은 `LLMGateway.protect` 로 알린다.** 외부 공급자(`external: true`)면 게이트웨이가 가역 토큰으로 바꿔 보내고
+  되돌린다(호출부는 원값만 본다, 근거 대조도 원값). 호출 기록·트레이스는 그 값과 패턴으로 마스킹된다. 새 LLM 호출
+  경로를 만들면 그 요청의 PII 값을 `protect` 하는 것을 잊지 말 것. 어댑터는 SDK 없이 HTTP 로 부른다.
+- 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
   P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는

@@ -60,6 +60,7 @@ export const api = {
   get: <T,>(path: string) => request<T>("GET", `${API}${path}`),
   post: <T,>(path: string, body?: unknown) => request<T>("POST", `${API}${path}`, body ?? {}),
   patch: <T,>(path: string, body: unknown) => request<T>("PATCH", `${API}${path}`, body),
+  put: <T,>(path: string, body: unknown) => request<T>("PUT", `${API}${path}`, body),
   del: (path: string) => request<void>("DELETE", `${API}${path}`),
   text: (path: string) => request<string>("GET", `${API}${path}`),
 };

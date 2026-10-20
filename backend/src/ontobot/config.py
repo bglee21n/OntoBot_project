@@ -77,6 +77,18 @@ class Settings(BaseSettings):
     # 로그인 뒤 돌아갈 화면의 오리진. 운영(백엔드가 프론트를 서빙)은 비워 둔다. 개발은 Vite 주소.
     frontend_base_url: str = ""
 
+    # 보존 기간(일, TRD 9.3). 0 이면 지우지 않는다. 만료분은 워커가 매일 지운다(tracing.retention).
+    # 감사 로그는 DB 트리거로 추가 전용이라 여기서 지우지 않는다 — 보관·이관은 운영 절차(P1)다.
+    retention_trace_days: int = 90
+    retention_message_days: int = 365
+    retention_utterance_days: int = 180
+
+    # 로그(TRD 9.3·15절): JSON 한 줄. log_dir 이 있으면 파일로도 남기고 크기로 회전한다.
+    log_level: str = "INFO"
+    log_dir: Path | None = None
+    log_max_bytes: int = 20 * 1024 * 1024
+    log_backups: int = 10
+
     @property
     def oidc_enabled(self) -> bool:
         return bool(self.oidc_issuer and self.oidc_client_id)

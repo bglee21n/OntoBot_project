@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.7                                     |
+| 문서      | 기술 요구사항 문서(TRD) v0.8                                     |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -181,7 +181,7 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 | `conversation`         | `user_id`, `title`, `updated_at`                                                                                                                                                                                                                      |
 | `message`              | `conversation_id`, `role`, `content`, `status`(ok/empty/failed/not_query), `grade`(1/2/3/null), `trace_id`, `meta`(jsonb: 조회 조건 문장·`graph_as_of`·인용 목록·추정 문장 번호·실패 사유 — 기록에서 답을 다시 그리는 데 쓴다. 근거 **값**은 담지 않는다) |
 | `conversation_context` | `conversation_id`, `refs`(jsonb: `[{type, pk}]`) — **식별자만**, 값은 담지 않는다(PRD 5.2)                                                                                                                                                            |
-| `trace`                | `user_id`, `message_id`, `plan`(jsonb), `sql_masked`, `cypher_masked`, `status`, `failure_reason`, `grade`, `fact_sentences`, `verified_sentences`, `removed_citations`(jsonb), `stage_latency_ms`(jsonb), `llm_calls`(jsonb: 역할·모델·지연·토큰·성공 여부. 프롬프트·응답 본문은 Phase 5 마스킹과 함께 싣는다) |
+| `trace`                | `user_id`, `message_id`, `plan`(jsonb), `sql_masked`, `cypher_masked`, `status`, `failure_reason`, `grade`, `fact_sentences`, `verified_sentences`, `removed_citations`(jsonb), `stage_latency_ms`(jsonb), `llm_calls`(jsonb: 역할·모델·지연·토큰·성공 여부·외부 여부와 **마스킹된** 프롬프트·응답) |
 
 ### 6.6 보안
 
@@ -314,7 +314,10 @@ LLM이 스스로 매긴 등급이나 확신도는 쓰지 않는다.
 ### 9.2 PII
 
 - 대상 속성은 `property_type.pii_kind`로 선언한다. 인터뷰 발언처럼 스키마가 없는 텍스트에는 패턴 기반 탐지(전화·이메일·주민등록번호 등)를 쓴다.
-- **외부 LLM 호출 시**(공급자 설정 `external: true`): 요청마다 가역 토큰(`⟦P1⟧`)으로 바꿔 보내고, 응답을 받은 뒤 원값으로 되돌린다. 토큰 대응표는 요청 메모리에만 둔다.
+- **외부 LLM 호출 시**(공급자 설정 `external: true`): 요청마다 가역 토큰(`⟦P1⟧`)으로 바꿔 보내고, 응답을 받은 뒤 원값으로 되돌린다. 토큰 대응표는 요청 메모리에만 둔다(v0.8: `security.pii.Tokenizer`, 게이트웨이 하나 = 요청 하나).
+  - 바꾸는 값: 파이프라인이 `LLMGateway.protect` 로 알린 값(`pii_kind` 속성에 건 조건 값, 결과 레코드의 `pii_kind` 속성 원값·표시 문자열) + 패턴(주민번호·전화·이메일). 두 글자 미만 값은 문장을 망가뜨려 제외한다. 값은 정확 일치로만 찾고 긴 값부터 바꾼다.
+  - 모델이 토큰을 망가뜨리거나 지어내면 원값이 돌아오지 않아 근거 대조에 실패한다(안전한 쪽).
+  - 플래너용 맥락 제목은 제목 속성이 PII 면 싣지 않는다(pk 로 대신).
 - **근거 대조는 원값으로 한다**(PRD 5.5). 되돌린 뒤에 대조한다.
 - 로그·트레이스·감사 로그에는 언제나 마스킹된 값만 남긴다.
 
@@ -322,8 +325,10 @@ LLM이 스스로 매긴 등급이나 확신도는 쓰지 않는다.
 
 - 비밀값(DB 접속정보, IdP 클라이언트 비밀, LLM API 키)은 환경변수·시크릿 파일로만 받고 DB에는 참조만 저장한다.
 - **데이터 값 속 지시문은 데이터로만 취급한다.** 조회 결과는 구분된 데이터 블록으로 LLM에 넣는다. 또 LLM 출력은 검증(QueryPlan 스키마, 근거 대조)을 거쳐야만 효과를 가지므로, 데이터에 숨은 지시가 실행으로 이어질 경로가 없다.
-- **감사 이벤트**: 로그인·로그아웃, 역할·권한 변경, 스키마 draft 생성·게시, 데이터 소스·매핑 변경, 동기화 수동 실행, 그래프 재구축, 워크숍 게시, 골든셋 변경, 평가 실행, 감사 로그 조회.
-- **보존 기간**은 테이블별 설정(`trace`, `interview_utterance`, `message`)이고 만료분은 워커가 지운다. 감사 로그는 별도 설정이다.
+- **감사 이벤트**: 로그인·로그아웃, 역할·권한 변경, 스키마 draft 생성·게시, 데이터 소스·매핑 변경, 동기화 수동 실행, 그래프 재구축, 워크숍 게시, 골든셋 변경, 평가 실행, 감사 로그 조회. v0.8 에 더한 것: 사용자 생성·정지/재사용(`security.user_status_changed`), 트레이스 조회(`security.trace_viewed`), 보존 기간 삭제(`ops.retention_purged`, 건수). 역할·권한 변경은 전후 값을 남긴다. 감사 로그 조회 기록은 결과를 읽은 **뒤에** 넣는다(자기 자신이 결과에 섞이지 않게). 워크숍·골든셋·평가 이벤트는 그 기능의 Phase 에서 연결한다.
+- **보존 기간**은 테이블별 설정(`ONTOBOT_RETENTION_TRACE_DAYS` 90 · `_MESSAGE_DAYS` 365 · `_UTTERANCE_DAYS` 180, 0 = 지우지 않음)이고 만료분은 워커의 매일 작업(`retention_purge`)이 지운다. 메시지가 모두 지워진 대화는 맥락과 함께 지운다. 감사 로그는 DB 트리거로 추가 전용이라 이 작업이 지우지 않는다 — 보관·이관은 운영 절차(P1)다.
+- **관리 규칙**: 관리자는 자기 계정을 정지하거나 자기 관리자 역할을 뺄 수 없다(마지막 관리자 잠금 방지, 복구는 CLI). 정지·역할 변경은 그 사용자의 세션을 즉시 폐기한다. 역할별 타입 읽기 권한은 집합 교체(PUT)다.
+- **로그**: JSON 한 줄(`ts`·`level`·`logger`·`msg`·`request_id`·`exc`), 메시지·인자·예외 문자열 마스킹, `ONTOBOT_LOG_DIR` 가 있으면 크기 회전 파일(`api.log`·`worker.log`). 요청 ID 는 `X-Request-ID`(안전한 형식이면 이어 쓰고 아니면 새로 만듦)로 응답에 돌려준다.
 
 ## 10. LLM 게이트웨이
 
@@ -348,6 +353,7 @@ class LLMGateway:
       extractor:   {provider: local, model: "<모델명>", timeout_s: 60}
   ```
 
+- **어댑터**(v0.8): `ollama`, `openai_compat`(`{base_url}/chat/completions`, `response_format: json_schema`, 키 선택), `anthropic`(Messages API, system 은 최상위로, 구조화 출력은 도구 하나를 강제 호출). 셋 다 SDK 없이 HTTP 로 부른다(폐쇄망 번들 축소, 외부 호출 경로를 어댑터 파일로 한정). API 키는 `api_key_env` 가 가리키는 환경변수(없으면 `.env`)에서만 읽는다.
 - **구조화 출력**: JSON 스키마로 요청 → Pydantic 검증 → 실패하면 오류 내용을 붙여 1회 재시도 → 그래도 실패하면 호출부가 `failed(plan_invalid)` 등으로 처리.
 - 모든 호출은 마스킹된 프롬프트·응답·지연을 트레이스에 남긴다.
 - **모델이나 공급자를 바꾸면 평가 게이트(13절)를 통과해야 운영 설정에 반영한다.**
@@ -432,7 +438,7 @@ class LLMGateway:
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
 | 워크숍   | `POST /workshop/sessions` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
 | 평가     | `CRUD /golden-sets` · `CRUD /golden-sets/{id}/items` · `POST /eval-runs` · `GET /eval-runs/{id}`                                                                                                                                                                                                    | 챗봇 빌더           |
-| 관리     | `CRUD /admin/users` · `/admin/roles` · `/admin/permissions` · `GET /audit-logs` · `GET /traces/{id}`                                                                                                                                                                                                | 관리자              |
+| 관리     | `GET·POST /admin/users` · `PATCH /admin/users/{id}`(상태·역할) · `GET /admin/roles` · `PUT /admin/roles/{id}/permissions` · `GET /admin/object-types` · `GET /audit-logs` · `GET /traces/{id}`                                                                                                  | 관리자              |
 
 ### 14.2 채팅 SSE 이벤트
 
@@ -704,5 +710,6 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.8 | 2026-10-20 | Phase 5 구현 반영 — 외부 공급자 PII 가역 토큰화의 대상 값·규칙, 호출 기록 마스킹 저장, 어댑터 셋(SDK 없이 HTTP), 관리 API 형태와 규칙(자기 잠금 방지·세션 폐기·권한 집합 교체), 감사 이벤트 추가, 보존 기간 설정·작업(감사 로그 제외), JSON 로그·요청 ID |
 | v0.7 | 2026-10-20 | Phase 3·4 구현 반영 — `traverse` 의미(1홉 조건의 AND, 최대 3)와 실행 방식(PG pk 집합 → Neo4j EXISTS → PG), 링크 권한은 `forbidden`, `context_refs` 범위, FK 이름 → `traverse` 결정론적 재작성, 질문 숫자 반영 검사(`query.coverage`), 재계획 오류 일괄 전달, `message.meta`, `llm_calls` 본문 미저장(Phase 5 까지), SSE `done.conversation_id`·이벤트 순서·`ChatEvents`, 근거 카드 404(권한 없음 = 없음). 측정은 ADR-0004 Phase 4 보강 |
 | v0.6 | 2026-10-20 | Phase 2 구현 반영 — 동기화 병합 규칙(행 실패 = 실행 실패, 원천별 삭제 표시, 링크 삭제 순서, 자료형 있는 워터마크), `secret_ref` 형식, stub 노드, 투영 묶음·재시도, 재구축 절차. 세션은 `async with session_scope()` 로만 연다(열린 트랜잭션이 `CREATE INDEX CONCURRENTLY` 를 막은 실측) |
