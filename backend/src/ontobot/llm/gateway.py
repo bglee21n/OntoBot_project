@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any, TypeVar
 
 import httpx
@@ -46,6 +46,43 @@ def _adapter(p: ProviderConfig) -> Adapter:
             raise ValueError("openai_compat 공급자는 base_url 이 필요합니다")
         return OpenAICompatAdapter(p.base_url, key)
     return AnthropicAdapter(p.base_url, key)
+
+
+@dataclass(frozen=True)
+class ProviderReadiness:
+    ok: bool
+    # 실제로 공급자에 물어봤는가. 외부 공급자는 묻지 않는다 — 준비 확인이 주기적으로 외부 호출을
+    # 만들면 폐쇄망 원칙(TRD 15절)과 과금에 어긋난다. 설정(키 존재)만 본다.
+    probed: bool
+    detail: str | None = None
+
+
+async def check_providers(config: LlmConfig, *, timeout_s: float) -> dict[str, ProviderReadiness]:
+    """역할이 쓰는 공급자마다 준비 상태(``/readyz``). Ollama 는 모델 설치 여부까지 본다."""
+    used: dict[str, set[str]] = {}
+    for role in config.roles.values():
+        used.setdefault(role.provider, set()).add(role.model)
+    out: dict[str, ProviderReadiness] = {}
+    for name, models in sorted(used.items()):
+        p = config.providers[name]
+        if p.adapter != "ollama":
+            has_key = p.api_key_env is None or env_value(p.api_key_env) is not None
+            out[name] = ProviderReadiness(
+                ok=has_key, probed=False, detail=None if has_key else "api_key_missing"
+            )
+            continue
+        adapter = OllamaAdapter(p.base_url or "http://localhost:11434")
+        try:
+            missing = await adapter.missing_models(models, timeout_s=timeout_s)
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            out[name] = ProviderReadiness(ok=False, probed=True, detail=type(e).__name__)
+            continue
+        out[name] = ProviderReadiness(
+            ok=not missing,
+            probed=True,
+            detail=f"missing_models: {', '.join(sorted(missing))}" if missing else None,
+        )
+    return out
 
 
 class LLMGateway:

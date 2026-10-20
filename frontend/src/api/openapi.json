@@ -260,6 +260,35 @@
         "title": "ColumnsIn",
         "type": "object"
       },
+      "ComponentOut": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "down",
+              "not_configured"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ComponentOut",
+        "type": "object"
+      },
       "ConditionsData": {
         "properties": {
           "graph_as_of": {
@@ -2868,6 +2897,36 @@
           "reused"
         ],
         "title": "PublishOut",
+        "type": "object"
+      },
+      "ReadinessOut": {
+        "properties": {
+          "llm": {
+            "$ref": "#/components/schemas/ComponentOut"
+          },
+          "neo4j": {
+            "$ref": "#/components/schemas/ComponentOut"
+          },
+          "postgres": {
+            "$ref": "#/components/schemas/ComponentOut"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "postgres",
+          "neo4j",
+          "llm"
+        ],
+        "title": "ReadinessOut",
         "type": "object"
       },
       "RoleOut": {
@@ -6932,6 +6991,37 @@
           }
         },
         "summary": "Healthz",
+        "tags": [
+          "ops"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessOut"
+                }
+              }
+            },
+            "description": "PostgreSQL 또는 LLM 에 닿지 못함"
+          }
+        },
+        "summary": "Readyz",
         "tags": [
           "ops"
         ]

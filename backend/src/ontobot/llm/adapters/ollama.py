@@ -52,3 +52,16 @@ class OllamaAdapter:
             prompt_tokens=data.get("prompt_eval_count"),
             completion_tokens=data.get("eval_count"),
         )
+
+    async def missing_models(self, models: set[str], *, timeout_s: float) -> set[str]:
+        """설치되지 않은 모델(``/readyz``). 서버에 닿지 못하면 httpx 오류를 그대로 올린다.
+
+        모델을 불러오지는 않는다(``/api/tags`` 는 목록만) — 준비 확인이 GPU 메모리를
+        건드리면 안 된다.
+        """
+        async with httpx.AsyncClient(transport=transport, timeout=timeout_s) as client:
+            res = await client.get(f"{self.base_url}/api/tags")
+            res.raise_for_status()
+            names = {m["name"] for m in res.json().get("models", [])}
+        # 태그 없이 적은 모델은 Ollama 가 ``:latest`` 로 등록한다.
+        return {m for m in models if m not in names and f"{m}:latest" not in names}

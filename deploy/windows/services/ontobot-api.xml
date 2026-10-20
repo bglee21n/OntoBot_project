@@ -1,0 +1,23 @@
+<!-- WinSW 2.12 서비스 설정(ADR-0010). install.ps1 이 {{…}} 를 채워 services\ 에 둔다 — 여기를 고치고 다시 설치한다. -->
+<service>
+  <id>ontobot-api</id>
+  <name>OntoBot API</name>
+  <description>OntoBot API(uvicorn) — 프론트 빌드 산출물도 같은 오리진에서 서빙한다</description>
+  <!-- current 정션을 가리킨다: 업그레이드·롤백은 정션만 바꾸고 서비스는 다시 등록하지 않는다. -->
+  <executable>{{ROOT}}\current\backend\.venv\Scripts\python.exe</executable>
+  <arguments>-m uvicorn ontobot.main:app --host {{API_HOST}} --port {{API_PORT}} --workers 1 --no-server-header</arguments>
+  <workingdirectory>{{ROOT}}\current\backend</workingdirectory>
+  <env name="PYTHONUTF8" value="1"/>
+  <depend>{{PG_SERVICE}}</depend>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>30 sec</stoptimeout>
+  <logpath>{{ROOT}}\logs\service</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

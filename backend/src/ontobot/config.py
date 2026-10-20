@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -36,6 +36,13 @@ class Settings(BaseSettings):
     db_name: str = "ontobot_db"
     db_user: str = "ontobot"
     db_password: SecretStr = SecretStr("")
+    # 연결 풀(프로세스 하나당). 채팅 한 건은 답이 끝날 때까지(LLM 호출 포함) 연결 하나를 쥔다 —
+    # 풀 크기가 곧 API 프로세스의 동시 채팅 상한이다. 기본값(5+10)에서 동시 16명이 첫 이벤트를
+    # 3~6초 기다렸다(Phase 8 부하 측정, ADR-0011). PostgreSQL max_connections(기본 100) 안에서
+    # api·worker 를 합쳐 잡는다.
+    db_pool_size: int = 20
+    db_max_overflow: int = 10
+    db_pool_timeout_s: float = 30
     # 통합 테스트가 스키마를 지우고 다시 만드는 DB. 개발 DB(db_name)와 반드시 달라야 한다.
     test_db_name: str = "ontobot_test"
 
@@ -76,6 +83,9 @@ class Settings(BaseSettings):
     oidc_login_ttl_seconds: int = 600
     # 로그인 뒤 돌아갈 화면의 오리진. 운영(백엔드가 프론트를 서빙)은 비워 둔다. 개발은 Vite 주소.
     frontend_base_url: str = ""
+    # 프론트 빌드 산출물(frontend/dist). 설치본은 API 가 같은 오리진에서 서빙한다.
+    # 개발은 비운다(Vite 가 서빙).
+    frontend_dist: Path | None = None
 
     # 보존 기간(일, TRD 9.3). 0 이면 지우지 않는다. 만료분은 워커가 매일 지운다(tracing.retention).
     # 감사 로그는 DB 트리거로 추가 전용이라 여기서 지우지 않는다 — 보관·이관은 운영 절차(P1)다.
@@ -88,6 +98,13 @@ class Settings(BaseSettings):
     log_dir: Path | None = None
     log_max_bytes: int = 20 * 1024 * 1024
     log_backups: int = 10
+
+    @field_validator("frontend_dist", "log_dir", mode="before")
+    @classmethod
+    def _empty_path_is_none(cls, v: object) -> object:
+        # env.example 의 빈 값(``ONTOBOT_LOG_DIR=``)은 "없음"이다.
+        # 그대로 두면 Path("") 가 현재 폴더가 된다.
+        return None if v == "" else v
 
     @property
     def oidc_enabled(self) -> bool:

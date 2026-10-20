@@ -962,6 +962,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readyz */
+        get: operations["readyz_readyz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1052,6 +1069,16 @@ export interface components {
             query?: string | null;
             /** Table */
             table?: string | null;
+        };
+        /** ComponentOut */
+        ComponentOut: {
+            /** Detail */
+            detail?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "down" | "not_configured";
         };
         /** ConditionsData */
         ConditionsData: {
@@ -1870,6 +1897,17 @@ export interface components {
             reused: string[];
             /** Version Id */
             version_id: number;
+        };
+        /** ReadinessOut */
+        ReadinessOut: {
+            llm: components["schemas"]["ComponentOut"];
+            neo4j: components["schemas"]["ComponentOut"];
+            postgres: components["schemas"]["ComponentOut"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded" | "unavailable";
         };
         /** RoleOut */
         RoleOut: {
@@ -4289,6 +4327,35 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    readyz_readyz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessOut"];
+                };
+            };
+            /** @description PostgreSQL 또는 LLM 에 닿지 못함 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessOut"];
                 };
             };
         };

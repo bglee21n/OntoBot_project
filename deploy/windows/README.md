@@ -1,6 +1,7 @@
 # Windows 네이티브 설치 (Docker 미사용 — ADR-0007)
 
-설치 스크립트(`install.ps1`)와 api·worker 서비스 등록은 Phase 8에서 만든다. 지금은 **개발 PC 구성**만 적는다.
+운영 설치(오프라인 번들·`install.ps1`·WinSW 서비스)는 [INSTALL.md](../INSTALL.md)와 ADR-0010 이 정본이다.
+여기는 **개발 PC 구성**만 적는다.
 
 ## 개발 PC (2026-10-20 설치 완료)
 

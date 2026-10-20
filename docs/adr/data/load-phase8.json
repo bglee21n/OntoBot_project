@@ -1,0 +1,1947 @@
+{
+  "started_at": "2026-10-20T16:18:08",
+  "base_url": "http://localhost:8000",
+  "readiness": {
+    "status": "ok",
+    "postgres": {
+      "status": "ok",
+      "detail": null
+    },
+    "neo4j": {
+      "status": "ok",
+      "detail": null
+    },
+    "llm": {
+      "status": "ok",
+      "detail": null
+    }
+  },
+  "rounds_per_user": 8,
+  "questions": 12,
+  "steps": [
+    {
+      "requests": 8,
+      "outcomes": {
+        "ok": 8
+      },
+      "failure_rate": 0.0,
+      "p50_ms": 1649,
+      "p95_ms": 10459,
+      "max_ms": 10459,
+      "mean_ms": 3100,
+      "first_event_p95_ms": 289,
+      "users": 1,
+      "wall_s": 25.1,
+      "throughput_per_min": 19.1,
+      "samples": [
+        {
+          "users": 1,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 1458,
+          "first_event_ms": 16
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 10459,
+          "first_event_ms": 279
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 2227,
+          "first_event_ms": 273
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 1649,
+          "first_event_ms": 277
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 1571,
+          "first_event_ms": 282
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 2444,
+          "first_event_ms": 275
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 3574,
+          "first_event_ms": 281
+        },
+        {
+          "users": 1,
+          "user": 0,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 1424,
+          "first_event_ms": 289
+        }
+      ]
+    },
+    {
+      "requests": 32,
+      "outcomes": {
+        "ok": 32
+      },
+      "failure_rate": 0.0,
+      "p50_ms": 2538,
+      "p95_ms": 21798,
+      "max_ms": 27020,
+      "mean_ms": 5825,
+      "first_event_p95_ms": 293,
+      "users": 4,
+      "wall_s": 81.5,
+      "throughput_per_min": 23.6,
+      "samples": [
+        {
+          "users": 4,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 1580,
+          "first_event_ms": 55
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 2282,
+          "first_event_ms": 278
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 2404,
+          "first_event_ms": 296
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 1696,
+          "first_event_ms": 286
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 1840,
+          "first_event_ms": 285
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 2519,
+          "first_event_ms": 293
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 2328,
+          "first_event_ms": 282
+        },
+        {
+          "users": 4,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 2370,
+          "first_event_ms": 285
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 27020,
+          "first_event_ms": 53
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 4459,
+          "first_event_ms": 283
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 12403,
+          "first_event_ms": 278
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 12670,
+          "first_event_ms": 275
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 2533,
+          "first_event_ms": 284
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 9224,
+          "first_event_ms": 280
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 10252,
+          "first_event_ms": 280
+        },
+        {
+          "users": 4,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 2487,
+          "first_event_ms": 283
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3875,
+          "first_event_ms": 52
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 7320,
+          "first_event_ms": 269
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 21798,
+          "first_event_ms": 292
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3155,
+          "first_event_ms": 280
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 4176,
+          "first_event_ms": 279
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 10300,
+          "first_event_ms": 274
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3003,
+          "first_event_ms": 286
+        },
+        {
+          "users": 4,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 2743,
+          "first_event_ms": 278
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 1842,
+          "first_event_ms": 51
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 1665,
+          "first_event_ms": 285
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 8128,
+          "first_event_ms": 292
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 2336,
+          "first_event_ms": 284
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 2147,
+          "first_event_ms": 282
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 11258,
+          "first_event_ms": 271
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 2538,
+          "first_event_ms": 290
+        },
+        {
+          "users": 4,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 2078,
+          "first_event_ms": 277
+        }
+      ]
+    },
+    {
+      "requests": 64,
+      "outcomes": {
+        "ok": 64
+      },
+      "failure_rate": 0.0,
+      "p50_ms": 5575,
+      "p95_ms": 23003,
+      "max_ms": 29083,
+      "mean_ms": 8967,
+      "first_event_p95_ms": 292,
+      "users": 8,
+      "wall_s": 129.1,
+      "throughput_per_min": 29.7,
+      "samples": [
+        {
+          "users": 8,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 2375,
+          "first_event_ms": 178
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 4492,
+          "first_event_ms": 275
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 6509,
+          "first_event_ms": 282
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 8271,
+          "first_event_ms": 276
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 3652,
+          "first_event_ms": 281
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 7630,
+          "first_event_ms": 272
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 5385,
+          "first_event_ms": 285
+        },
+        {
+          "users": 8,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 2861,
+          "first_event_ms": 289
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18620,
+          "first_event_ms": 127
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18280,
+          "first_event_ms": 286
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 5577,
+          "first_event_ms": 276
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 17372,
+          "first_event_ms": 274
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 26393,
+          "first_event_ms": 282
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 5575,
+          "first_event_ms": 277
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 16466,
+          "first_event_ms": 278
+        },
+        {
+          "users": 8,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 20228,
+          "first_event_ms": 274
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 5273,
+          "first_event_ms": 128
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 17429,
+          "first_event_ms": 285
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 4979,
+          "first_event_ms": 292
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 7650,
+          "first_event_ms": 279
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 16179,
+          "first_event_ms": 285
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 5039,
+          "first_event_ms": 295
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3208,
+          "first_event_ms": 279
+        },
+        {
+          "users": 8,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 23003,
+          "first_event_ms": 277
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 2960,
+          "first_event_ms": 177
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 8374,
+          "first_event_ms": 284
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 8694,
+          "first_event_ms": 275
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 4037,
+          "first_event_ms": 286
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 9707,
+          "first_event_ms": 280
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 5207,
+          "first_event_ms": 274
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3780,
+          "first_event_ms": 274
+        },
+        {
+          "users": 8,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 6448,
+          "first_event_ms": 269
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 2146,
+          "first_event_ms": 170
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 4417,
+          "first_event_ms": 285
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 6334,
+          "first_event_ms": 293
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 8449,
+          "first_event_ms": 275
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 3648,
+          "first_event_ms": 273
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 7395,
+          "first_event_ms": 289
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 6129,
+          "first_event_ms": 280
+        },
+        {
+          "users": 8,
+          "user": 4,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 2809,
+          "first_event_ms": 272
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 4490,
+          "first_event_ms": 174
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18301,
+          "first_event_ms": 286
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 17225,
+          "first_event_ms": 281
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 5243,
+          "first_event_ms": 281
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 23940,
+          "first_event_ms": 273
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 29083,
+          "first_event_ms": 278
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 3552,
+          "first_event_ms": 289
+        },
+        {
+          "users": 8,
+          "user": 5,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 21440,
+          "first_event_ms": 279
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 4678,
+          "first_event_ms": 173
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 4682,
+          "first_event_ms": 274
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 21560,
+          "first_event_ms": 279
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 7901,
+          "first_event_ms": 278
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 4735,
+          "first_event_ms": 278
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 13681,
+          "first_event_ms": 273
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 2987,
+          "first_event_ms": 294
+        },
+        {
+          "users": 8,
+          "user": 6,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3017,
+          "first_event_ms": 283
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 3175,
+          "first_event_ms": 125
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 4293,
+          "first_event_ms": 282
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 10317,
+          "first_event_ms": 283
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 4582,
+          "first_event_ms": 275
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3344,
+          "first_event_ms": 288
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 12082,
+          "first_event_ms": 286
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 3042,
+          "first_event_ms": 273
+        },
+        {
+          "users": 8,
+          "user": 7,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 3621,
+          "first_event_ms": 267
+        }
+      ]
+    },
+    {
+      "requests": 128,
+      "outcomes": {
+        "ok": 128
+      },
+      "failure_rate": 0.0,
+      "p50_ms": 16727,
+      "p95_ms": 28730,
+      "max_ms": 33386,
+      "mean_ms": 17014,
+      "first_event_p95_ms": 3745,
+      "users": 16,
+      "wall_s": 172.1,
+      "throughput_per_min": 44.6,
+      "samples": [
+        {
+          "users": 16,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 3842,
+          "first_event_ms": 376
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 18496,
+          "first_event_ms": 268
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 12517,
+          "first_event_ms": 1159
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 17335,
+          "first_event_ms": 321
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 14196,
+          "first_event_ms": 1767
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 15240,
+          "first_event_ms": 300
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 17312,
+          "first_event_ms": 811
+        },
+        {
+          "users": 16,
+          "user": 0,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 17160,
+          "first_event_ms": 296
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 27626,
+          "first_event_ms": 265
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 18587,
+          "first_event_ms": 388
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 24842,
+          "first_event_ms": 636
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 33386,
+          "first_event_ms": 352
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 15238,
+          "first_event_ms": 630
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 20465,
+          "first_event_ms": 280
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 17178,
+          "first_event_ms": 285
+        },
+        {
+          "users": 16,
+          "user": 1,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 4673,
+          "first_event_ms": 284
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 10860,
+          "first_event_ms": 265
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 16604,
+          "first_event_ms": 469
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 28708,
+          "first_event_ms": 270
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 13384,
+          "first_event_ms": 333
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18326,
+          "first_event_ms": 322
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 24430,
+          "first_event_ms": 3945
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 11588,
+          "first_event_ms": 1375
+        },
+        {
+          "users": 16,
+          "user": 2,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 14628,
+          "first_event_ms": 283
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 6417,
+          "first_event_ms": 125
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 17707,
+          "first_event_ms": 1927
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 15114,
+          "first_event_ms": 424
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 15422,
+          "first_event_ms": 404
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 11687,
+          "first_event_ms": 1143
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 19541,
+          "first_event_ms": 389
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 13789,
+          "first_event_ms": 1057
+        },
+        {
+          "users": 16,
+          "user": 3,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 17287,
+          "first_event_ms": 4791
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 5800,
+          "first_event_ms": 143
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 18721,
+          "first_event_ms": 622
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 13819,
+          "first_event_ms": 457
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 15717,
+          "first_event_ms": 903
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 12658,
+          "first_event_ms": 608
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 15726,
+          "first_event_ms": 1194
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 16727,
+          "first_event_ms": 3454
+        },
+        {
+          "users": 16,
+          "user": 4,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 17288,
+          "first_event_ms": 522
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 23749,
+          "first_event_ms": 3495
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 23986,
+          "first_event_ms": 372
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 28767,
+          "first_event_ms": 2785
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 20983,
+          "first_event_ms": 2451
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 30848,
+          "first_event_ms": 688
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 25833,
+          "first_event_ms": 278
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 4392,
+          "first_event_ms": 288
+        },
+        {
+          "users": 16,
+          "user": 5,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 12558,
+          "first_event_ms": 269
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 10559,
+          "first_event_ms": 163
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 27491,
+          "first_event_ms": 315
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 15553,
+          "first_event_ms": 301
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 14286,
+          "first_event_ms": 461
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 26052,
+          "first_event_ms": 1675
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 17606,
+          "first_event_ms": 1999
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 11350,
+          "first_event_ms": 775
+        },
+        {
+          "users": 16,
+          "user": 6,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18716,
+          "first_event_ms": 281
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 3833,
+          "first_event_ms": 396
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 24868,
+          "first_event_ms": 1802
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 18475,
+          "first_event_ms": 560
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 12592,
+          "first_event_ms": 924
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 16122,
+          "first_event_ms": 260
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 17944,
+          "first_event_ms": 975
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 13221,
+          "first_event_ms": 482
+        },
+        {
+          "users": 16,
+          "user": 7,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 16398,
+          "first_event_ms": 955
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 11316,
+          "first_event_ms": 188
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 16687,
+          "first_event_ms": 5737
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 16343,
+          "first_event_ms": 368
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 14756,
+          "first_event_ms": 1889
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 12285,
+          "first_event_ms": 343
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 20948,
+          "first_event_ms": 4186
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 15313,
+          "first_event_ms": 1176
+        },
+        {
+          "users": 16,
+          "user": 8,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 12905,
+          "first_event_ms": 3271
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 17053,
+          "first_event_ms": 114
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 26309,
+          "first_event_ms": 303
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 14838,
+          "first_event_ms": 556
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 28730,
+          "first_event_ms": 928
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 28357,
+          "first_event_ms": 988
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 10120,
+          "first_event_ms": 501
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 26208,
+          "first_event_ms": 287
+        },
+        {
+          "users": 16,
+          "user": 9,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 15968,
+          "first_event_ms": 285
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 23147,
+          "first_event_ms": 235
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 11674,
+          "first_event_ms": 622
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 20952,
+          "first_event_ms": 3249
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 23164,
+          "first_event_ms": 413
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 19231,
+          "first_event_ms": 340
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18438,
+          "first_event_ms": 447
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 19984,
+          "first_event_ms": 285
+        },
+        {
+          "users": 16,
+          "user": 10,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 5662,
+          "first_event_ms": 280
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 8654,
+          "first_event_ms": 391
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 16968,
+          "first_event_ms": 706
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 14333,
+          "first_event_ms": 294
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 20031,
+          "first_event_ms": 3745
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 19616,
+          "first_event_ms": 3964
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 18076,
+          "first_event_ms": 1000
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 20097,
+          "first_event_ms": 284
+        },
+        {
+          "users": 16,
+          "user": 11,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 8632,
+          "first_event_ms": 290
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 17320,
+          "first_event_ms": 263
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 11579,
+          "first_event_ms": 1467
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 22133,
+          "first_event_ms": 5213
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 14408,
+          "first_event_ms": 831
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 14801,
+          "first_event_ms": 287
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "용량이 1000kW 넘는 변전소의 평균 위험등급은?",
+          "outcome": "ok",
+          "latency_ms": 18456,
+          "first_event_ms": 1059
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "위험등급이 3 이상인 시설은 몇 개야?",
+          "outcome": "ok",
+          "latency_ms": 17354,
+          "first_event_ms": 475
+        },
+        {
+          "users": 16,
+          "user": 12,
+          "question": "F-0007 시설의 설비 용량은?",
+          "outcome": "ok",
+          "latency_ms": 8833,
+          "first_event_ms": 307
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 19113,
+          "first_event_ms": 439
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 15330,
+          "first_event_ms": 3247
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 31564,
+          "first_event_ms": 432
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 30266,
+          "first_event_ms": 395
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 17742,
+          "first_event_ms": 1422
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "서울 지역 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 24518,
+          "first_event_ms": 1615
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "변전소 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18048,
+          "first_event_ms": 284
+        },
+        {
+          "users": 16,
+          "user": 13,
+          "question": "2015년 이전에 설치된 철탑은?",
+          "outcome": "ok",
+          "latency_ms": 4257,
+          "first_event_ms": 288
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 5623,
+          "first_event_ms": 382
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 19679,
+          "first_event_ms": 530
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 25555,
+          "first_event_ms": 348
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 13084,
+          "first_event_ms": 536
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 18493,
+          "first_event_ms": 1859
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "강남지사가 소유한 시설 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 28814,
+          "first_event_ms": 371
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "위험등급이 가장 높은 시설 5개 알려줘",
+          "outcome": "ok",
+          "latency_ms": 11265,
+          "first_event_ms": 654
+        },
+        {
+          "users": 16,
+          "user": 14,
+          "question": "조직 목록 보여줘",
+          "outcome": "ok",
+          "latency_ms": 8564,
+          "first_event_ms": 286
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 9013,
+          "first_event_ms": 136
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 16485,
+          "first_event_ms": 1579
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 18406,
+          "first_event_ms": 1994
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 12597,
+          "first_event_ms": 464
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 13376,
+          "first_event_ms": 1712
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "서울에 있는 변전소는?",
+          "outcome": "ok",
+          "latency_ms": 21948,
+          "first_event_ms": 1204
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "시설 유형별 개수 알려줘",
+          "outcome": "ok",
+          "latency_ms": 13236,
+          "first_event_ms": 531
+        },
+        {
+          "users": 16,
+          "user": 15,
+          "question": "지역 코드가 11인 지역 이름은?",
+          "outcome": "ok",
+          "latency_ms": 13040,
+          "first_event_ms": 1673
+        }
+      ]
+    }
+  ]
+}

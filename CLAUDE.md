@@ -7,10 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.8) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.11) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
-구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다(현재 v0.10). 현재 진행: Phase 7 완료(평가
-러너·장애 주입·게이트·녹화 응답 CI), 다음은 Phase 8(안정화·부하·`/readyz`·오프라인 번들).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 8 완료(`/readyz`·부하 측정·
+오프라인 번들·설치 스크립트 — 실제 폐쇄망 장비 설치는 미검증), MVP 12주 계획의 마지막 Phase. 설치 정본은
+[deploy/INSTALL.md](deploy/INSTALL.md).
 
 ## 운영 전제
 
@@ -43,6 +44,11 @@ uv run --project backend python scripts/task.py eval-prepare  # 마이그레이�
 uv run --project backend python scripts/task.py eval          # 실제 모델 게이트
 uv run --project backend python scripts/task.py eval-record   # 실제 모델 게이트 + 카세트 녹화(커밋한다)
 uv run --project backend python scripts/task.py eval-replay   # 녹화 응답 회귀(CI 와 같다)
+# 운영 패키징(ADR-0010) — PowerShell:
+powershell -ExecutionPolicy Bypass -File deploy/offline/build_bundle.ps1 -AppOnly   # 앱만(설치본은 -PrereqDir)
+powershell -ExecutionPolicy Bypass -File dist/bundle/<번들>/install.ps1 -Mode Install -Root D:/trial -SkipPrerequisites -NoServices
+# 부하 측정(API 가 떠 있어야 한다, 비밀번호는 환경변수 ONTOBOT_LOAD_PASSWORD — .env 에 개발 DB loadtest 계정):
+uv run --project backend python scripts/load_test.py --username loadtest --users 1,4,8,16 --rounds 8
 ```
 
 평가 환경: `ONTOBOT_DB_NAME=ontobot_eval`, `ONTOBOT_NEO4J_URI=bolt://localhost:7688`,
@@ -150,6 +156,16 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   함께 커밋한다 — 안 하면 CI 재생이 카세트 놓침으로 실패한다(놓친 요청을 지어내지 않는 것이 의도). 파이프라인에
   장애 주입 말고 다른 주입 지점을 만들지 말 것(평가가 운영과 다른 코드를 돌게 된다). `graph_down` 문항은 끝 객체가
   실재하는 탐색 질문이어야 하고, 권한 위반은 객체 근거(`o:Type/pk`)만 본다(집계 `q:N` 은 타입이 없다).
+- **`/healthz` 만 재시작 판단에 쓴다.** `/readyz` 는 PG·Neo4j·LLM 을 보므로 서비스 관리자에 물리면 DB 가 잠깐
+  끊긴 것만으로 멀쩡한 프로세스를 죽인다. Neo4j 만 안 되면 `degraded`(200)이지 503 이 아니다. 외부 LLM 공급자는
+  준비 확인에서 호출하지 않는다(키 설정만).
+- 설치본은 ontobot 을 **편집 가능(editable)** 으로 설치한다 — `config.py` 가 `.env`·`config/llm.yaml` 을 패키지
+  위치의 `parents[3]`(저장소 루트)에서 찾기 때문이다. 이 경로 규칙을 바꾸면 설치본이 설정을 못 찾는다.
+  번들 wheelhouse 에는 hatchling 과 `editables` 가 함께 있어야 한다(오프라인 설치 시험에서 발견).
+- `deploy/**/*.ps1` 은 **UTF-8 BOM** 으로 저장한다(PowerShell 5.1 은 BOM 없는 파일을 cp949 로 읽는다). 문자열에서
+  변수 바로 뒤에 한글이 오면 `${n}개` 처럼 감싼다(`$n개` 는 변수 이름이 된다). 네이티브 명령 출력은 `| Out-Host`
+  로 보낸다 — 함수 반환값에 섞인다.
+- 채팅 한 건은 답이 끝날 때까지 DB 연결을 쥔다. 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`)이 동시 채팅 상한이다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
   P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).

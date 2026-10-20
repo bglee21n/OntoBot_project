@@ -180,9 +180,12 @@ async def list_roles(db: AsyncSession) -> list[RoleView]:
 
 
 async def set_readable_types(
-    db: AsyncSession, *, actor_id: int, role_id: int, object_types: Sequence[str]
+    db: AsyncSession, *, actor_id: int | None, role_id: int, object_types: Sequence[str]
 ) -> RoleView:
-    """역할의 읽기 권한을 주어진 타입 집합으로 **바꾼다**(더하기가 아니라 교체)."""
+    """역할의 읽기 권한을 주어진 타입 집합으로 **바꾼다**(더하기가 아니라 교체).
+
+    ``actor_id`` 가 None 이면 설치·시드 스크립트가 바꾼 것이다(감사 로그에 행위자 없이 남는다).
+    """
     role = await db.get(Role, role_id)
     if role is None:
         raise AdminError("역할을 찾을 수 없습니다", code="role_not_found", status=404)

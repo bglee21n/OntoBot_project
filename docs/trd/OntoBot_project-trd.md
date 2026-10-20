@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.10                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.11                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -54,7 +54,7 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 정적 분석        | ruff, mypy, import-linter / eslint, tsc                                            | 16절 의존 규칙 강제                    |
 | 테스트           | pytest, pytest-asyncio, 로컬 설치 PostgreSQL·Neo4j의 테스트 전용 DB·인스턴스       | 19절                                   |
 | 관측성           | JSON 구조화 로그 + DB `trace` 테이블                                               | 외부 APM 의존 없음(폐쇄망)             |
-| 패키징           | Windows Server 네이티브 설치 + 오프라인 번들(uv·Python, wheelhouse, 프론트 빌드 산출물, PostgreSQL·pgvector·Neo4j·JRE 설치본, 설치 스크립트). api·worker는 Windows 서비스로 등록. **Docker는 쓰지 않는다**(ADR-0007) | 폐쇄망 설치, 운영 대상 최소화 |
+| 패키징           | Windows Server 네이티브 설치 + 오프라인 번들(uv·CPython 3.12, 해시 고정 wheelhouse, 프론트 빌드 산출물, PostgreSQL·pgvector·Neo4j·JRE·Ollama 설치본과 모델, 설치 스크립트, SHA-256 manifest). api·worker·Ollama 는 WinSW 2.12 로 Windows 서비스 등록, 릴리스 폴더 + `current` 정션으로 업그레이드·롤백(ADR-0010). **Docker는 쓰지 않는다**(ADR-0007) | 폐쇄망 설치, 운영 대상 최소화 |
 
 ## 4. 시스템 아키텍처
 
@@ -466,9 +466,9 @@ class LLMGateway:
 
 | 구분   | 요구사항                                                                                                                                                                    |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 성능   | 단계별 지연을 `trace.stage_latency_ms`에 남긴다. PRD 7절 P95 목표가 정해지면 13절 게이트에 넣는다. 타임아웃 기본값: SQL 10초, Cypher 5초, LLM은 역할별 설정                 |
-| 폐쇄망 | 실행 중 외부 네트워크를 호출하지 않는다(외부 LLM 공급자를 켠 SaaS 배포는 예외). 프론트 자산은 빌드에 포함하고 CDN을 쓰지 않는다. 오프라인 번들로 설치한다                   |
-| 가용성 | MVP는 단일 노드(api 1 + worker 1 + PostgreSQL + Neo4j). 워커는 `SKIP LOCKED`로 수평 확장이 가능한 구조로 만든다. `/healthz`(프로세스), `/readyz`(PostgreSQL·Neo4j·LLM 연결) |
+| 성능   | 단계별 지연을 `trace.stage_latency_ms`에 남긴다. PRD 7절 P95 목표가 정해지면 13절 게이트에 넣는다. 타임아웃 기본값: SQL 10초, Cypher 5초, LLM은 역할별 설정. 채팅 한 건은 답이 끝날 때까지 DB 연결 하나를 쥐므로 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`, 기본 20+10)이 API 프로세스의 동시 채팅 상한이다. 부하 측정은 `scripts/load_test.py`, 수치는 ADR-0011 |
+| 폐쇄망 | 실행 중 외부 네트워크를 호출하지 않는다(외부 LLM 공급자를 켠 SaaS 배포는 예외). 프론트 자산은 빌드에 포함하고 CDN을 쓰지 않는다 — 설치본은 API 가 `ONTOBOT_FRONTEND_DIST` 를 같은 오리진에서 서빙한다(화면 경로는 `index.html` 로 되돌림, `/api/`·`/healthz`·`/readyz` 는 되돌리지 않는다). 오프라인 번들로 설치한다(설치 중 네트워크 없음: `uv pip install --offline --no-index`) |
+| 가용성 | MVP는 단일 노드(api 1 + worker 1 + PostgreSQL + Neo4j). 워커는 `SKIP LOCKED`로 수평 확장이 가능한 구조로 만든다. `/healthz`(프로세스 — 재시작 판단은 이것만), `/readyz`(PostgreSQL `SELECT 1`·Neo4j 접속·LLM: Ollama 는 `/api/tags` 로 역할 모델 설치 여부, 외부 공급자는 호출하지 않고 키 설정만. 구성 요소마다 3초 상한, 동시에 본다). `/readyz` 판정: PG 또는 LLM 이 안 되면 `unavailable`(503), Neo4j 만 안 되면 `degraded`(200 — 탐색 질의만 `graph_unavailable`), 모두 되면 `ok`. 인증 없이 열리므로 구성 요소 상태와 오류 종류만 싣는다. 매일 대사(`graph_reconcile`)·보존 기간 정리는 워커가 하루 한 번 발행한다 |
 | 로깅   | JSON 한 줄 로그, 요청 ID 전파, PII 마스킹, 회전                                                                                                                             |
 | 언어   | UI·안내 문구는 한국어 우선, 문구는 한 파일(`chat/templates.py`, 프론트 `i18n/ko`)에 모은다                                                                                  |
 
@@ -720,6 +720,7 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.11 | 2026-10-20 | Phase 8 구현 반영(ADR-0010·0011) — `/readyz` 판정 규칙(`ok`/`degraded`/`unavailable`, 외부 LLM 은 호출하지 않음), 설치본 프론트 서빙(`ONTOBOT_FRONTEND_DIST`), DB 연결 풀 설정(동시 채팅 상한), 오프라인 번들 구성·WinSW 서비스·릴리스 폴더 + `current` 정션 업그레이드·롤백(롤백 DB 는 업그레이드 직전 `pg_dump` 복원, 내림 마이그레이션 미사용), 부하 측정 결과 |
 | v0.10 | 2026-10-20 | Phase 7 구현 반영(ADR-0009) — 러너 권한(평가 전용 역할 `golden_set.roles`)·장애 주입 지점(실행기)·`graph_down` 은 실제 드라이버, 녹화 응답 카세트(놓침 = 실패), 게이트 판정 규칙(불변식 None 통과·가안 None 실패), 권한 위반은 객체 근거만, 고아 실행 닫기, 골든셋 팩 형식·적재 규칙, `golden_item`·`golden_set`·`eval_result` 컬럼 추가, 평가 API 권한(챗봇 빌더·모델러) |
 | v0.9 | 2026-10-20 | Phase 6 구현 반영(ADR-0008) — 주제에 "찾아보는 질문" 추가, 채워짐 판정·되묻기 상한, 추출 입력·근거 id 는 서버, 같은 요소 정확 일치 병합, 턴 실패 규칙, 골든 질의 거르기(주제·면담자 질문), 확정 검증, 게시 합치기 규칙(정확 일치·충돌은 게시 차단), `interview_session.title`·`published_version_id`, `golden_item.expected_answer`, 세션 조회 엔드포인트, 감사 이벤트 |
 | v0.8 | 2026-10-20 | Phase 5 구현 반영 — 외부 공급자 PII 가역 토큰화의 대상 값·규칙, 호출 기록 마스킹 저장, 어댑터 셋(SDK 없이 HTTP), 관리 API 형태와 규칙(자기 잠금 방지·세션 폐기·권한 집합 교체), 감사 이벤트 추가, 보존 기간 설정·작업(감사 로그 제외), JSON 로그·요청 ID |

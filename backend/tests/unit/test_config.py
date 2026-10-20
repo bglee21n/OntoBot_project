@@ -1,3 +1,4 @@
+import pytest
 from pydantic import SecretStr
 from sqlalchemy.engine import make_url
 
@@ -22,3 +23,11 @@ def test_password_never_appears_in_repr() -> None:
     s = _settings("t3st!p@ss")
     assert "t3st!p@ss" not in repr(s)
     assert "t3st!p@ss" not in str(s.database_url())
+
+
+def test_empty_path_settings_mean_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    # env.example 을 그대로 복사한 .env 의 빈 값이 "현재 폴더"로 읽히면 기동이 실패한다.
+    monkeypatch.setenv("ONTOBOT_FRONTEND_DIST", "")
+    monkeypatch.setenv("ONTOBOT_LOG_DIR", "")
+    s = Settings()
+    assert s.frontend_dist is None and s.log_dir is None
