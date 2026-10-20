@@ -7,16 +7,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.11) · [PRD](docs/prd/OntoBot_project-prd.md) ·
-[구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
-구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 8 완료(`/readyz`·부하 측정·
-오프라인 번들·설치 스크립트 — 실제 폐쇄망 장비 설치는 미검증), MVP 12주 계획의 마지막 Phase. 설치 정본은
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.12) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+[구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
+[v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
+설치는 미검증), v1 착수 결정 확정(TRD 17.1) — 다음은 Phase 9(편집 레이어·값 계보). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md).
 
 ## 운영 전제
 
 - **폐쇄망 온프레미스(Windows Server)가 기본, Docker 를 쓰지 않는다**(ADR-0007). 개발·CI·운영 모두 네이티브 설치.
-  실행 중 외부 네트워크를 호출하는 코드를 넣지 않는다(외부 LLM 공급자를 켠 경우만 예외).
+  실행 중 외부 네트워크를 호출하는 코드를 넣지 않는다(예외는 외부 LLM 공급자와, v1 Phase 10 부터 운영자가 설정한
+  사내 메일·SMS 게이트웨이뿐 — TRD 17.1-4). 외부 서버를 부르는 화면 기능(음성 입력)은 `ONTOBOT_CLOSED_NETWORK` 면 끈다.
 - LLM 은 로컬 Ollama. 역할별 모델은 [config/llm.yaml](config/llm.yaml) 에만 적는다(코드에 모델 ID 금지).
   planner·answerer 기본값 `gemma4:e4b` 는 ADR-0004 의 측정 결과다 — 바꾸려면 다시 잰다.
 - 저장소: PostgreSQL 이 **기록의 원본**, Neo4j Community 는 링크 **투영**(언제든 PostgreSQL 에서 재구축).

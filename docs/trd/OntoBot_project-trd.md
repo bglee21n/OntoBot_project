@@ -2,10 +2,10 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.11                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.12                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
-| 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
+| 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
 
 ## 1. 목적과 범위
 
@@ -33,6 +33,8 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 6. 저장소              | **PostgreSQL + Neo4j** (사용자 결정, 5절)             | —                                          |
 | 7. 기존 시스템         | 신규 저장소로 구축                                    | 확장이면 이 문서 전체 재검토               |
 | 8. write-back          | 하지 않음                                             | 하면 `actions/`에 원천 쓰기 어댑터 추가    |
+| (추가) Action 부수효과 | **앱 안 알림·메일·SMS** — 사내 SMTP 릴레이·SMS 게이트웨이로만 (사용자 결정, 17.1) | 다른 외부 호출이 필요하면 `notify/channels/` 어댑터 추가 |
+| (추가) 폐쇄망 여부     | `ONTOBOT_CLOSED_NETWORK`(기본 `true`) — 외부 서버를 부르는 화면 기능(음성 입력)을 끈다 (사용자 결정, 17.1) | SaaS 면 `false` |
 | (추가) 설치 수단       | **Docker 미사용 — Windows Server 네이티브 설치** (사용자 결정, ADR-0007) | Linux 지원이 필요하면 설치 스크립트 추가 |
 
 ## 3. 기술 스택
@@ -645,6 +647,27 @@ OntoBot_project/
 | 5.7 (P3)     | 자동화                                   | `automations/` + `jobs/schedules.py`                                                                                                                             |
 | 5.12 (P3)    | 시나리오 what-if                         | `scenario/` — `reader.resolve(scenario_id)`가 시나리오 사본을 덮고, 탐색 결과에도 시나리오 링크 변경을 메모리에서 덮는다. 실제 객체·아웃박스에는 쓰지 않는다     |
 
+### 17.1 v1 착수 결정 (v0.12)
+
+v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 결정이다. ★ 는 사용자 결정.
+
+| # | 항목 | 결정 |
+| --- | --- | --- |
+| 1 | 편집 레이어와 조회 | 활성 편집은 근거 카드뿐 아니라 **조회 조건에도** 보인다. `objects.reader` 의 `resolve`·`run_query`·`existing_values` 가 `object` 에 활성 `object_edit` 를 덮은 같은 파생 행을 읽는다 |
+| 2 | Action·Function 정의 위치 | `OntologyDocument` 에 `action_types`·`functions` 를 더한다. draft 에서 편집·게시, 게시본 불변, 버전 비교·영향 분석 대상 |
+| 3 | Action 변경 대상 | 일반 속성만. pk·FK(링크 원천) 속성은 게시 전 검사가 거부한다(링크 변경 Action 은 v1.5) |
+| 4 | ★ Action 부수효과 | 앱 안 알림 + **메일(사내 SMTP 릴레이) + SMS(사내 게이트웨이: HTTP JSON 또는 발송 테이블 INSERT)**. 실행 트랜잭션에서 `notification_outbox` 에 쓰고 커밋 뒤 워커가 보낸다(재시도, `(action_run, 채널, 수신자)` 중복 방지). 롤백은 정정 발송. 수신자 = 역할의 사용자 연락처(`app_user.email`·`phone`) 또는 대상 객체의 `pii_kind` phone/email 속성, 실행당 상한. 연락처는 로그·감사에서 마스킹. 발송 문구는 템플릿 + 바인드(LLM 이 쓰지 않는다). **실행 중 외부 호출 금지 규칙의 예외는 외부 LLM 공급자와 운영자가 설정한 메일·SMS 게이트웨이뿐이다.** `/readyz` 는 게이트웨이를 부르지 않는다 |
+| 5 | Action 파라미터 검증 | 객체 참조는 그 타입에 실재하는 pk·제목과 정확 일치, 값은 질문 원문에 그대로 있거나 enum·자료형 변환 통과. 어긋나면 실행 전에 막고 오류를 한꺼번에 붙여 1회 재계획, 그래도 안 되면 사용자가 고른다 |
+| 6 | 멱등성 | `action_run.request_id`(클라이언트 UUID) 유일 인덱스. 재전송은 기존 실행을 돌려준다(발송도 한 번) |
+| 7 | Function 형태 | 선언형 식 트리(QueryPlan 조각·집계·산술·비교·조건). 사용자 코드는 받지 않는다. 값은 전부 바인드, 호출자 권한으로 조회 |
+| 8 | Function 인용 | `[[q:N#value]]`. 근거 행에 입력 조건(인자·내부 조회 조건)을 싣는다. `grounding` 은 바뀌지 않는다 |
+| 9 | 속성·행 단위 권한 | `property_permission(role, type, property, can_read)`·`row_policy(role, type, filters)`(QueryPlan `Filter` 문법). 컴파일러가 주입하고 플래너 요약·데이터 블록·근거 카드·Action 미리보기·Function 모두 같은 판정. 권한 지문에 포함 |
+| 10 | 감사 해시 체인 | `audit_log.prev_hash`·`hash`(SHA-256, 직전 해시 + 정규화 JSON), 삽입은 advisory lock 으로 직렬화, 검증은 CLI·매일 작업(끊김은 보고만) |
+| 11 | 임베딩 | 로컬 Ollama, `config/llm.yaml` 새 역할 `embedder`. 후보(`bge-m3`·`nomic-embed-text`)를 한국어 골든 문항으로 재서 ADR 로 정한다 |
+| 12 | 문서 인용 | `[[d:<doc_id>/<chunk_no>]]` — 값이 청크 원문에 그대로 있는지 정확 일치. 유사도는 검색에만 쓰고 근거 판정에는 쓰지 않는다 |
+| 13 | ★ 워크숍 음성 입력 | **폐쇄망에서는 비활성화.** `ONTOBOT_CLOSED_NETWORK=false` 이고 `ONTOBOT_VOICE_INPUT=true` 일 때만 켜진다(화면은 `GET /config/features` 로 받는다). 브라우저 음성 인식이라 음성이 브라우저 공급자 서버로 감을 화면에 알린다. 인식 결과는 텍스트 발언과 같이 마스킹 저장. 오프라인 STT 어댑터는 v1.5 |
+| 14 | 공개 REST API | API 키(해시 저장)·스코프(`query`·`objects:read`·`actions:request`)·키마다 서비스 계정(역할). 권한 판정은 `security/rbac.py` 하나 |
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -720,6 +743,7 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.12 | 2026-10-20 | v1 착수 결정(17.1) — 편집 레이어는 조회 조건에도 적용, Action·Function 은 온톨로지 문서에, Action 부수효과는 앱 알림·메일·SMS(사내 게이트웨이, 아웃박스 발송, 사용자 결정), 파라미터 검증·멱등성, 선언형 Function, 속성·행 권한, 감사 해시 체인, 임베딩·문서 인용, 폐쇄망 설정과 음성 입력 비활성화(사용자 결정), 공개 API 키. 2절 가정 표에 Action 부수효과·폐쇄망 여부 추가 |
 | v0.11 | 2026-10-20 | Phase 8 구현 반영(ADR-0010·0011) — `/readyz` 판정 규칙(`ok`/`degraded`/`unavailable`, 외부 LLM 은 호출하지 않음), 설치본 프론트 서빙(`ONTOBOT_FRONTEND_DIST`), DB 연결 풀 설정(동시 채팅 상한), 오프라인 번들 구성·WinSW 서비스·릴리스 폴더 + `current` 정션 업그레이드·롤백(롤백 DB 는 업그레이드 직전 `pg_dump` 복원, 내림 마이그레이션 미사용), 부하 측정 결과 |
 | v0.10 | 2026-10-20 | Phase 7 구현 반영(ADR-0009) — 러너 권한(평가 전용 역할 `golden_set.roles`)·장애 주입 지점(실행기)·`graph_down` 은 실제 드라이버, 녹화 응답 카세트(놓침 = 실패), 게이트 판정 규칙(불변식 None 통과·가안 None 실패), 권한 위반은 객체 근거만, 고아 실행 닫기, 골든셋 팩 형식·적재 규칙, `golden_item`·`golden_set`·`eval_result` 컬럼 추가, 평가 API 권한(챗봇 빌더·모델러) |
 | v0.9 | 2026-10-20 | Phase 6 구현 반영(ADR-0008) — 주제에 "찾아보는 질문" 추가, 채워짐 판정·되묻기 상한, 추출 입력·근거 id 는 서버, 같은 요소 정확 일치 병합, 턴 실패 규칙, 골든 질의 거르기(주제·면담자 질문), 확정 검증, 게시 합치기 규칙(정확 일치·충돌은 게시 차단), `interview_session.title`·`published_version_id`, `golden_item.expected_answer`, 세션 조회 엔드포인트, 감사 이벤트 |
