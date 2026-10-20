@@ -202,3 +202,22 @@ async def sync_fk_links(
         p,
     )
     return stale_rows, list(added.all())
+
+
+async def seed_fk_links(db: AsyncSession, link_type: str, from_type: str, fk_property: str) -> int:
+    """객체 표의 FK 속성 값으로 링크를 만든다 — 동기화를 거치지 않는 시드·평가용.
+
+    동기화 경로(``sync_fk_links``)와 같은 유일 규칙(살아 있는 링크 하나)을 따른다.
+    만든 수를 돌려준다.
+    """
+    result = await db.execute(
+        text(
+            "INSERT INTO link (link_type, from_pk, to_pk, synced_at) "
+            "SELECT :l, o.pk, o.properties ->> CAST(:p AS text), now() FROM object o "
+            "WHERE o.type = :t AND o.deleted_at IS NULL "
+            "AND o.properties ->> CAST(:p AS text) IS NOT NULL "
+            "ON CONFLICT (link_type, from_pk, to_pk) WHERE deleted_at IS NULL DO NOTHING"
+        ),
+        {"l": link_type, "t": from_type, "p": fk_property},
+    )
+    return int(result.rowcount or 0)  # type: ignore[attr-defined]

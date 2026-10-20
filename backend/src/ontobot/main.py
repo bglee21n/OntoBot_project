@@ -19,6 +19,7 @@ from ontobot.api import admin as admin_api
 from ontobot.api import auth as auth_api
 from ontobot.api import chat as chat_api
 from ontobot.api import errors
+from ontobot.api import eval as eval_api
 from ontobot.api import graph as graph_api
 from ontobot.api import objects as objects_api
 from ontobot.api import ontology as ontology_api
@@ -105,6 +106,7 @@ def create_app() -> FastAPI:
     app.include_router(objects_api.router, prefix=API_PREFIX)
     app.include_router(admin_api.router, prefix=API_PREFIX)
     app.include_router(workshop_api.router, prefix=API_PREFIX)
+    app.include_router(eval_api.router, prefix=API_PREFIX)
     return app
 
 

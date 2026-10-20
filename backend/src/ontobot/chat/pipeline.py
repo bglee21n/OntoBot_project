@@ -29,7 +29,7 @@ from ontobot.ontology.registry import PublishedSchema
 from ontobot.ontology.summary import schema_summary
 from ontobot.query import conditions, planner, records
 from ontobot.query.coverage import coverage_errors
-from ontobot.query.executor import execute_plan
+from ontobot.query.executor import ExecResult, execute_plan
 from ontobot.query.plan import PlannerOutput
 from ontobot.query.references import (
     check_raw_references,
@@ -40,6 +40,9 @@ from ontobot.query.validator import PlanInvalid, ValidatedPlan, validate
 
 Status = Literal["ok", "empty", "failed", "not_query"]
 Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
+# 조회 실행기. 평가의 장애 주입(``evaluation.faults``)이 바꿔 끼운다.
+# 운영은 언제나 ``execute_plan``.
+Executor = Callable[[AsyncSession, graph.AsyncDriver | None, ValidatedPlan], Awaitable[ExecResult]]
 
 
 async def _silent(_event: str, _data: dict[str, Any]) -> None:
@@ -227,6 +230,7 @@ async def run(
     context: list[dict[str, str]] | None = None,
     graph_driver: graph.AsyncDriver | None = None,
     emit: Emit = _silent,
+    executor: Executor = execute_plan,
 ) -> PipelineResult:
     """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``)."""
     res = PipelineResult(status="failed", answer="")
@@ -247,7 +251,7 @@ async def run(
 
         await emit("stage", {"stage": "querying"})
         with timer.stage("querying"):
-            ex = await execute_plan(db, graph_driver, vp)
+            ex = await executor(db, graph_driver, vp)
         res.sql, res.cypher = ex.sql or None, ex.cypher
         if vp.hops and ex.failure_reason != "graph_unavailable":
             lagged = await lag(db)

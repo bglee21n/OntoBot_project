@@ -16,6 +16,9 @@ export function Layout() {
             <NavLink to="/workshop">{ko.nav.workshop}</NavLink>
           )}
           <NavLink to="/ontology">{ko.nav.ontology}</NavLink>
+          {me.data?.roles.some((r) => r === "bot_builder" || r === "modeler") && (
+            <NavLink to="/eval">{ko.nav.eval}</NavLink>
+          )}
           <NavLink to="/sources">{ko.nav.sources}</NavLink>
           {me.data?.roles.includes("admin") && <NavLink to="/admin">{ko.nav.admin}</NavLink>}
         </nav>

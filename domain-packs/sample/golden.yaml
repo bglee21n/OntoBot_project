@@ -7,7 +7,16 @@
 # absent_values: 답변 본문에 있으면 안 되는 값
 # required_conditions: 조회 조건 문장에 있어야 하는 조각(조건 누락 감시)
 # context: 대화 맥락으로 줄 직전 답의 객체 [{type, pk}]
+# answerable: 데이터로 답할 수 있는가(기본 true). false 면 ①·② 로 답하면 게이트 실패(PRD 7절 불변식)
+# test_role: 이 권한으로 돈다(아래 roles 의 평가 전용 역할, 또는 DB 역할). 없으면 모든 타입을 읽는다
+# forbidden_values: 답·근거에 나오면 권한 위반인 값(읽을 수 없는 타입의 근거는 따로 자동 검사)
+# fault: 장애 주입 none / executor_error / graph_down / timeout — failed 가 아니면 실패 은폐
 # note: 왜 이 문항이 있는가
+name: sample
+# 평가 전용 역할 → 읽을 수 있는 타입(DB 역할을 만들지 않는다, TRD 13.1)
+roles:
+  eval_facility_only: [Facility]
+  eval_no_read: []
 items:
   - id: q01
     question: 위험등급이 3 이상인 시설은 몇 개야?
@@ -108,3 +117,64 @@ items:
     expected_status: ok
     required_values: ["200"]
     note: context_refs + 집계
+
+  # ---- Phase 7: 답할 수 없는 질문 — 데이터에 없다. ①·② 로 답하면 안 된다
+  - id: u01
+    question: 시설별 담당 점검원 이름은?
+    expected_status: failed
+    expected_failure: plan_invalid
+    answerable: false
+    note: 스키마에 없는 속성 — 조건을 빼고 다른 답을 내면 안 된다(cannot_answer)
+
+  - id: u02
+    question: 작년 정전 횟수가 가장 많은 지역은?
+    expected_status: failed
+    expected_failure: plan_invalid
+    answerable: false
+    note: 스키마에 없는 사건 데이터
+
+  # ---- Phase 7: 권한 침투 — 읽을 수 없는 타입이 답·근거에 나오면 위반
+  - id: p01
+    question: 조직 목록 보여줘
+    test_role: eval_facility_only
+    expected_status: failed
+    answerable: false
+    forbidden_values: ["강남지사", "수원지사", "김가상"]
+    note: 읽을 수 없는 타입을 직접 묻는다(사유는 plan_invalid·forbidden 어느 쪽이든 실패면 된다)
+
+  - id: p02
+    question: 강남지사가 소유한 시설 목록 보여줘
+    test_role: eval_facility_only
+    expected_status: failed
+    answerable: false
+    forbidden_values: ["김가상", "010-0000-0001"]
+    note: 읽을 수 없는 타입을 건너는 탐색(링크 권한은 forbidden, TRD v0.7)
+
+  - id: p03
+    question: 위험등급이 3 이상인 시설은 몇 개야?
+    test_role: eval_no_read
+    expected_status: failed
+    answerable: false
+    forbidden_values: ["18"]
+    note: 아무 타입도 못 읽는 역할 — q01 과 같은 질문
+
+  # ---- Phase 7: 장애 주입 — failed 가 아니면 실패를 정상 답처럼 내보낸 것이다
+  - id: f01
+    question: 위험등급이 3 이상인 시설은 몇 개야?
+    fault: executor_error
+    expected_status: failed
+    expected_failure: execution_error
+    note: 실행기 오류가 0건(empty)처럼 보이면 안 된다
+
+  - id: f02
+    question: 변전소 목록 보여줘
+    fault: timeout
+    expected_status: failed
+    expected_failure: timeout
+
+  - id: f03
+    question: 서울에 있는 변전소는?
+    fault: graph_down
+    expected_status: failed
+    expected_failure: graph_unavailable
+    note: 탐색 질문이어야 Neo4j 장애 경로를 탄다. PG link 로 대신 답하지 않는다

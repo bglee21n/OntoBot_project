@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AdminPage } from "../features/admin/AdminPage";
 import { ChatPage } from "../features/chat/ChatPage";
+import { EvalPage } from "../features/eval/EvalPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
 import { SourcesPage } from "../features/sources/SourcesPage";
@@ -29,6 +30,9 @@ export function App() {
         <Route path="/sources" element={<SourcesPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/workshop" element={<WorkshopPage />} />
+        <Route path="/eval" element={<EvalPage />} />
+        <Route path="/eval/:setId" element={<EvalPage />} />
+        <Route path="/eval/:setId/runs/:runId" element={<EvalPage />} />
         <Route path="/workshop/:sessionId" element={<SessionPage />} />
       </Route>
     </Routes>

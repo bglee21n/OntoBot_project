@@ -111,3 +111,9 @@ textarea.plain { font-family: inherit; }
 .badge.el-rejected { background: #f3f4f6; color: var(--muted); }
 .badge.ws-submitted { background: #fffbeb; border-color: var(--warn); color: var(--warn); }
 @media (max-width: 900px) { .workshop { grid-template-columns: 1fr; } }
+
+/* 평가 */
+.eval { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; align-items: start; }
+tr.selected-row td { background: #eff6ff; }
+@media (max-width: 900px) { .eval { grid-template-columns: 1fr; } }
+.badge.flag { margin-left: 0.3rem; }

@@ -266,6 +266,112 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/eval-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_v1_eval_runs_get"];
+        put?: never;
+        /** Start Run */
+        post: operations["start_run_api_v1_eval_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eval-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_v1_eval_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/golden-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sets */
+        get: operations["list_sets_api_v1_golden_sets_get"];
+        put?: never;
+        /** Create Set */
+        post: operations["create_set_api_v1_golden_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/golden-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Set */
+        get: operations["get_set_api_v1_golden_sets__set_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Set */
+        delete: operations["delete_set_api_v1_golden_sets__set_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/golden-sets/{set_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Item */
+        post: operations["create_item_api_v1_golden_sets__set_id__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/golden-sets/{set_id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Item */
+        delete: operations["delete_item_api_v1_golden_sets__set_id__items__item_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Item */
+        patch: operations["patch_item_api_v1_golden_sets__set_id__items__item_id__patch"];
+        trace?: never;
+    };
     "/api/v1/graph/rebuild": {
         parameters: {
             query?: never;
@@ -1038,6 +1144,116 @@ export interface components {
              */
             status: "failed";
         };
+        /** EvalResultOut */
+        EvalResultOut: {
+            /** Answer */
+            answer: string | null;
+            /** Conditions */
+            conditions: string | null;
+            /** Expected Status */
+            expected_status: string;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Grade */
+            grade: number | null;
+            /** Id */
+            id: number;
+            /** Item Id */
+            item_id: number;
+            /** Key */
+            key: string | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Question */
+            question: string;
+            /** Status */
+            status: string | null;
+            /** Verdict */
+            verdict: {
+                [key: string]: unknown;
+            };
+        };
+        /** EvalRunDetail */
+        EvalRunDetail: {
+            /** Finished At */
+            finished_at: string | null;
+            /** Gate Checks */
+            gate_checks: components["schemas"]["GateCheckOut"][];
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Golden Set Id */
+            golden_set_id: number;
+            /** Id */
+            id: number;
+            /** Llm Config */
+            llm_config: {
+                [key: string]: unknown;
+            };
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            } | null;
+            /** Ontology Version Id */
+            ontology_version_id: number | null;
+            /** Result List */
+            result_list: components["schemas"]["EvalResultOut"][];
+            /** Results */
+            results: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed";
+        };
+        /** EvalRunIn */
+        EvalRunIn: {
+            /** Golden Set Id */
+            golden_set_id: number;
+            /** Overrides */
+            overrides?: {
+                [key: string]: string;
+            };
+        };
+        /** EvalRunOut */
+        EvalRunOut: {
+            /** Finished At */
+            finished_at: string | null;
+            /** Gate Checks */
+            gate_checks: components["schemas"]["GateCheckOut"][];
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Golden Set Id */
+            golden_set_id: number;
+            /** Id */
+            id: number;
+            /** Llm Config */
+            llm_config: {
+                [key: string]: unknown;
+            };
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            } | null;
+            /** Ontology Version Id */
+            ontology_version_id: number | null;
+            /** Results */
+            results: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "running" | "succeeded" | "failed";
+        };
         /** EvidenceOut */
         EvidenceOut: {
             /** Ok */
@@ -1055,6 +1271,82 @@ export interface components {
             name: string;
             /** Value */
             value: string;
+        };
+        /** GateCheckOut */
+        GateCheckOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "invariant" | "threshold";
+            /** Limit */
+            limit: number;
+            /** Metric */
+            metric: string;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "min" | "max";
+            /** Passed */
+            passed: boolean;
+            /** Value */
+            value: number | null;
+        };
+        /** GoldenSetDetail */
+        GoldenSetDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Domain Pack */
+            domain_pack: string | null;
+            /** Id */
+            id: number;
+            /** Item List */
+            item_list: components["schemas"]["ItemOut"][];
+            /** Items */
+            items: number;
+            /** Name */
+            name: string;
+            /** Ontology Version Id */
+            ontology_version_id: number | null;
+            /** Roles */
+            roles: {
+                [key: string]: string[];
+            };
+        };
+        /** GoldenSetIn */
+        GoldenSetIn: {
+            /** Name */
+            name: string;
+            /** Roles */
+            roles?: {
+                [key: string]: string[];
+            };
+        };
+        /** GoldenSetOut */
+        GoldenSetOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Domain Pack */
+            domain_pack: string | null;
+            /** Id */
+            id: number;
+            /** Items */
+            items: number;
+            /** Name */
+            name: string;
+            /** Ontology Version Id */
+            ontology_version_id: number | null;
+            /** Roles */
+            roles: {
+                [key: string]: string[];
+            };
         };
         /** GradeData */
         GradeData: {
@@ -1111,6 +1403,135 @@ export interface components {
             message: string;
             /** Path */
             path: string;
+        };
+        /** ItemIn */
+        ItemIn: {
+            /** Absent Values */
+            absent_values?: string[];
+            /**
+             * Answerable
+             * @default true
+             */
+            answerable: boolean;
+            /** Context */
+            context?: {
+                [key: string]: string;
+            }[];
+            /** Expected Failure */
+            expected_failure?: string | null;
+            /** Expected Grade */
+            expected_grade?: (1 | 2 | 3) | null;
+            /**
+             * Expected Status
+             * @enum {string}
+             */
+            expected_status: "ok" | "empty" | "failed" | "not_query";
+            /**
+             * Fault
+             * @default none
+             * @enum {string}
+             */
+            fault: "none" | "executor_error" | "graph_down" | "timeout";
+            /** Forbidden Values */
+            forbidden_values?: string[];
+            /** Key */
+            key?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Question */
+            question: string;
+            /** Required Conditions */
+            required_conditions?: string[];
+            /** Required Values */
+            required_values?: string[];
+            /** Test Role */
+            test_role?: string | null;
+        };
+        /** ItemOut */
+        ItemOut: {
+            /** Absent Values */
+            absent_values?: string[];
+            /**
+             * Answerable
+             * @default true
+             */
+            answerable: boolean;
+            /** Context */
+            context?: {
+                [key: string]: string;
+            }[];
+            /** Expected Answer */
+            expected_answer: string | null;
+            /** Expected Failure */
+            expected_failure?: string | null;
+            /** Expected Grade */
+            expected_grade?: (1 | 2 | 3) | null;
+            /**
+             * Expected Status
+             * @enum {string}
+             */
+            expected_status: "ok" | "empty" | "failed" | "not_query";
+            /**
+             * Fault
+             * @default none
+             * @enum {string}
+             */
+            fault: "none" | "executor_error" | "graph_down" | "timeout";
+            /** Forbidden Values */
+            forbidden_values?: string[];
+            /** Id */
+            id: number;
+            /** Key */
+            key: string | null;
+            /** Note */
+            note?: string | null;
+            /** Question */
+            question: string;
+            /** Required Conditions */
+            required_conditions?: string[];
+            /** Required Values */
+            required_values?: string[];
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "workshop";
+            /** Test Role */
+            test_role?: string | null;
+        };
+        /**
+         * ItemPatch
+         * @description 보낸 필드만 고친다.
+         */
+        ItemPatch: {
+            /** Absent Values */
+            absent_values?: string[] | null;
+            /** Answerable */
+            answerable?: boolean | null;
+            /** Context */
+            context?: {
+                [key: string]: string;
+            }[] | null;
+            /** Expected Failure */
+            expected_failure?: string | null;
+            /** Expected Grade */
+            expected_grade?: (1 | 2 | 3) | null;
+            /** Expected Status */
+            expected_status?: ("ok" | "empty" | "failed" | "not_query") | null;
+            /** Fault */
+            fault?: ("none" | "executor_error" | "graph_down" | "timeout") | null;
+            /** Forbidden Values */
+            forbidden_values?: string[] | null;
+            /** Note */
+            note?: string | null;
+            /** Question */
+            question?: string | null;
+            /** Required Conditions */
+            required_conditions?: string[] | null;
+            /** Required Values */
+            required_values?: string[] | null;
+            /** Test Role */
+            test_role?: string | null;
         };
         /** JobOut */
         JobOut: {
@@ -2241,6 +2662,315 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_v1_eval_runs_get: {
+        parameters: {
+            query?: {
+                golden_set_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_v1_eval_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvalRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_eval_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sets_api_v1_golden_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldenSetOut"][];
+                };
+            };
+        };
+    };
+    create_set_api_v1_golden_sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoldenSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldenSetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_api_v1_golden_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoldenSetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_set_api_v1_golden_sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_item_api_v1_golden_sets__set_id__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_item_api_v1_golden_sets__set_id__items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_item_api_v1_golden_sets__set_id__items__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+                item_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemOut"];
                 };
             };
             /** @description Validation Error */

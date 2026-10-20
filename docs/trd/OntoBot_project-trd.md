@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.9                                     |
+| 문서      | 기술 요구사항 문서(TRD) v0.10                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -198,10 +198,10 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 
 | 테이블                    | 주요 컬럼                                                                                                                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `golden_set`              | `name`, `domain_pack`, `ontology_version_id`                                                                                                                                                                                   |
-| `golden_item`             | `golden_set_id`(FK), `question`, `test_role`, `answerable`, `expected_status`, `expected_grade`, `expected_answer`(워크숍), `required_values`(jsonb), `forbidden_values`(jsonb, 권한 침투용), `fault`(none/executor_error/graph_down/timeout), `source`(manual/workshop)       |
+| `golden_set`              | `name`, `domain_pack`, `ontology_version_id`, `roles`(jsonb, 평가 전용 역할 → 타입)                                                                                                                                                                                 |
+| `golden_item`             | `golden_set_id`(FK), `key`(팩 문항 id, 셋 안에서 유일), `question`, `expected_failure`, `absent_values`, `required_conditions`, `context`, `note`, `test_role`, `answerable`, `expected_status`, `expected_grade`, `expected_answer`(워크숍), `required_values`(jsonb), `forbidden_values`(jsonb, 권한 침투용), `fault`(none/executor_error/graph_down/timeout), `source`(manual/workshop)       |
 | `eval_run`                | `golden_set_id`, `ontology_version_id`, `llm_config`(jsonb, 역할별 공급자·모델), `status`(running/succeeded/failed), `metrics`(jsonb, 13.2), `gate_passed`, `started_at`, `finished_at`                                         |
-| `eval_result`             | `run_id`, `item_id`, `status`, `failure_reason`, `grade`, `answer`, `citations`(jsonb), `verdict`(jsonb: 정답·권한 위반·실패 은폐 판정 근거)                                                                                   |
+| `eval_result`             | `run_id`, `item_id`, `status`, `failure_reason`, `grade`, `answer`, `conditions`, `citations`(jsonb), `verdict`(jsonb: 정답·권한 위반·실패 은폐 판정 근거), `stats`(jsonb: 지연·사실 문장 수)                                                                                   |
 | `interview_session`       | `interviewee_id`, `title`, `topic_state`, `status`(open/submitted/published), `published_version_id`                                                                                                                                                          |
 | `interview_utterance`     | `session_id`, `speaker`, `text`(마스킹 저장), `seq`                                                                                                                                                                            |
 | `draft_element`           | `session_id`, `kind`(object_type/property/link_type/action_candidate/golden_query), `payload`(jsonb), `evidence`(jsonb: `[{utterance_id, quote}]`), `evidence_ok`, `status`(proposed/confirmed/edited/rejected), `reviewed_by` |
@@ -400,10 +400,13 @@ class LLMGateway:
 
 ### 13.1 실행
 
-- 평가 러너는 **운영과 같은 `chat.pipeline`을 인프로세스로** 부르되, 문항의 `test_role` 권한으로 실행한다.
-- `fault`가 있는 문항은 장애 주입기(`evaluation.faults`)로 실행기 오류·Neo4j 불가·타임아웃을 흉내 낸다.
-- 실행 방법: CLI(`scripts/run_eval.py`)와 API(`POST /api/v1/eval-runs`).
-- **게이트**: `evaluation/gate.yaml`의 임계값을 밑돌면 CI가 실패한다. 모델 교체 시에도 필수다.
+- 평가 러너(`evaluation.runner`)는 **운영과 같은 `chat.pipeline`을 인프로세스로** 부르되, 문항의 `test_role` 권한으로 실행한다. `test_role` 이 골든셋의 `roles`(평가 전용 역할 → 읽을 타입 목록)에 있으면 그 목록, 아니면 DB 역할의 권한(`rbac.readable_types_for_role`)으로 돈다 — 평가가 운영 권한 표에 역할을 만들지 않는다. `test_role` 이 없으면 게시 버전의 모든 타입을 읽는다.
+- `fault`가 있는 문항은 장애 주입기(`evaluation.faults`)로 실행기 오류·Neo4j 불가·타임아웃을 흉내 낸다. 파이프라인의 주입 지점은 실행기(`executor`) 하나다(운영은 언제나 `execute_plan`). `graph_down` 은 닿을 수 없는 Bolt 주소의 실제 드라이버로 운영 실행기를 돌린다 — 그래서 끝 객체가 실재하는 탐색 질문이어야 한다.
+- 문항마다 세션을 따로 열고 롤백한다(파이프라인은 읽기만). 결과는 문항마다 커밋하고, 작업 재시도는 기록된 문항을 건너뛴다. 문항에서 예외가 나면 평가 장치 오류(`harness_errors`)로 남긴다(파이프라인 `failed` 와 다르다).
+- 실행 방법: CLI(`scripts/run_eval.py`, `task.py eval·eval-record·eval-replay`)와 API(`POST /api/v1/eval-runs` → 작업 큐 `eval_run` → 워커). 작업이 끝내 실패해 `running` 으로 남은 실행은 다음 실행 요청 때 `failed` 로 닫는다(작업 없이 도는 CLI 실행은 제외).
+- 골든셋의 정본은 도메인 팩 `golden.yaml`(`name`·`roles`·`items`)이다. 적재(`evaluation.golden.load_pack`)는 문항을 `key`(팩의 `id`)로 맞추고, 결과가 붙은 문항을 지워야 하면 멈춘다. 워크숍 문항(`source=workshop`)은 적재가 건드리지 않는다.
+- **녹화 응답(카세트)**: PR 마다 CI 는 `domain-packs/<팩>/llm_cassette.json` 으로 파이프라인 회귀를 돈다(키 = Ollama 요청 본문의 정규 JSON 해시). 카세트에 없는 요청은 실패(`llm_unavailable`)이고 놓친 요청이 하나라도 있으면 게이트 실패다. 녹화는 실제 모델로 게이트를 통과한 실행에서만 한다. 재생에서는 지연(`p95_ms`)을 보지 않는다. 녹화·재생은 같은 시드의 평가 전용 DB(`ontobot_eval`, `task.py eval-prepare`)에서 한다.
+- **게이트**: `evaluation/gate.yaml`. 불변식(`citation_rate` = 1, `fault_cover_ups`·`permission_violations`·`harness_errors` = 0, `unanswerable_graded_rate` = 0)은 확정, `accuracy`·`estimate_ratio`·`p95_ms` 는 가안. 불변식은 값이 없으면(분모 0) 통과, 가안은 값이 없으면 실패. 밑돌면 CI가 실패한다. 모델 교체 시에도 필수다(ADR-0009).
 
 ### 13.2 PRD 7절 지표 계산식
 
@@ -416,7 +419,7 @@ class LLMGateway:
 | 대조 실패로 제거된 인용 수            | `trace.removed_citations` 합계(실행별·기간별)                                                                                      | eval·trace    |
 | 조회 실패율                           | 질의 응답 중 `status=failed` 비율(장애 주입 문항 제외)                                                                             | trace         |
 | 조회 실패를 정상 답변으로 내보낸 건수 | `fault≠none` 문항 중 `status≠failed`인 건수                                                                                        | eval          |
-| 권한 위반 응답                        | `test_role` 문항 중 답변·근거에 `forbidden_values` 또는 읽을 수 없는 타입의 객체가 나온 건수                                       | eval          |
+| 권한 위반 응답                        | 답변·근거 제목에 `forbidden_values` 가 나왔거나, 읽을 수 없는 타입의 **객체** 근거(`o:Type/pk`)가 나온 문항 수(집계 근거 `q:N` 은 타입이 없어 제외)       | eval          |
 | P95 응답 시간                         | `trace.stage_latency_ms` 합계의 95백분위                                                                                           | trace         |
 | 데이터 신선도                         | 매핑별 (현재 − 마지막 성공 `sync_run.finished_at`)의 최댓값                                                                        | sync_run      |
 | 동시 사용자 / 데이터 규모 / 가용성    | 부하 테스트 결과 / 객체 수 / 헬스체크 가동률                                                                                       | 별도 측정     |
@@ -442,7 +445,7 @@ class LLMGateway:
 | 동기화   | `CRUD /sources` · `POST /sources/{id}/test` · `CRUD /mappings` · `POST /mappings/{id}/sync` · `GET /sync-runs`                                                                                                                                                                                      | 모델러              |
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
 | 워크숍   | `GET·POST /workshop/sessions` · `GET /workshop/sessions/{id}` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
-| 평가     | `CRUD /golden-sets` · `CRUD /golden-sets/{id}/items` · `POST /eval-runs` · `GET /eval-runs/{id}`                                                                                                                                                                                                    | 챗봇 빌더           |
+| 평가     | `CRUD /golden-sets` · `CRUD /golden-sets/{id}/items` · `POST /eval-runs`(202, 작업 큐) · `GET /eval-runs[?golden_set_id=]` · `GET /eval-runs/{id}`                                                                                                                                                                                                    | 챗봇 빌더 / 모델러 |
 | 관리     | `GET·POST /admin/users` · `PATCH /admin/users/{id}`(상태·역할) · `GET /admin/roles` · `PUT /admin/roles/{id}/permissions` · `GET /admin/object-types` · `GET /audit-logs` · `GET /traces/{id}`                                                                                                  | 관리자              |
 
 ### 14.2 채팅 SSE 이벤트
@@ -706,6 +709,7 @@ OntoBot_project/
 | 0006 | 답변 본문 비스트리밍(검증 후 전송) | 체감 지연이 문제 되면 "검증 중" 표시와 함께 스트리밍 후 교체 방식 검토                                               |
 | 0007 | Docker 미사용, Windows Server 네이티브 | 서비스 등록·업그레이드·롤백을 설치 스크립트가 맡는다. Linux 운영이 필요해지면 systemd 설치 스크립트를 추가한다 |
 | 0008 | 인터뷰 워크숍 면담자·추출기 | 다음 질문은 상태기계, LLM 은 평가·되묻기·추출만. gemma4:e4b(대본 7/8, p50 2.1초). 프롬프트·추출 스키마를 바꾸거나 실제 인터뷰 기록이 생기면 다시 잰다 |
+| 0009 | 평가 게이트 | 운영 파이프라인 인프로세스 + 실행기 주입 장애, PR 은 녹화 응답(놓침 = 실패), 실제 모델 게이트는 모델·프롬프트 변경 때 로컬에서 녹화와 함께. 가안 수치는 PRD 7절이 정해지면 고친다 |
 
 ## 22. 개정 이력
 
@@ -716,6 +720,7 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.10 | 2026-10-20 | Phase 7 구현 반영(ADR-0009) — 러너 권한(평가 전용 역할 `golden_set.roles`)·장애 주입 지점(실행기)·`graph_down` 은 실제 드라이버, 녹화 응답 카세트(놓침 = 실패), 게이트 판정 규칙(불변식 None 통과·가안 None 실패), 권한 위반은 객체 근거만, 고아 실행 닫기, 골든셋 팩 형식·적재 규칙, `golden_item`·`golden_set`·`eval_result` 컬럼 추가, 평가 API 권한(챗봇 빌더·모델러) |
 | v0.9 | 2026-10-20 | Phase 6 구현 반영(ADR-0008) — 주제에 "찾아보는 질문" 추가, 채워짐 판정·되묻기 상한, 추출 입력·근거 id 는 서버, 같은 요소 정확 일치 병합, 턴 실패 규칙, 골든 질의 거르기(주제·면담자 질문), 확정 검증, 게시 합치기 규칙(정확 일치·충돌은 게시 차단), `interview_session.title`·`published_version_id`, `golden_item.expected_answer`, 세션 조회 엔드포인트, 감사 이벤트 |
 | v0.8 | 2026-10-20 | Phase 5 구현 반영 — 외부 공급자 PII 가역 토큰화의 대상 값·규칙, 호출 기록 마스킹 저장, 어댑터 셋(SDK 없이 HTTP), 관리 API 형태와 규칙(자기 잠금 방지·세션 폐기·권한 집합 교체), 감사 이벤트 추가, 보존 기간 설정·작업(감사 로그 제외), JSON 로그·요청 ID |
 | v0.7 | 2026-10-20 | Phase 3·4 구현 반영 — `traverse` 의미(1홉 조건의 AND, 최대 3)와 실행 방식(PG pk 집합 → Neo4j EXISTS → PG), 링크 권한은 `forbidden`, `context_refs` 범위, FK 이름 → `traverse` 결정론적 재작성, 질문 숫자 반영 검사(`query.coverage`), 재계획 오류 일괄 전달, `message.meta`, `llm_calls` 본문 미저장(Phase 5 까지), SSE `done.conversation_id`·이벤트 순서·`ChatEvents`, 근거 카드 404(권한 없음 = 없음). 측정은 ADR-0004 Phase 4 보강 |

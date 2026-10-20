@@ -7,8 +7,10 @@ from typing import Any
 
 from ontobot.config import get_settings
 from ontobot.db.session import get_engine, session_scope
+from ontobot.evaluation import runner
 from ontobot.graph import client as graph
 from ontobot.graph.reconcile import rebuild, reconcile
+from ontobot.llm.config import load as load_llm_config
 from ontobot.objects.indexes import ensure_property_index
 from ontobot.ontology import registry
 from ontobot.sync.runner import run_mapping
@@ -21,6 +23,7 @@ GRAPH_REBUILD = "graph_rebuild"
 GRAPH_RECONCILE = "graph_reconcile"
 PROPERTY_INDEX = "create_property_index"
 RETENTION = "retention_purge"
+EVAL_RUN = "eval_run"
 
 
 class JobFailed(Exception):
@@ -96,10 +99,33 @@ async def retention_purge(_: dict[str, Any]) -> dict[str, Any]:
     return counts
 
 
+async def eval_run(payload: dict[str, Any]) -> dict[str, Any]:
+    """평가 실행(TRD 13.1) — 실제 모델로 돈다.
+
+    API 가 ``eval_run(running)`` 을 만든 뒤 이 작업을 넣는다.
+    """
+    s = get_settings()
+    cfg = runner.RunConfig(
+        llm=load_llm_config(s.llm_config_path),
+        overrides=dict(payload.get("overrides") or {}),
+        grade2_enabled=s.grade2_enabled,
+    )
+    driver = graph_driver()
+    try:
+        run = await runner.execute(int(payload["run_id"]), cfg, graph_driver=driver)
+    finally:
+        if driver is not None:
+            await driver.close()
+    if run.status != "succeeded":
+        raise JobFailed(f"평가 실행 {run.id} 실패")
+    return {"run_id": run.id, "gate_passed": run.gate_passed}
+
+
 HANDLERS: dict[str, Handler] = {
     SYNC: sync_mapping,
     GRAPH_REBUILD: graph_rebuild,
     GRAPH_RECONCILE: graph_reconcile,
     PROPERTY_INDEX: create_property_index,
     RETENTION: retention_purge,
+    EVAL_RUN: eval_run,
 }

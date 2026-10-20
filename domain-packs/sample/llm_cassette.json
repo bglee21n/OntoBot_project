@@ -1,0 +1,224 @@
+{
+ "0830ff317f1169f3a92155448e5a2efd8aa3dcf620ffb98bdde34571a5fb46e4": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"변전소\"}],\"aggregate\":null}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "09a2a019d0a82596a59f81cfcb1e9f0d23937794284df99dd4e617b7c4bc0c09": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Region\",\"filters\":[{\"property\":\"region_code\",\"op\":\"eq\",\"value\":\"11\"}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "0c0af85fae855f56456208173e9954f64fe6a42910ec43329249938553676a67": {
+  "message": {
+   "content": "{\"kind\": \"cannot_answer\", \"reason\": \"스키마에 '위험등급' 속성을 가진 객체 타입이나, 해당 등급을 필터링할 수 있는 정보가 없습니다.\"}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "0e84ae40b2cc5a4a6c5beb11e68263bcff4f98edb663ff34f76669681ce33220": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"risk_grade\",\"op\":\"gte\",\"value\":3}],\"aggregate\":{\"fn\":\"count\",\"property\":null,\"group_by\":[]}}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "11a8a3f2d592fe014de2a39d5cb89172b14cc94d0cd9f29dd13001a47a5f62da": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"region_code\",\"op\":\"in\",\"value\":\"서울\"}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "15dcd5e8da3c57398bd6923167a2972f6c27d9d99f7bb03a720339678ea1f2b5": {
+  "message": {
+   "content": "시설 유형별 개수는 다음과 같습니다.\n* 변전소: 10건 [[q:1#value]]\n* 전주: 10건 [[q:2#value]]\n* 철탑: 10건 [[q:3#value]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "1bf850ea40a8fa65a7d0a19b272350391d1d589a9a1a2620eb850163a0d3882d": {
+  "message": {
+   "content": "{\"kind\": \"cannot_answer\", \"reason\": \"스키마에 '정전 횟수'와 관련된 속성이나 집계 정보가 없습니다.\"}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "2a14f719edb080ae9212cbb182bebbe03b76942494a0398267a0cdc3e573b4c9": {
+  "message": {
+   "content": "* **시설명**: 강남 전주 09호, **위험등급**: 4 [[o:Facility/F-0009#risk_grade]]\n* **시설명**: 강남 철탑 17호, **위험등급**: 4 [[o:Facility/F-0017#risk_grade]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "2ba452807f684d92d8251fe0677b0e6a4f0c8949e1df3801b6bfcc3a71548fb6": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_id\",\"op\":\"eq\",\"value\":\"F-0007\"}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "3adc2c8fc2968e7285a7383b50b2a759ca2f10b23a9c6779b0ae63f8038c564b": {
+  "message": {
+   "content": "위험등급이 가장 높은 시설 5개는 다음과 같습니다.\n\n*   대구 전주 03호: 위험등급 5 [[o:Facility/F-0003#risk_grade]]\n*   부산 전주 06호: 위험등급 5 [[o:Facility/F-0006#risk_grade]]\n*   부산 변전소 10호: 위험등급 5 [[o:Facility/F-0010#risk_grade]]\n*   부산 철탑 14호: 위험등급 5 [[o:Facility/F-0014#risk_grade]]\n*   수원 철탑 20호: 위험등급 5 [[o:Facility/F-0020#risk_grade]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "3cfaac4806f4aec5f4984728594d5ce486052f12b6eee1a21e7832cea766b2fe": {
+  "message": {
+   "content": "위험등급이 3 이상인 시설은 18건입니다. [[q:1#value]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "4508d66dfb2da8da13210468d76b8196fe25b23e4b35504903ae8c08008bab35": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_id\",\"op\":\"in\",\"value\":[\"F-0005\",\"F-0009\"]}],\"aggregate\":{\"fn\":\"sum\",\"property\":\"capacity_kw\",\"group_by\":[]}}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "47a57c8d1991369ac1a45525b7f4c0e15ade01ab052d5d56d23323683bffce1e": {
+  "message": {
+   "content": "변전소 목록은 다음과 같습니다.\n\n*   강남 변전소 01호: 시설 ID는 F-0001 [[o:Facility/F-0001#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0001#facility_type]], 위험등급은 2 [[o:Facility/F-0001#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0001#capacity_kw]], 설치일은 2015-08-02 [[o:Facility/F-0001#installed_on]]입니다.\n*   수원 변전소 04호: 시설 ID는 F-0004 [[o:Facility/F-0004#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0004#facility_type]], 위험등급은 1 [[o:Facility/F-0004#risk_grade]], 설비 용량(kW)은 3,000 [[o:Facility/F-0004#capacity_kw]], 설치일은 2006-03-04 [[o:Facility/F-0004#installed_on]]입니다.\n*   대구 변전소 07호: 시설 ID는 F-0007 [[o:Facility/F-0007#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0007#facility_type]], 위험등급은 4 [[o:Facility/F-0007#risk_grade]], 설비 용량(kW)은 3,000 [[o:Facility/F-0007#capacity_kw]], 설치일은 2011-06-06 [[o:Facility/F-0007#installed_on]]입니다.\n*   부산 변전소 10호: 시설 ID는 F-0010 [[o:Facility/F-0010#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0010#facility_type]], 위험등급은 5 [[o:Facility/F-0010#risk_grade]], 설비 용량(kW)은 1,200 [[o:Facility/F-0010#capacity_kw]], 설치일은 2017-11-17 [[o:Facility/F-0010#installed_on]]입니다.\n*   강남 변전소 13호: 시설 ID는 F-0013 [[o:Facility/F-0013#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0013#facility_type]], 위험등급은 1 [[o:Facility/F-0013#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0013#capacity_kw]], 설치일은 2005-09-07 [[o:Facility/F-0013#installed_on]]입니다.\n*   수원 변전소 16호: 시설 ID는 F-0016 [[o:Facility/F-0016#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0016#facility_type]], 위험등급은 1 [[o:Facility/F-0016#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0016#capacity_kw]], 설치일은 2014-12-22 [[o:Facility/F-0016#installed_on]]입니다.\n*   대구 변전소 19호: 시설 ID는 F-0019 [[o:Facility/F-0019#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0019#facility_type]], 위험등급은 1 [[o:Facility/F-0019#risk_grade]], 설비 용량(kW)은 800 [[o:Facility/F-0019#capacity_kw]], 설치일은 2020-11-03 [[o:Facility/F-0019#installed_on]]입니다.\n*   부산 변전소 22호: 시설 ID는 F-0022 [[o:Facility/F-0022#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0022#facility_type]], 위험등급은 1 [[o:Facility/F-0022#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0022#capacity_kw]], 설치일은 2017-07-11 [[o:Facility/F-0022#installed_on]]입니다.\n*   강남 변전소 25호: 시설 ID는 F-0025 [[o:Facility/F-0025#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0025#facility_type]], 위험등급은 5 [[o:Facility/F-0025#risk_grade]], 설비 용량(kW)은 1,200 [[o:Facility/F-0025#capacity_kw]], 설치일은 2016-04-02 [[o:Facility/F-0025#installed_on]]입니다.\n*   수원 변전소 28호: 시설 ID는 F-0028 [[o:Facility/F-0028#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0028#facility_type]], 위험등급은 3 [[o:Facility/F-0028#risk_grade]], 설비 용량(kW)은 1,200 [[o:Facility/F-0028#capacity_kw]], 설치일은 2019-01-28 [[o:Facility/F-0028#installed_on]]입니다."
+  },
+  "model": "gemma4:e4b"
+ },
+ "4b3661ad4be75b753218962733f0a7580117a2200adf7e3fdc895ee9603307f4": {
+  "message": {
+   "content": "{\"kind\": \"not_query\"}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "51618a2062d9c495d07cf054cf6ae2301ec833ba6811f9950c6c77705a7b99c6": {
+  "message": {
+   "content": "2015년 이전에 설치된 철탑은 다음과 같습니다.\n\n* 부산 철탑 02호: 설치일은 2006-09-07입니다. [[o:Facility/F-0002#installed_on]]\n* 강남 철탑 05호: 설치일은 2013-11-15입니다. [[o:Facility/F-0005#installed_on]]\n* 수원 철탑 08호: 설치일은 2009-01-12입니다. [[o:Facility/F-0008#installed_on]]\n* 대구 철탑 11호: 설치일은 2010-07-07입니다. [[o:Facility/F-0011#installed_on]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "553346dbf5f9ff030977e39ba25c1a26007091f30d37015424005fe2e9f366c7": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"변전소\"},{\"property\":\"capacity_kw\",\"op\":\"gt\",\"value\":1000}],\"aggregate\":{\"fn\":\"avg\",\"property\":\"risk_grade\",\"group_by\":[]}}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "63f237174386418f841595e79d996401a3700ef35b841e38bcfbccbe5c37ff50": {
+  "message": {
+   "content": "{\"kind\": \"cannot_answer\", \"reason\": \"스키마에 '조직' 타입이 존재하지 않아 목록을 보여줄 수 없습니다.\"}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "7aee5cd031a27c007991e85364f32e9d93c145460ff9e37a5fac022fed6ac8b3": {
+  "message": {
+   "content": "서울에 있는 변전소는 다음과 같습니다.\n\n* 강남 변전소 01호: 시설 ID는 F-0001 [[o:Facility/F-0001#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0001#facility_type]], 위험등급은 2 [[o:Facility/F-0001#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0001#capacity_kw]], 설치일은 2015-08-02 [[o:Facility/F-0001#installed_on]]입니다.\n* 강남 변전소 13호: 시설 ID는 F-0013 [[o:Facility/F-0013#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0013#facility_type]], 위험등급은 1 [[o:Facility/F-0013#risk_grade]], 설비 용량(kW)은 2,400 [[o:Facility/F-0013#capacity_kw]], 설치일은 2005-09-07 [[o:Facility/F-0013#installed_on]]입니다.\n* 강남 변전소 25호: 시설 ID는 F-0025 [[o:Facility/F-0025#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0025#facility_type]], 위험등급은 5 [[o:Facility/F-0025#risk_grade]], 설비 용량(kW)은 1,200 [[o:Facility/F-0025#capacity_kw]], 설치일은 2016-04-02 [[o:Facility/F-0025#installed_on]]입니다."
+  },
+  "model": "gemma4:e4b"
+ },
+ "8153dec67227da574c3fee6310990c403c21533de8445ef58b183de0d04cdca0": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"철탑\"},{\"property\":\"installed_on\",\"op\":\"lt\",\"value\":\"2015-01-01\"}],\"aggregate\":null}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "843562b548874b066e0c685ec45d9dfc039b44726b14af62a0f1bf7e67e0c9a9": {
+  "message": {
+   "content": "용량이 1000kW 넘는 변전소의 평균 위험등급은 2.56입니다. [[q:1#value]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "8d1c17372c16fbdb660ba16144384db09e0818e1a708af6dd5d6337f0d08b2e6": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"변전소\"},\n{\"property\":\"region_code\",\"op\":\"eq\",\"value\":\"서울\"}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "98a25b727737d0ce0914d79258a49090bf2fee7f8eb2a8ea1e7497a804316f0f": {
+  "message": {
+   "content": "설비 용량 합계는 200kW입니다. [[q:1#value]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "a5063c74083220624366b519ac3414bc392a6e127562ef2e19f64ee065ee21d5": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"risk_grade\",\"op\":\"gte\",\"value\":4}],\"context_refs\":[{\"type\":\"Facility\",\"pk\":\"F-0005\"},{\"type\":\"Facility\",\"pk\":\"F-0009\"},{\"type\":\"Facility\",\"pk\":\"F-0017\"},{\"type\":\"Facility\",\"pk\":\"F-0021\"}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "b4ca348db38a208f0925fc6c94b5f0cc09b28297a29c298828c6008b4ce60581": {
+  "message": {
+   "content": "F-0007 시설의 설비 용량은 3,000kW입니다. [[o:Facility/F-0007#capacity_kw]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "bb357242c5b9986c4935d1fc55f27c4216383f42dae398b8d1dffcfade889c55": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"aggregate\":{\"fn\":\"count\",\"property\":null,\"group_by\":[\"facility_type\"]},\"sort\":[{\"property\":\"value\",\"dir\":\"asc\"}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "cac609977b74eca8d93211061cae7b627a3e191ec4f612d576b0326fe1e7d155": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"owner_org_id\",\"op\":\"eq\",\"value\":\"강남지사\"}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "d55c05a714cd2f0de4a48e4a8b512a13dfd390e33eeb109989ca120e87f365fe": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"traverse\":[{\"link\":\"owned_by\",\"to\":\"Organization\",\"direction\":\"in\",\"filters\":[{\"property\":\"manager_name\",\"op\":\"ne\",\"value\":null}]}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "d764c64d2ace6226cbe9592dcb490c5554a531a6a207b031968288139578b2b8": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"risk_grade\",\"op\":\"eq\",\"value\":9}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "df5f3bac1d9f9e0373261c2dc8c59bf467acc447ab96caaf49225cec20a2dda8": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"owner_org_id\",\"op\":\"eq\",\"value\":\"강남지사\"}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "e2747409c6b696f4d2ecefdfab0a579a6d5fd7b37574e33c17738c975185f84a": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[],\"aggregate\":null,\"sort\":[{\"property\":\"risk_grade\",\"dir\":\"desc\"}],\"limit\":5}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "e6a76aad0e6c406a2b8fd2f17dada5d4a46ccbe06b74cd11344d554b2a43b5c3": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Organization\",\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "f096292542271a713783e7c3ea5096067507a90e3d9ffa3ad1d0c338585a4fe0": {
+  "message": {
+   "content": "서울 지역 시설 목록은 다음과 같습니다.\n\n*   강남 변전소 01호: 시설 ID는 F-0001 [[o:Facility/F-0001#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0001#facility_type]], 위험등급은 2 [[o:Facility/F-0001#risk_grade]], 설비 용량은 2,400 [[o:Facility/F-0001#capacity_kw]], 설치일은 2015-08-02 [[o:Facility/F-0001#installed_on]]입니다.\n*   강남 철탑 05호: 시설 ID는 F-0005 [[o:Facility/F-0005#facility_id]], 시설 유형은 철탑 [[o:Facility/F-0005#facility_type]], 위험등급은 2 [[o:Facility/F-0005#risk_grade]], 설비 용량은 150 [[o:Facility/F-0005#capacity_kw]], 설치일은 2013-11-15 [[o:Facility/F-0005#installed_on]]입니다.\n*   강남 전주 09호: 시설 ID는 F-0009 [[o:Facility/F-0009#facility_id]], 시설 유형은 전주 [[o:Facility/F-0009#facility_type]], 위험등급은 4 [[o:Facility/F-0009#risk_grade]], 설비 용량은 50 [[o:Facility/F-0009#capacity_kw]], 설치일은 2007-12-28 [[o:Facility/F-0009#installed_on]]입니다.\n*   강남 변전소 13호: 시설 ID는 F-0013 [[o:Facility/F-0013#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0013#facility_type]], 위험등급은 1 [[o:Facility/F-0013#risk_grade]], 설비 용량은 2,400 [[o:Facility/F-0013#capacity_kw]], 설치일은 2005-09-07 [[o:Facility/F-0013#installed_on]]입니다.\n*   강남 철탑 17호: 시설 ID는 F-0017 [[o:Facility/F-0017#facility_id]], 시설 유형은 철탑 [[o:Facility/F-0017#facility_type]], 위험등급은 4 [[o:Facility/F-0017#risk_grade]], 설비 용량은 150 [[o:Facility/F-0017#capacity_kw]], 설치일은 2019-09-23 [[o:Facility/F-0017#installed_on]]입니다.\n*   강남 전주 21호: 시설 ID는 F-0021 [[o:Facility/F-0021#facility_id]], 시설 유형은 전주 [[o:Facility/F-0021#facility_type]], 위험등급은 1 [[o:Facility/F-0021#risk_grade]], 설비 용량은 10 [[o:Facility/F-0021#capacity_kw]], 설치일은 2024-07-10 [[o:Facility/F-0021#installed_on]]입니다.\n*   강남 변전소 25호: 시설 ID는 F-0025 [[o:Facility/F-0025#facility_id]], 시설 유형은 변전소 [[o:Facility/F-0025#facility_type]], 위험등급은 5 [[o:Facility/F-0025#risk_grade]], 설비 용량은 1,200 [[o:Facility/F-0025#capacity_kw]], 설치일은 2016-04-02 [[o:Facility/F-0025#installed_on]]입니다.\n*   강남 철탑 29호: 시설 ID는 F-0029 [[o:Facility/F-0029#facility_id]], 시설 유형은 철탑 [[o:Facility/F-0029#facility_type]], 위험등급은 4 [[o:Facility/F-0029#risk_grade]], 설비 용량은 300 [[o:Facility/F-0029#capacity_kw]], 설치일은 2020-12-07 [[o:Facility/F-0029#installed_on]]입니다."
+  },
+  "model": "gemma4:e4b"
+ },
+ "f0f6e844a947f7f1880485d10cad01416f8bf1cddd8ceae8f84109be84cea982": {
+  "message": {
+   "content": "시설별 담당 점검원 이름은 조회된 데이터에 없습니다."
+  },
+  "model": "gemma4:e4b"
+ },
+ "f3925f377ed1ca0a0b0a31193137213d940f13e5bce3999b2fccf14086464144": {
+  "message": {
+   "content": "강남지사가 소유한 시설 목록은 다음과 같습니다.\n\n* 시설명: 강남 변전소 01호, 시설 ID: F-0001, 시설 유형: 변전소, 위험등급: 2, 설비 용량(kW): 2,400, 설치일: 2015-08-02 [[o:Facility/F-0001#name]] [[o:Facility/F-0001#facility_id]] [[o:Facility/F-0001#facility_type]] [[o:Facility/F-0001#risk_grade]] [[o:Facility/F-0001#capacity_kw]] [[o:Facility/F-0001#installed_on]]\n* 시설명: 강남 철탑 05호, 시설 ID: F-0005, 시설 유형: 철탑, 위험등급: 2, 설비 용량(kW): 150, 설치일: 2013-11-15 [[o:Facility/F-0005#name]] [[o:Facility/F-0005#facility_id]] [[o:Facility/F-0005#facility_type]] [[o:Facility/F-0005#risk_grade]] [[o:Facility/F-0005#capacity_kw]] [[o:Facility/F-0005#installed_on]]\n* 시설명: 강남 전주 09호, 시설 ID: F-0009, 시설 유형: 전주, 위험등급: 4, 설비 용량(kW): 50, 설치일: 2007-12-28 [[o:Facility/F-0009#name]] [[o:Facility/F-0009#facility_id]] [[o:Facility/F-0009#facility_type]] [[o:Facility/F-0009#risk_grade]] [[o:Facility/F-0009#capacity_kw]] [[o:Facility/F-0009#installed_on]]\n* 시설명: 강남 변전소 13호, 시설 ID: F-0013, 시설 유형: 변전소, 위험등급: 1, 설비 용량(kW): 2,400, 설치일: 2005-09-07 [[o:Facility/F-0013#name]] [[o:Facility/F-0013#facility_id]] [[o:Facility/F-0013#facility_type]] [[o:Facility/F-0013#risk_grade]] [[o:Facility/F-0013#capacity_kw]] [[o:Facility/F-0013#installed_on]]\n* 시설명: 강남 철탑 17호, 시설 ID: F-0017, 시설 유형: 철탑, 위험등급: 4, 설비 용량(kW): 150, 설치일: 2019-09-23 [[o:Facility/F-0017#name]] [[o:Facility/F-0017#facility_id]] [[o:Facility/F-0017#facility_type]] [[o:Facility/F-0017#risk_grade]] [[o:Facility/F-0017#capacity_kw]] [[o:Facility/F-0017#installed_on]]\n* 시설명: 강남 전주 21호, 시설 ID: F-0021, 시설 유형: 전주, 위험등급: 1, 설비 용량(kW): 10, 설치일: 2024-07-10 [[o:Facility/F-0021#name]] [[o:Facility/F-0021#facility_id]] [[o:Facility/F-0021#facility_type]] [[o:Facility/F-0021#risk_grade]] [[o:Facility/F-0021#capacity_kw]] [[o:Facility/F-0021#installed_on]]\n* 시설명: 강남 변전소 25호, 시설 ID: F-0025, 시설 유형: 변전소, 위험등급: 5, 설비 용량(kW): 1,200, 설치일: 2016-04-02 [[o:Facility/F-0025#name]] [[o:Facility/F-0025#facility_id]] [[o:Facility/F-0025#facility_type]] [[o:Facility/F-0025#risk_grade]] [[o:Facility/F-0025#capacity_kw]] [[o:Facility/F-0025#installed_on]]\n* 시설명: 강남 철탑 29호, 시설 ID: F-0029, 시설 유형: 철탑, 위험등급: 4, 설비 용량(kW): 300, 설치일: 2020-12-07 [[o:Facility/F-0029#name]] [[o:Facility/F-0029#facility_id]] [[o:Facility/F-0029#facility_type]] [[o:Facility/F-0029#risk_grade]] [[o:Facility/F-0029#capacity_kw]] [[o:Facility/F-0029#installed_on]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "f874370fd6815ea3c2d4765cc7ffb53616a73d722d104d7db7fb71d4ffcb74c5": {
+  "message": {
+   "content": "지역 코드가 11인 지역 이름은 서울입니다. [[o:Region/11#name]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "f8ec56ef1850ce40bc0b3653057cbfea5b914d6201963e68feb0a8423d9d3a76": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[],\"traverse\":[{\"link\":\"owned_by\",\"to\":\"Organization\"}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "fe412b204dbe87ed72127c83ec24ed118eaf96905a6cf5c53b58c8fa5404bad3": {
+  "message": {
+   "content": "다음은 조회된 조직 목록입니다.\n\n* 조직 ID: ORG-01, 조직명: 강남지사, 담당자: 김가상, 담당자 연락처: 010-0000-0001 [[o:Organization/ORG-01#org_id]] [[o:Organization/ORG-01#name]] [[o:Organization/ORG-01#manager_name]] [[o:Organization/ORG-01#manager_phone]]\n* 조직 ID: ORG-02, 조직명: 부산지사, 담당자: 이가상, 담당자 연락처: 010-0000-0002 [[o:Organization/ORG-02#org_id]] [[o:Organization/ORG-02#name]] [[o:Organization/ORG-02#manager_name]] [[o:Organization/ORG-02#manager_phone]]\n* 조직 ID: ORG-03, 조직명: 대구지사, 담당자: 박가상, 담당자 연락처: 010-0000-0003 [[o:Organization/ORG-03#org_id]] [[o:Organization/ORG-03#name]] [[o:Organization/ORG-03#manager_name]] [[o:Organization/ORG-03#manager_phone]]\n* 조직 ID: ORG-04, 조직명: 수원지사, 담당자: 최가상, 담당자 연락처: 010-0000-0004 [[o:Organization/ORG-04#org_id]] [[o:Organization/ORG-04#name]] [[o:Organization/ORG-04#manager_name]] [[o:Organization/ORG-04#manager_phone]]"
+  },
+  "model": "gemma4:e4b"
+ }
+}

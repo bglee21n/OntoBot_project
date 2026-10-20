@@ -6,7 +6,8 @@
   같으면 그대로 둔다 — 시드를 여러 번 돌려도 버전이 늘지 않는다.
 - CSV 파일 이름은 타입 api_name 의 소문자다(Facility → facility.csv). 값은 속성 자료형으로
   바꿔 넣는다(int·decimal 은 숫자, 빈 칸은 null).
-- 동기화(Phase 2)를 거치지 않고 ``objects.store`` 로 직접 넣는다. 링크는 넣지 않는다.
+- 동기화(Phase 2)를 거치지 않고 ``objects.store`` 로 직접 넣는다. ``fk_property`` 링크는 객체의
+  FK 값으로 만든다(Neo4j 에는 ``scripts/graph_rebuild.py`` 로 투영한다 — 평가의 탐색 문항이 쓴다).
 
 ``.env`` 의 DB 에 쓴다. 운영 DB 를 가리키지 않게 주의할 것 — 이 스크립트는 합성 데이터를 넣는다.
 """
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from ontobot.db.session import dispose_engine, session_scope
-from ontobot.objects.store import upsert_objects
+from ontobot.objects.store import seed_fk_links, upsert_objects
 from ontobot.ontology import importer, registry, versioning
 from ontobot.ontology.models import PropertyDef
 
@@ -76,6 +77,10 @@ async def seed(pack: str) -> None:
             ]
             changed = await upsert_objects(db, t.api_name, items)
             print(f"  {t.api_name}: {len(items)}건 (바뀐 행 {changed})")
+        for lt in doc.link_types:
+            if lt.source.kind == "fk_property" and lt.source.property:
+                made = await seed_fk_links(db, lt.api_name, lt.from_type, lt.source.property)
+                print(f"  링크 {lt.api_name}: 새로 {made}건")
         await db.commit()
 
 

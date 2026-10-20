@@ -36,6 +36,8 @@ WORKSHOP_STARTED = "workshop.session_started"
 WORKSHOP_ELEMENT_REVIEWED = "workshop.element_reviewed"
 WORKSHOP_SUBMITTED = "workshop.submitted"
 WORKSHOP_PUBLISHED = "workshop.published"
+GOLDEN_CHANGED = "eval.golden_changed"
+EVAL_RUN_STARTED = "eval.run_started"
 
 
 def record(

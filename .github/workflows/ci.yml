@@ -4,7 +4,7 @@ name: ci
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -61,6 +61,7 @@ jobs:
           & $psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ontobot LOGIN PASSWORD 'ontobot-test'"
           & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_test OWNER ontobot"
           & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_source_test OWNER ontobot"
+          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_eval OWNER ontobot"
       - name: Neo4j Community 설치·기동
         shell: pwsh
         run: |
@@ -85,5 +86,17 @@ jobs:
         with: {version: "0.11.7"}
       - run: uv sync --frozen --python 3.12
       - run: uv run pytest tests/integration -q -m integration
-
-  # 평가 게이트(TRD 13절)는 Phase 7에서 붙인다 — 실제 모델 게이트와 PR별 녹화 응답 픽스처 모드.
+      # 평가 게이트(TRD 13절) — PR 마다는 녹화 응답(domain-packs/sample/llm_cassette.json)으로 파이프라인 회귀를
+      # 돈다. 러너에 Ollama 가 없으므로 실제 모델 게이트는 모델·프롬프트를 바꿀 때 로컬에서
+      # `task.py eval-record` 로 돌려 통과시키고 카세트를 함께 커밋한다(ADR-0009). 카세트를 놓친 요청이
+      # 있으면(프롬프트·데이터가 바뀌었는데 다시 녹화하지 않았다) 게이트가 실패한다.
+      - name: 평가 준비(마이그레이션·샘플 팩 시드·그래프 재구축)
+        env: &eval_env
+          ONTOBOT_DB_NAME: ontobot_eval
+          ONTOBOT_NEO4J_URI: bolt://localhost:7687
+          ONTOBOT_NEO4J_PASSWORD: ontobot-test-graph
+          PYTHONUTF8: "1"
+        run: uv run python ../scripts/task.py eval-prepare
+      - name: 평가 게이트(녹화 응답)
+        env: *eval_env
+        run: uv run python ../scripts/task.py eval-replay

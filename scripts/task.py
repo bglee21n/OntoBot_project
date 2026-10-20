@@ -33,7 +33,21 @@ TASKS: dict[str, list[tuple[Path, list[str]]]] = {
     "test-unit": [(BACKEND, [*UV, "pytest", "tests/unit", "-q"])],
     "test-int": [(BACKEND, [*UV, "pytest", "tests/integration", "-q", "-m", "integration"])],
     "test-contract": [(BACKEND, [*UV, "pytest", "tests/contract", "-q"])],
-    "eval": [(BACKEND, [*UV, "pytest", "tests/eval", "-q"])],
+    # 평가(TRD 13절). 환경변수의 DB·Neo4j 를 쓴다 — 개발 데이터와 섞이지 않게 평가 전용 DB 를
+    # 가리킨다(ONTOBOT_DB_NAME=ontobot_eval, ONTOBOT_NEO4J_URI=테스트 인스턴스).
+    # eval-prepare 는 그래프를 다시 만든다.
+    "eval-prepare": [
+        (BACKEND, [*UV, "alembic", "upgrade", "head"]),
+        (ROOT, [*UV, "python", "scripts/seed_domain_pack.py", "--pack", "sample"]),
+        (ROOT, [*UV, "python", "scripts/graph_rebuild.py"]),
+    ],
+    "eval": [(ROOT, [*UV, "python", "scripts/run_eval.py", "--pack", "sample"])],
+    "eval-record": [
+        (ROOT, [*UV, "python", "scripts/run_eval.py", "--pack", "sample", "--mode", "record"])
+    ],
+    "eval-replay": [
+        (ROOT, [*UV, "python", "scripts/run_eval.py", "--pack", "sample", "--mode", "replay"])
+    ],
     "build": [(FRONTEND, [NPM, "run", "build"])],
     "openapi": [
         (ROOT, [*UV, "python", "scripts/export_openapi.py"]),
@@ -46,7 +60,7 @@ TASKS: dict[str, list[tuple[Path, list[str]]]] = {
 }
 
 # pytest 는 수집된 테스트가 없으면 5를 돌려준다.
-# 아직 비어 있는 층(contract·eval)을 실패로 보지 않는다.
+# 아직 비어 있는 층을 실패로 보지 않는다.
 NO_TESTS_COLLECTED = 5
 
 

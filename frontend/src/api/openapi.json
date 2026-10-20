@@ -506,6 +506,358 @@
         "title": "ErrorData",
         "type": "object"
       },
+      "EvalResultOut": {
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          },
+          "expected_status": {
+            "title": "Expected Status",
+            "type": "string"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "integer"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "verdict": {
+            "additionalProperties": true,
+            "title": "Verdict",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "item_id",
+          "key",
+          "question",
+          "expected_status",
+          "status",
+          "failure_reason",
+          "grade",
+          "answer",
+          "conditions",
+          "verdict",
+          "latency_ms"
+        ],
+        "title": "EvalResultOut",
+        "type": "object"
+      },
+      "EvalRunDetail": {
+        "properties": {
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gate_checks": {
+            "items": {
+              "$ref": "#/components/schemas/GateCheckOut"
+            },
+            "title": "Gate Checks",
+            "type": "array"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "golden_set_id": {
+            "title": "Golden Set Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "llm_config": {
+            "additionalProperties": true,
+            "title": "Llm Config",
+            "type": "object"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics"
+          },
+          "ontology_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ontology Version Id"
+          },
+          "result_list": {
+            "items": {
+              "$ref": "#/components/schemas/EvalResultOut"
+            },
+            "title": "Result List",
+            "type": "array"
+          },
+          "results": {
+            "title": "Results",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "golden_set_id",
+          "ontology_version_id",
+          "llm_config",
+          "status",
+          "metrics",
+          "gate_passed",
+          "gate_checks",
+          "started_at",
+          "finished_at",
+          "results",
+          "result_list"
+        ],
+        "title": "EvalRunDetail",
+        "type": "object"
+      },
+      "EvalRunIn": {
+        "properties": {
+          "golden_set_id": {
+            "title": "Golden Set Id",
+            "type": "integer"
+          },
+          "overrides": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "golden_set_id"
+        ],
+        "title": "EvalRunIn",
+        "type": "object"
+      },
+      "EvalRunOut": {
+        "properties": {
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gate_checks": {
+            "items": {
+              "$ref": "#/components/schemas/GateCheckOut"
+            },
+            "title": "Gate Checks",
+            "type": "array"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "golden_set_id": {
+            "title": "Golden Set Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "llm_config": {
+            "additionalProperties": true,
+            "title": "Llm Config",
+            "type": "object"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics"
+          },
+          "ontology_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ontology Version Id"
+          },
+          "results": {
+            "title": "Results",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "golden_set_id",
+          "ontology_version_id",
+          "llm_config",
+          "status",
+          "metrics",
+          "gate_passed",
+          "gate_checks",
+          "started_at",
+          "finished_at",
+          "results"
+        ],
+        "title": "EvalRunOut",
+        "type": "object"
+      },
       "EvidenceOut": {
         "properties": {
           "ok": {
@@ -550,6 +902,220 @@
           "value"
         ],
         "title": "FieldOut",
+        "type": "object"
+      },
+      "GateCheckOut": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "invariant",
+              "threshold"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "number"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "min",
+              "max"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "kind",
+          "op",
+          "limit",
+          "value",
+          "passed"
+        ],
+        "title": "GateCheckOut",
+        "type": "object"
+      },
+      "GoldenSetDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "domain_pack": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Pack"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "item_list": {
+            "items": {
+              "$ref": "#/components/schemas/ItemOut"
+            },
+            "title": "Item List",
+            "type": "array"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ontology_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ontology Version Id"
+          },
+          "roles": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Roles",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain_pack",
+          "ontology_version_id",
+          "roles",
+          "items",
+          "created_at",
+          "item_list"
+        ],
+        "title": "GoldenSetDetail",
+        "type": "object"
+      },
+      "GoldenSetIn": {
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "roles": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Roles",
+            "type": "object"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "GoldenSetIn",
+        "type": "object"
+      },
+      "GoldenSetOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "domain_pack": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain Pack"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ontology_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ontology Version Id"
+          },
+          "roles": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Roles",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "domain_pack",
+          "ontology_version_id",
+          "roles",
+          "items",
+          "created_at"
+        ],
+        "title": "GoldenSetOut",
         "type": "object"
       },
       "GradeData": {
@@ -730,6 +1296,507 @@
           "message"
         ],
         "title": "IssueOut",
+        "type": "object"
+      },
+      "ItemIn": {
+        "properties": {
+          "absent_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Absent Values",
+            "type": "array"
+          },
+          "answerable": {
+            "default": true,
+            "title": "Answerable",
+            "type": "boolean"
+          },
+          "context": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Context",
+            "type": "array"
+          },
+          "expected_failure": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Failure"
+          },
+          "expected_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Grade"
+          },
+          "expected_status": {
+            "enum": [
+              "ok",
+              "empty",
+              "failed",
+              "not_query"
+            ],
+            "title": "Expected Status",
+            "type": "string"
+          },
+          "fault": {
+            "default": "none",
+            "enum": [
+              "none",
+              "executor_error",
+              "graph_down",
+              "timeout"
+            ],
+            "title": "Fault",
+            "type": "string"
+          },
+          "forbidden_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Forbidden Values",
+            "type": "array"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "question": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "required_conditions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Conditions",
+            "type": "array"
+          },
+          "required_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Values",
+            "type": "array"
+          },
+          "test_role": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Role"
+          }
+        },
+        "required": [
+          "question",
+          "expected_status"
+        ],
+        "title": "ItemIn",
+        "type": "object"
+      },
+      "ItemOut": {
+        "properties": {
+          "absent_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Absent Values",
+            "type": "array"
+          },
+          "answerable": {
+            "default": true,
+            "title": "Answerable",
+            "type": "boolean"
+          },
+          "context": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Context",
+            "type": "array"
+          },
+          "expected_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Answer"
+          },
+          "expected_failure": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Failure"
+          },
+          "expected_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Grade"
+          },
+          "expected_status": {
+            "enum": [
+              "ok",
+              "empty",
+              "failed",
+              "not_query"
+            ],
+            "title": "Expected Status",
+            "type": "string"
+          },
+          "fault": {
+            "default": "none",
+            "enum": [
+              "none",
+              "executor_error",
+              "graph_down",
+              "timeout"
+            ],
+            "title": "Fault",
+            "type": "string"
+          },
+          "forbidden_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Forbidden Values",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "question": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "required_conditions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Conditions",
+            "type": "array"
+          },
+          "required_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Values",
+            "type": "array"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "workshop"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "test_role": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Role"
+          }
+        },
+        "required": [
+          "question",
+          "expected_status",
+          "id",
+          "key",
+          "source",
+          "expected_answer"
+        ],
+        "title": "ItemOut",
+        "type": "object"
+      },
+      "ItemPatch": {
+        "description": "보낸 필드만 고친다.",
+        "properties": {
+          "absent_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absent Values"
+          },
+          "answerable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answerable"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "expected_failure": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Failure"
+          },
+          "expected_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Grade"
+          },
+          "expected_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ok",
+                  "empty",
+                  "failed",
+                  "not_query"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Status"
+          },
+          "fault": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none",
+                  "executor_error",
+                  "graph_down",
+                  "timeout"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fault"
+          },
+          "forbidden_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forbidden Values"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "required_conditions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Conditions"
+          },
+          "required_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Values"
+          },
+          "test_role": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Role"
+          }
+        },
+        "title": "ItemPatch",
         "type": "object"
       },
       "JobOut": {
@@ -3569,6 +4636,434 @@
         "summary": "Messages",
         "tags": [
           "chat"
+        ]
+      }
+    },
+    "/api/v1/eval-runs": {
+      "get": {
+        "operationId": "list_runs_api_v1_eval_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "golden_set_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Golden Set Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EvalRunOut"
+                  },
+                  "title": "Response List Runs Api V1 Eval Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "eval"
+        ]
+      },
+      "post": {
+        "operationId": "start_run_api_v1_eval_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvalRunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Run",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/eval-runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_v1_eval_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalRunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/golden-sets": {
+      "get": {
+        "operationId": "list_sets_api_v1_golden_sets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GoldenSetOut"
+                  },
+                  "title": "Response List Sets Api V1 Golden Sets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Sets",
+        "tags": [
+          "eval"
+        ]
+      },
+      "post": {
+        "operationId": "create_set_api_v1_golden_sets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoldenSetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldenSetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Set",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/golden-sets/{set_id}": {
+      "delete": {
+        "operationId": "delete_set_api_v1_golden_sets__set_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "title": "Set Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Set",
+        "tags": [
+          "eval"
+        ]
+      },
+      "get": {
+        "operationId": "get_set_api_v1_golden_sets__set_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "title": "Set Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoldenSetDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Set",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/golden-sets/{set_id}/items": {
+      "post": {
+        "operationId": "create_item_api_v1_golden_sets__set_id__items_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "title": "Set Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Item",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/golden-sets/{set_id}/items/{item_id}": {
+      "delete": {
+        "operationId": "delete_item_api_v1_golden_sets__set_id__items__item_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "title": "Set Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Item",
+        "tags": [
+          "eval"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_item_api_v1_golden_sets__set_id__items__item_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "title": "Set Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Item",
+        "tags": [
+          "eval"
         ]
       }
     },

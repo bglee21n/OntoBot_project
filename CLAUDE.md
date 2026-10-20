@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.8) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
-구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다(현재 v0.9). 현재 진행: Phase 6 완료(인터뷰
-워크숍 — 주제 상태기계·추출·근거 확인·검토·draft 게시), 다음은 Phase 7(평가 게이트)·8(안정화·오프라인 번들).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다(현재 v0.10). 현재 진행: Phase 7 완료(평가
+러너·장애 주입·게이트·녹화 응답 CI), 다음은 Phase 8(안정화·부하·`/readyz`·오프라인 번들).
 
 ## 운영 전제
 
@@ -37,8 +37,17 @@ uv run --project backend python scripts/task.py migrate       # alembic upgrade 
 uv run --project backend python scripts/task.py openapi       # API 를 바꾸면 반드시 — 프론트 타입 재생성
 uv run --project backend python scripts/task.py dev-api       # :8000
 uv run --project backend python scripts/task.py dev-web       # :5173 (/api 를 :8000 으로 프록시)
-uv run --project backend python scripts/task.py worker        # 동기화·그래프 투영·주기 작업
+uv run --project backend python scripts/task.py worker        # 동기화·그래프 투영·주기 작업·평가 실행
+# 평가(TRD 13절) — 평가 전용 DB·테스트 Neo4j 를 환경변수로 가리킨 뒤(아래):
+uv run --project backend python scripts/task.py eval-prepare  # 마이그레이션·샘플 팩 시드(FK 링크)·그래프 재구축
+uv run --project backend python scripts/task.py eval          # 실제 모델 게이트
+uv run --project backend python scripts/task.py eval-record   # 실제 모델 게이트 + 카세트 녹화(커밋한다)
+uv run --project backend python scripts/task.py eval-replay   # 녹화 응답 회귀(CI 와 같다)
 ```
+
+평가 환경: `ONTOBOT_DB_NAME=ontobot_eval`, `ONTOBOT_NEO4J_URI=bolt://localhost:7688`,
+`ONTOBOT_NEO4J_PASSWORD`=테스트 Neo4j 비밀번호(.env 의 `ONTOBOT_TEST_NEO4J_PASSWORD`). 개발 DB 로 돌리면 시드가
+개발 데이터를 덮고, 카세트 키(데이터 블록 포함)가 CI 와 달라진다.
 
 테스트 하나만(backend 에서):
 
@@ -75,6 +84,7 @@ backend/src/ontobot/
   llm/        gateway(역할 → 공급자·모델) · structured(스키마 검증·1회 재시도) · adapters/(SDK·HTTP 는 여기만)
   security/   auth(로컬 계정 argon2 + 서버 세션)·oidc(Code + PKCE)·rbac(권한 판정의 유일한 자리)·audit·pii·secrets
   jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
+  evaluation/ golden(팩 ↔ DB)·runner(파이프라인 인프로세스)·faults(실행기 주입)·metrics·gate(+gate.yaml)·replay(카세트)
   workshop/   topics(주제 상태기계, 순수)·interviewer·extractor·evidence(순수)·elements(payload 검증)·sessions(턴)·review·publish
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
@@ -135,6 +145,11 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   합치기도 이름 **정확 일치**뿐(유사도 금지). 골든 질의는 `queries` 주제에서만, 면담자 질문을 베낀 후보는
   `extractor.keep` 이 버린다(quote 가 맞아 근거 확인으로는 못 잡는다 — ADR-0008). 추출 프롬프트·스키마를 바꾸면
   `scripts/spike_workshop.py --models gemma4:e4b` 로 다시 잰다.
+- **평가 게이트의 불변식(`evaluation/gate.yaml` invariants)을 느슨하게 하지 않는다.** 모델·프롬프트·추출 스키마를
+  바꾸면 평가 DB 에서 `eval-record` 로 실제 모델 게이트를 통과시키고 `domain-packs/sample/llm_cassette.json` 을
+  함께 커밋한다 — 안 하면 CI 재생이 카세트 놓침으로 실패한다(놓친 요청을 지어내지 않는 것이 의도). 파이프라인에
+  장애 주입 말고 다른 주입 지점을 만들지 말 것(평가가 운영과 다른 코드를 돌게 된다). `graph_down` 문항은 끝 객체가
+  실재하는 탐색 질문이어야 하고, 권한 위반은 객체 근거(`o:Type/pk`)만 본다(집계 `q:N` 은 타입이 없다).
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
   P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).

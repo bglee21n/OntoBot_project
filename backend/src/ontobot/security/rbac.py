@@ -48,3 +48,13 @@ async def readable_types(db: AsyncSession, user_id: int) -> frozenset[str]:
         .distinct()
     )
     return frozenset(rows)
+
+
+async def readable_types_for_role(db: AsyncSession, role: str) -> frozenset[str]:
+    """역할 하나의 읽기 권한 — 평가 문항의 ``test_role`` 로 파이프라인을 돌릴 때 쓴다(TRD 13.1)."""
+    rows = await db.scalars(
+        select(TypePermission.object_type)
+        .join(Role, Role.id == TypePermission.role_id)
+        .where(Role.name == role, TypePermission.can_read.is_(True))
+    )
+    return frozenset(rows)

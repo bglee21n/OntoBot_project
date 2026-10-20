@@ -149,6 +149,8 @@ async def main(models: list[str]) -> int:
     items = yaml.safe_load((ROOT / "domain-packs/sample/golden.yaml").read_text(encoding="utf-8"))[
         "items"
     ]
+    # 권한·장애 문항은 평가 러너(scripts/run_eval.py)만 그 조건으로 돌린다 — 모델 비교에서는 뺀다.
+    items = [i for i in items if not i.get("test_role") and i.get("fault", "none") == "none"]
     summaries, details = [], {}
     try:
         for model in models:
