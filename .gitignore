@@ -18,6 +18,7 @@ dist/
 # 프론트
 node_modules/
 frontend/dist/
+frontend/dist-deploy/
 
 # 오프라인 번들 산출물
 deploy/offline/out/

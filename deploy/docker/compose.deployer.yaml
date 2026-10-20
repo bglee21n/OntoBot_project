@@ -1,0 +1,40 @@
+# 배포 콘솔(ADR-0014) — 앱(compose.yaml)과 다른 프로젝트라 앱을 멈추고 바꾸는 동안에도 산다.
+#
+# docker.sock 을 마운트한다 = 이 컨테이너는 WSL 배포판의 root 와 같은 권한이다. 그래서
+#   - 바깥 포트는 관리자 대역에서만 닿게 한다(ONTOBOT_DEPLOYER_BIND·Windows 방화벽·프록시).
+#   - 로그인은 OntoBot 관리자 계정(admin·active)만, 번들은 서명이 맞아야 실행한다.
+# ONTOBOT_HOME 을 같은 경로로 마운트한다 — 콘솔이 부르는 docker compose 의 상대 경로(./config 등)를
+# 도커 데몬이 같은 위치로 읽게.
+name: ontobot-deployer
+
+services:
+  deployer:
+    image: ${ONTOBOT_DEPLOYER_IMAGE:?ONTOBOT_DEPLOYER_IMAGE 가 필요합니다}
+    environment:
+      ONTOBOT_HOME: ${ONTOBOT_HOME:?}
+      ONTOBOT_DEPLOYER_DROP_DIR: /drop
+      ONTOBOT_DEPLOYER_ALLOW_CIDRS: ${ONTOBOT_DEPLOYER_ALLOW_CIDRS:-}
+      ONTOBOT_DEPLOYER_MAX_UPLOAD_MB: ${ONTOBOT_DEPLOYER_MAX_UPLOAD_MB:-30000}
+      ONTOBOT_DEPLOYER_COOKIE_SECURE: ${ONTOBOT_DEPLOYER_COOKIE_SECURE:-false}
+      # 개발 PC 시험용(커밋 전 -dirty 번들 허용). 운영 .env 에 넣지 말 것 — 기본은 거부.
+      ONTOBOT_ALLOW_DIRTY: ${ONTOBOT_ALLOW_DIRTY:-0}
+      # 로그인 확인용 — 앱 DB 를 읽기만 한다(postgres 서비스 이름으로 닿는다).
+      ONTOBOT_DB_HOST: postgres
+      ONTOBOT_DB_PORT: "5432"
+      ONTOBOT_DB_NAME: ${ONTOBOT_DB_NAME:-ontobot_db}
+      ONTOBOT_DB_USER: ${ONTOBOT_DB_USER:-ontobot}
+      ONTOBOT_DB_PASSWORD: ${ONTOBOT_DB_PASSWORD:?}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ONTOBOT_HOME}:${ONTOBOT_HOME}
+      - ${ONTOBOT_DEPLOYER_DROP_HOST_DIR:-/mnt/c/OntoBot-bundles}:/drop:ro
+    ports:
+      - "${ONTOBOT_DEPLOYER_BIND:-0.0.0.0}:${ONTOBOT_DEPLOYER_PORT:-8100}:8100"
+    networks: [ontobot]
+    restart: unless-stopped
+
+networks:
+  # 앱 프로젝트(ontobot)의 기본 네트워크 — postgres 에 닿으려고 붙는다.
+  ontobot:
+    name: ontobot_default
+    external: true

@@ -15,7 +15,7 @@
 - Node 22 — 프론트 의존성은 `frontend/package-lock.json`에 고정.
 - PostgreSQL — 개발 PC에 설치한 인스턴스(`ontobot_db` / 계정 `ontobot`).
 - Neo4j Community — Phase 2부터 필요하다. 설치 절차는 [deploy/windows/README.md](deploy/windows/README.md).
-- **Docker는 쓰지 않는다**(개발·CI·운영 모두 네이티브, [ADR-0007](docs/adr/0007-no-docker-windows-native.md)).
+- 운영은 **WSL2 + Docker** 컨테이너, 배포는 배포 콘솔 화면([ADR-0013](docs/adr/0013-docker-on-wsl2.md)·[ADR-0014](docs/adr/0014-deploy-console.md)). 통합 테스트·평가는 Docker(Desktop) 의 테스트 컨테이너를 쓴다(`task.py test-int`).
 
 ```bash
 cp deploy/env.example .env           # 비밀번호를 채운다. .env 는 커밋하지 않는다

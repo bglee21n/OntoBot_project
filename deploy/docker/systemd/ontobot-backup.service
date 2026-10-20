@@ -1,0 +1,10 @@
+# 매일 DB 백업(ADR-0013) — ontobotctl install 이 WSL 배포판에 설치한다.
+[Unit]
+Description=OntoBot DB backup (pg_dump)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+Environment=ONTOBOT_HOME=/opt/ontobot
+ExecStart=/usr/local/bin/ontobotctl --non-interactive backup --label daily

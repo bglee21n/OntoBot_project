@@ -24,6 +24,20 @@ jobs:
       # 아직 비어 있는 층은 '수집된 테스트 없음'(5)을 통과로 본다 — scripts/task.py 와 같은 규칙.
       - run: uv run pytest tests/contract -q || [ $? -eq 5 ]
 
+  # 배포 콘솔(ADR-0014) — 앱과 따로 고정한 파이썬 프로젝트.
+  deployer:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: deployer}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.11.7"}
+      - run: uv sync --frozen --python 3.12
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+      - run: bash -n ../deploy/docker/ontobotctl
+
   frontend:
     runs-on: ubuntu-latest
     defaults: {run: {working-directory: frontend}}
@@ -35,68 +49,44 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run build:deploy
 
-  # Docker 없이(ADR-0007): Windows 러너에 미리 설치된 PostgreSQL 서비스를 켜고,
-  # Neo4j Community 는 공식 zip(SHA-256 확인)을 받아 서비스로 띄운다 — 운영과 같은 OS·설치 방식.
+  # 통합 테스트·평가 재생은 운영과 같은 PostgreSQL(pgvector)·Neo4j 이미지를 compose 로 띄운다(ADR-0013).
+  # 접속값·띄우기는 scripts/task.py 가 맡는다(로컬과 CI 가 갈라지지 않게).
   integration:
     needs: backend
-    runs-on: windows-latest
-    defaults: {run: {working-directory: backend}}
-    env:
-      ONTOBOT_DB_NAME: ontobot_test
-      ONTOBOT_DB_USER: ontobot
-      ONTOBOT_DB_PASSWORD: ontobot-test
-      ONTOBOT_TEST_NEO4J_URI: bolt://localhost:7687
-      ONTOBOT_TEST_NEO4J_PASSWORD: ontobot-test-graph
-      NEO4J_VERSION: "5.26.32"
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: PostgreSQL 서비스 기동 · 테스트 DB 생성
-        shell: pwsh
-        run: |
-          $svc = Get-Service -Name "postgresql*"
-          Set-Service -InputObject $svc -StartupType Manual
-          Start-Service -InputObject $svc
-          $psql = Join-Path $env:PGBIN "psql.exe"
-          & $psql -v ON_ERROR_STOP=1 -c "CREATE ROLE ontobot LOGIN PASSWORD 'ontobot-test'"
-          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_test OWNER ontobot"
-          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_source_test OWNER ontobot"
-          & $psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE ontobot_eval OWNER ontobot"
-      - name: Neo4j Community 설치·기동
-        shell: pwsh
-        run: |
-          $env:JAVA_HOME = $env:JAVA_HOME_21_X64
-          $url = "https://dist.neo4j.org/neo4j-community-$env:NEO4J_VERSION-windows.zip"
-          $zip = Join-Path $env:RUNNER_TEMP "neo4j.zip"
-          Invoke-WebRequest $url -OutFile $zip
-          $expected = (Invoke-WebRequest "$url.sha256").Content.Trim().Split(" ")[0]
-          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $expected.ToUpper()) { throw "Neo4j zip 해시 불일치" }
-          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
-          $home4j = Join-Path $env:RUNNER_TEMP "neo4j-community-$env:NEO4J_VERSION"
-          $bin = Join-Path $home4j "bin"
-          Add-Content (Join-Path (Join-Path $home4j "conf") "neo4j.conf") "dbms.usage_report.enabled=false"
-          & (Join-Path $bin "neo4j-admin.bat") dbms set-initial-password $env:ONTOBOT_TEST_NEO4J_PASSWORD
-          & (Join-Path $bin "neo4j.bat") windows-service install
-          & (Join-Path $bin "neo4j.bat") start
-          for ($i = 0; $i -lt 60; $i++) {
-            if (Test-NetConnection localhost -Port 7687 -InformationLevel Quiet) { break }
-            Start-Sleep -Seconds 2
-          }
       - uses: astral-sh/setup-uv@v6
         with: {version: "0.11.7"}
       - run: uv sync --frozen --python 3.12
-      - run: uv run pytest tests/integration -q -m integration
+        working-directory: backend
+      - run: uv run --project backend python scripts/task.py test-int
       # 평가 게이트(TRD 13절) — PR 마다는 녹화 응답(domain-packs/sample/llm_cassette.json)으로 파이프라인 회귀를
       # 돈다. 러너에 Ollama 가 없으므로 실제 모델 게이트는 모델·프롬프트를 바꿀 때 로컬에서
       # `task.py eval-record` 로 돌려 통과시키고 카세트를 함께 커밋한다(ADR-0009). 카세트를 놓친 요청이
       # 있으면(프롬프트·데이터가 바뀌었는데 다시 녹화하지 않았다) 게이트가 실패한다.
       - name: 평가 준비(마이그레이션·샘플 팩 시드·그래프 재구축)
-        env: &eval_env
-          ONTOBOT_DB_NAME: ontobot_eval
-          ONTOBOT_NEO4J_URI: bolt://localhost:7687
-          ONTOBOT_NEO4J_PASSWORD: ontobot-test-graph
-          PYTHONUTF8: "1"
-        run: uv run python ../scripts/task.py eval-prepare
+        run: uv run --project backend python scripts/task.py eval-prepare
       - name: 평가 게이트(녹화 응답)
-        env: *eval_env
-        run: uv run python ../scripts/task.py eval-replay
+        run: uv run --project backend python scripts/task.py eval-replay
+
+  # 운영 이미지가 빌드되고, 마이그레이션이 돌고, API 가 /healthz 에 답하는가(ADR-0013).
+  image:
+    needs: [backend, frontend, deployer]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/docker/app.Dockerfile --build-arg ONTOBOT_VERSION=ci -t ontobot-app:ci .
+      - run: docker build -f deploy/docker/deployer.Dockerfile --build-arg ONTOBOT_VERSION=ci -t ontobot-deployer:ci .
+      - run: docker compose -f deploy/docker/compose.test.yaml up -d --wait postgres
+      - name: 마이그레이션 · API 기동 스모크
+        run: |
+          db="-e ONTOBOT_DB_HOST=127.0.0.1 -e ONTOBOT_DB_PORT=55432 -e ONTOBOT_DB_USER=ontobot -e ONTOBOT_DB_PASSWORD=ontobot-test -e ONTOBOT_DB_NAME=ontobot_test"
+          docker run --rm --network host $db -w /app/backend ontobot-app:ci alembic upgrade head
+          docker run -d --name api --network host $db ontobot-app:ci
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8000/healthz && break; sleep 2; done
+          curl -fs http://127.0.0.1:8000/healthz
+          curl -fs -o /dev/null http://127.0.0.1:8000/
+          docker logs api | tail -20

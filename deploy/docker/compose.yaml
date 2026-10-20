@@ -1,0 +1,122 @@
+# OntoBot 운영 구성(ADR-0013) — WSL2 배포판 안의 /opt/ontobot 에서 `ontobotctl` 이 쓴다.
+#
+# 파일 두 개를 나눈다(최소 권한):
+#   .env      compose 치환용 — 버전·이미지·인프라 비밀값(ONTOBOT_PG_SUPER_PASSWORD 등). 앱 컨테이너에 통째로 넣지 않는다.
+#   app.env   앱 설정(ONTOBOT_* — OIDC·세션·보존 기간·SMTP 비밀값 등). api·worker·migrate 에만 들어간다.
+#
+# 바깥으로 여는 포트는 api 하나다. PostgreSQL·Neo4j·Ollama 는 컨테이너 네트워크 안에서만 받는다.
+# 재시작 판단은 /healthz 만(이미지 HEALTHCHECK) — /readyz 를 물리지 않는다(CLAUDE.md).
+name: ontobot
+
+x-app: &app
+  image: ontobot-app:${ONTOBOT_VERSION:?ONTOBOT_VERSION 이 필요합니다}
+  env_file: [app.env]
+  environment: &app-env
+    ONTOBOT_DB_HOST: postgres
+    ONTOBOT_DB_PORT: "5432"
+    ONTOBOT_DB_NAME: ${ONTOBOT_DB_NAME:-ontobot_db}
+    ONTOBOT_DB_USER: ${ONTOBOT_DB_USER:-ontobot}
+    ONTOBOT_DB_PASSWORD: ${ONTOBOT_DB_PASSWORD:?}
+    ONTOBOT_NEO4J_URI: bolt://neo4j:7687
+    ONTOBOT_NEO4J_USER: neo4j
+    ONTOBOT_NEO4J_PASSWORD: ${ONTOBOT_NEO4J_PASSWORD:?}
+    ONTOBOT_LLM_CONFIG_PATH: /app/config/llm.yaml
+    ONTOBOT_NOTIFY_CONFIG_PATH: /app/config/notify.yaml
+    ONTOBOT_LOG_DIR: /app/logs
+  volumes:
+    - ./config:/app/config:ro
+    - ./logs:/app/logs
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: ${ONTOBOT_PG_IMAGE:?}
+    environment:
+      POSTGRES_USER: postgres
+      # 정렬은 플랫폼과 무관한 코드 포인트 순서(builtin C.UTF-8) — 한글이 가나다 순이고, glibc 로캘에 따라
+      # 그룹·제목 순서가 달라져 답·카세트 키가 바뀌는 일이 없다.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8"
+      POSTGRES_PASSWORD: ${ONTOBOT_PG_SUPER_PASSWORD:?}
+      ONTOBOT_DB_USER: ${ONTOBOT_DB_USER:-ontobot}
+      ONTOBOT_DB_PASSWORD: ${ONTOBOT_DB_PASSWORD:?}
+      ONTOBOT_DB_NAMES: ${ONTOBOT_DB_NAME:-ontobot_db}
+    volumes:
+      # PostgreSQL 18 이미지는 /var/lib/postgresql 아래에 버전별 데이터 폴더를 만든다.
+      - pgdata:/var/lib/postgresql
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  neo4j:
+    image: ${ONTOBOT_NEO4J_IMAGE:?}
+    environment:
+      NEO4J_AUTH: neo4j/${ONTOBOT_NEO4J_PASSWORD:?}
+      NEO4J_server_memory_heap_initial__size: ${ONTOBOT_NEO4J_HEAP:-1g}
+      NEO4J_server_memory_heap_max__size: ${ONTOBOT_NEO4J_HEAP:-1g}
+      NEO4J_server_memory_pagecache_size: ${ONTOBOT_NEO4J_PAGECACHE:-1g}
+      # 폐쇄망 — 사용 통계를 보내지 않는다.
+      NEO4J_dbms_usage__report_enabled: "false"
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/7687'"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+    restart: unless-stopped
+
+  ollama:
+    image: ${ONTOBOT_OLLAMA_IMAGE:?}
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      # 모델은 번들의 ollama-models 볼륨에서만 — 실행 중에 받지 않는다.
+      OLLAMA_NOPRUNE: "1"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    working_dir: /app/backend
+    restart: "no"
+    healthcheck: {disable: true}
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  api:
+    <<: *app
+    ports:
+      - "${ONTOBOT_API_BIND:-0.0.0.0}:${ONTOBOT_API_PORT:-8000}:8000"
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+      neo4j: {condition: service_started}
+      ollama: {condition: service_started}
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "ontobot.jobs.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+
+volumes:
+  pgdata:
+  neo4jdata:
+  # 번들의 ollama-models.tar 를 ontobotctl 이 이 볼륨에 푼다(이름 고정). compose 가 아니라 ontobotctl 이
+  # 만드므로 external — 그러지 않으면 compose 가 매번 "다른 곳에서 만든 볼륨" 경고를 낸다.
+  ollama-models:
+    name: ontobot_ollama-models
+    external: true

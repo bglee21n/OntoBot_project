@@ -1,108 +1,111 @@
-# OntoBot 설치 안내 (Windows Server, 폐쇄망)
+# OntoBot 설치 안내 (Windows Server + WSL2 + Docker, 폐쇄망)
 
-Docker 를 쓰지 않는다(ADR-0007). 서비스 래퍼는 WinSW, 설치 배치는 릴리스 폴더 + `current` 정션이다(ADR-0010).
-설치 중에도, 실행 중에도 인터넷을 쓰지 않는다.
+컨테이너로 돈다(ADR-0013). 서버에는 WSL2 배포판 `ontobot` 하나를 두고 그 안의 Docker Engine 이 PostgreSQL·
+Neo4j·Ollama·앱·배포 콘솔을 돌린다. 설치 중에도 실행 중에도 인터넷을 쓰지 않는다. 최초 설치만 PowerShell 로 하고,
+이후 업그레이드·롤백·백업은 **배포 콘솔**(브라우저, ADR-0014)로 한다.
+
+> **먼저 확인:** Windows Server **2022 이상**이어야 한다(2019 는 WSL2 미지원). 운영 장비에서 ADR-0013 의
+> "0단계 점검"(WSL 오프라인 설치·GPU·재부팅 자동 기동·포트 전달)을 한 번 해 본다 — 개발 PC 에서는 확인하지 못했다.
+
+## 0. 서명 키 (배포 담당자, 한 번)
+
+번들은 Ed25519 로 서명한다. 개인키는 배포 담당자만 오프라인으로 보관하고, 공개키를 서버에 등록한다.
+
+```powershell
+$env:PYTHONUTF8 = "1"
+uv run --project backend python scripts/bundle_sign.py keygen --out D:\keys\ontobot-release
+# → ontobot-release.key (개인키 — 외부 유출 금지) · ontobot-release.pub (서버에 등록)
+```
 
 ## 1. 번들 만들기 (인터넷이 되는 빌드 장비)
 
-준비물: Git, uv(0.11 이상), Node.js(npm), `uv python install 3.12`, 저장소 체크아웃(`uv run --project backend python scripts/task.py sync`).
-
-제3자 설치본은 **공식 배포처에서 직접 받아** 한 폴더(예: `D:\ontobot-prereqs`)에 둔다. 받은 뒤 공급처가 밝힌 체크섬·서명을 확인한다.
-
-| 파일(패턴) | 받는 곳 | 비고 |
-| --- | --- | --- |
-| `postgresql-18*-windows-x64.exe` | EDB PostgreSQL Windows 설치본 | 무인 설치(`--mode unattended`) |
-| `neo4j-community-5.26*-windows.zip` | Neo4j Deployment Center (Community, 5.26 LTS) | |
-| `*j*21*windows*x64*.zip` | Java 21 JRE/JDK zip (예: Eclipse Temurin) | Neo4j 5.26 은 Java 17/21 |
-| `ollama-windows-amd64.zip` | Ollama GitHub Releases(독립 실행 zip) | 설치형(OllamaSetup.exe)이 아니다 — 서비스로 돌린다 |
-| `WinSW-x64.exe` | WinSW GitHub Releases **v2.12.0** | |
-| `pgvector\lib\vector.dll`, `pgvector\share\extension\vector*` | pgvector 소스를 PostgreSQL 18 용으로 빌드한 결과 | 선택(사용은 P1). 없으면 경고만 |
-
-Ollama 모델은 빌드 장비의 `%USERPROFILE%\.ollama\models` 에서 `config\llm.yaml` 이 쓰는 모델만 복사한다(`ollama pull gemma4:e4b` 를 먼저).
+준비물: Git, uv, Docker(빌드용), `ollama pull gemma4:e4b`(config/llm.yaml 의 모델). **커밋한 상태**에서 만든다
+(커밋하지 않은 변경이 있으면 버전에 `-dirty` 가 붙고 서버가 거부한다).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File deploy\offline\build_bundle.ps1 -PrereqDir D:\ontobot-prereqs
+$env:PYTHONUTF8 = "1"
+# 최초 설치용 전체 번들(이미지 전부 + 모델, 약 14GB)
+uv run --project backend python scripts/build_bundle.py --signing-key D:\keys\ontobot-release.key
+# 업그레이드용 앱 번들(앱·배포 콘솔 이미지만, 약 220MB) — 배포 콘솔에 올릴 zip 도 만든다
+uv run --project backend python scripts/build_bundle.py --app-only --zip --signing-key D:\keys\ontobot-release.key
 ```
 
-결과: `dist\bundle\ontobot-<버전>-<커밋>\`. 커밋하지 않은 변경이 있으면 버전에 `.dirty` 가 붙는다(운영에 쓰지 말 것).
-폴더 통째로 반입 매체에 옮긴다. `manifest.json` 에 모든 파일의 SHA-256 이 있고, 설치가 시작할 때 대조한다.
+결과: `dist\bundle\ontobot-<버전>\`(+ `.zip`). 제3자 이미지는 `deploy/docker/images.lock` 의 다이제스트로 받는다.
+
+**호스트 자산**(최초 설치에만, 한 폴더 — 예: `E:\ontobot-host-assets`). 공식 배포처에서 받아 체크섬을 확인한다.
+
+| 파일 | 받는 곳 | 비고 |
+| --- | --- | --- |
+| `wsl*.msi` | Microsoft WSL GitHub Releases | WSL 2.x 패키지 |
+| `*ubuntu*.tar*` | Ubuntu 24.04 WSL rootfs(cloud-images 의 `ubuntu-noble-wsl-amd64-wsl.rootfs.tar.gz`) | `wsl --import` 용 |
+| `debs\*.deb` | download.docker.com(Ubuntu noble): `containerd.io`·`docker-ce`·`docker-ce-cli`·`docker-buildx-plugin`·`docker-compose-plugin`, NVIDIA Container Toolkit(`nvidia-container-toolkit`·`-base`·`libnvidia-container1`·`libnvidia-container-tools`) | 의존 패키지가 빠지면 설치가 멈추고 알려 준다 |
+
+GPU 를 쓰려면 Windows 쪽에 NVIDIA 드라이버(WSL CUDA 지원)를 먼저 설치한다.
 
 ## 2. 설치 (폐쇄망 서버)
 
-요구: Windows Server 2019 이상, 관리자 PowerShell, 메모리 16GB 이상 권장(Neo4j 힙·페이지 캐시 각 1GB + LLM),
-디스크 여유 30GB 이상. GPU 가 없으면 LLM 응답이 크게 느려진다(3절의 수치는 GPU 장비 기준).
+요구: Windows Server 2022+, 관리자 PowerShell, 메모리 16GB 이상(WSL 에 기본 12GB), 디스크 여유 60GB 이상
+(번들 14GB + 이미지 적재 + 데이터). 서비스 전용 로컬 계정을 만들어 그 계정으로 실행하길 권한다 — WSL 배포판은
+**실행한 계정의 것**이고, 부팅 예약 작업도 그 계정으로 돈다.
 
 ```powershell
-cd E:\ontobot-0.1.0-<커밋>
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Mode Install -AdminUsername admin -SeedSample
+cd E:\ontobot-0.1.0-abc1234
+powershell -ExecutionPolicy Bypass -File .\host\install-host.ps1 `
+    -HostAssets E:\ontobot-host-assets -TrustedKey E:\keys\ontobot-release.pub `
+    -AdminUsername admin -SeedSample -AllowCidrs 10.10.0.0/24
 ```
 
-순서와 묻는 것:
+| 매개변수 | 뜻 |
+| --- | --- |
+| `-HostAssets` | 1절의 호스트 자산 폴더 |
+| `-TrustedKey` | 신뢰 공개키(여러 개 가능 — 키 교체 대비) |
+| `-AdminUsername` | 첫 OntoBot 관리자 계정(비밀번호를 묻는다) |
+| `-SeedSample` | 시험용 샘플 데이터(합성) — 운영 데이터를 바로 넣을 거면 뺀다 |
+| `-AllowCidrs` | 배포 콘솔(8100)에 접속할 관리자 대역. 비우면 같은 서브넷만 |
+| `-MemoryGB`·`-Processors` | WSL 자원 상한(기본 12GB·제한 없음) |
 
-1. 번들 무결성 대조.
-2. `C:\OntoBot\shared\.env` 생성 — DB·Neo4j 비밀번호를 무작위로 만든다(관리자·SYSTEM 만 읽게 ACL 설정).
-3. PostgreSQL 무인 설치 — **postgres 슈퍼유저 비밀번호를 묻는다**(스크립트는 저장하지 않는다). 앱 역할·DB 생성, pgvector.
-4. JRE·Neo4j(zip 풀기, `conf\neo4j.conf` 끝에 OntoBot 블록 — localhost 만, 사용 통계 끔), 초기 비밀번호, 서비스 `neo4j-ontobot`.
-5. Ollama 독립 실행본 + 모델 복사, 서비스 `ontobot-ollama`(127.0.0.1:11434).
-6. 릴리스 `C:\OntoBot\releases\<버전>` — 가상환경을 wheelhouse 로만 만든다(`--offline --no-index`, 해시 고정).
-7. 마이그레이션, `current` 정션.
-8. `-SeedSample`: 샘플 팩(합성 데이터) 게시·적재, `user`·`admin` 역할에 샘플 타입 읽기 권한, Neo4j 재구축.
-9. `-AdminUsername`: 관리자 계정(admin + modeler) — **비밀번호를 콘솔에서 묻는다**.
-10. 서비스 `ontobot-api`(:8000)·`ontobot-worker` 등록·시작, `/readyz` 가 `ok` 가 될 때까지 기다린다(최대 2분).
-
-이미 있는 구성 요소(같은 서비스 이름)는 건너뛴다. 사내 표준 PostgreSQL 을 쓰면 `-PgService`·`-PgPort` 로 가리킨다.
+순서: OS 확인 → WSL 기능(재부팅이 필요하면 종료 코드 3 — 재부팅 뒤 같은 명령) → WSL·배포판 → systemd →
+Docker·NVIDIA → 번들·공개키 복사 → `ontobotctl install`(서명 확인 → 이미지·모델 적재 → 비밀값 생성 → 저장소 기동 →
+마이그레이션 → 샘플·관리자 → 앱·배포 콘솔 기동 → 매일 백업 타이머 → `/readyz` 대기) → 부팅 예약 작업
+(계정 비밀번호를 묻는다) → 방화벽.
 
 ### 설치 확인 (완료 기준)
 
-1. 브라우저에서 `http://<서버>:8000` → 관리자로 로그인.
-2. 채팅에서 `위험등급이 3 이상인 시설은 몇 개야?` → 조회 조건·답(18)·등급 ①·근거 칩.
-3. `.\install.ps1 -Mode Status` — 서비스 넷이 Running, `/readyz` 200 `ok`.
+1. 다른 PC 브라우저에서 `http://<서버>:8000` → 관리자 로그인 → 채팅 `위험등급이 3 이상인 시설은 몇 개야?` → 18·①.
+2. 관리자 PC 에서 `http://<서버>:8100`(배포 콘솔) → 같은 관리자 계정 → 현황이 모두 정상.
+3. 서버를 재부팅하고 1을 다시(예약 작업·포트 전달).
 
-## 3. 용량 (Phase 8 부하 측정, ADR-0011)
+## 3. 업그레이드·롤백·백업 — 배포 콘솔
 
-개발 PC(GPU 1장, gemma4:e4b) 기준: 동시 8명 p95 23초, 동시 16명부터 처리량이 분당 40여 건에서 포화, 24명까지
-실패 0. LLM 이 병목이라 사용자가 늘면 실패보다 지연이 먼저 는다. 채팅 한 건이 답이 끝날 때까지 DB 연결을 쥐므로
-`ONTOBOT_DB_POOL_SIZE`+`ONTOBOT_DB_MAX_OVERFLOW`(기본 20+10)가 동시 채팅 상한이다. 운영 장비에서 다시 잰다:
+1. 앱 번들 zip 을 **배포 콘솔 → 번들 → 올리기**, 또는 서버의 `C:\OntoBot-bundles` 에 복사해 **가져오기**.
+2. 서명·해시를 확인한 사전 점검 결과가 **통과**면 **업그레이드** → 대상 버전을 입력 → 실행. 진행 로그가 보인다.
+3. 문제가 있으면 **롤백**: 프로그램만(기본) / DB 까지 업그레이드 직전 백업으로(`RESTORE` 입력 — 그 뒤 데이터 사라짐).
+4. **현황 → 지금 백업**. 매일 02:30 자동 백업(14개 보관, `C:\OntoBot\backups` 에 복사본).
 
-```powershell
-$env:ONTOBOT_LOAD_PASSWORD = "<측정용 계정 비밀번호>"
-C:\OntoBot\current\backend\.venv\Scripts\python.exe C:\OntoBot\current\scripts\load_test.py --username <계정> --users 1,4,8,16
-```
-
-## 4. 업그레이드·롤백
+배포 콘솔이 안 되면 같은 일을 WSL 안에서 직접 한다(비상 경로):
 
 ```powershell
-# 새 번들 폴더에서
-.\install.ps1 -Mode Upgrade      # 새 릴리스 준비 → pg_dump 백업 → 중지 → 마이그레이션 → current 전환 → 시작 → /readyz
-.\install.ps1 -Mode Rollback     # current 를 이전 릴리스로(DB 는 그대로)
-.\install.ps1 -Mode Rollback -RestoreDatabase   # + 업그레이드 직전 백업으로 DB 복원(RESTORE 입력 확인)
-.\install.ps1 -Mode Status
+wsl -d ontobot -u root -- ontobotctl status
+wsl -d ontobot -u root -- ontobotctl upgrade /opt/ontobot/bundles/<번들>
+wsl -d ontobot -u root -- ontobotctl rollback            # --restore-db 는 RESTORE 를 묻는다
+wsl -d ontobot -u root -- ontobotctl backup
 ```
 
-- 마이그레이션 내림(downgrade)은 쓰지 않는다. 새 스키마가 이전 코드와 맞지 않으면 `-RestoreDatabase` 로 백업을
-  되살린다 — **업그레이드 뒤에 쓰인 데이터(대화·감사 로그 포함)는 사라진다.**
-- 백업은 `C:\OntoBot\backups\` 에 쌓인다(자동으로 지우지 않는다). 감사 로그 보관 정책에 맞춰 운영자가 옮긴다.
-- 이전 릴리스 폴더는 다음 업그레이드 뒤에 지워도 된다.
-
-## 5. 운영 메모
+## 4. 운영 메모
 
 | 항목 | 위치·방법 |
 | --- | --- |
-| 설정·비밀값 | `C:\OntoBot\shared\.env` (릴리스마다 심볼릭 링크). 바꾸면 `Restart-Service ontobot-api, ontobot-worker` |
-| LLM 역할·모델 | `C:\OntoBot\current\config\llm.yaml` — 모델을 바꾸면 평가 게이트(TRD 13절)를 다시 통과시킨다 |
-| 로그 | `C:\OntoBot\logs\api.log`·`worker.log`(JSON 한 줄, 크기 회전), 서비스 표준 출력은 `logs\service\` |
-| 준비 확인 | `GET /readyz` — `ok` / `degraded`(Neo4j 만 안 됨: 탐색 질의만 실패) / `unavailable`(503: PG·LLM). 재시작 판단에는 `/healthz` 만 쓴다 |
-| 메일·SMS 발송(Action 알림) | `C:\OntoBot\shared\notify.yaml`(처음 설치 때 견본 복사, 채널 꺼짐). 사내 SMTP 릴레이·SMS 게이트웨이(HTTP 또는 발송 테이블)를 적는다 — 비밀값은 `*_env`·`secret_ref` 로 `.env` 를 가리킨다. 바꾸면 `Restart-Service ontobot-api, ontobot-worker`. 채널이 비면 그 채널을 쓰는 Action 은 미리보기에서 막힌다. 수신자 연락처는 관리 화면 '사용자'에서 입력. 발송은 워커가 커밋 뒤에 보내며 실패는 재시도 후 Action 화면에 '실패'로 보인다(ADR-0012). MVP 설치본을 업그레이드했다면 `.env` 에 `ONTOBOT_NOTIFY_CONFIG_PATH` 를 직접 넣고 견본을 복사한다 |
-| 매일 작업 | 워커가 그래프 대사(`graph_reconcile`)와 보존 기간 정리(`retention_purge`)를 하루 한 번 발행한다. 결과는 화면 '작업' 목록 |
-| HTTPS | 앞단 역방향 프록시(IIS ARR 등)에서 종료하고 `ONTOBOT_COOKIE_SECURE=true`, `ONTOBOT_ALLOWED_ORIGINS` 에 `https://…` |
-| 서비스 계정 | MVP 는 LocalSystem(ADR-0010). 가상 계정으로 낮추는 것은 운영 강화 항목 |
-| 방화벽 | 8000 만 연다. PostgreSQL·Neo4j·Ollama 는 localhost 에서만 받는다 |
+| 설정 | WSL 의 `/opt/ontobot/app.env`(앱 설정 — OIDC·세션·보존 기간·원천 DB·SMTP 비밀값), `/opt/ontobot/config/`(llm.yaml·notify.yaml). 바꾼 뒤 `wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose up -d"` |
+| 인프라 비밀값 | `/opt/ontobot/.env`(DB·Neo4j·postgres 비밀번호 — ontobotctl 이 만들고 관리, 600) |
+| 로그 | `/opt/ontobot/logs/`(앱 JSON 로그), `docker compose logs api` |
+| 준비 확인 | `/readyz` — `ok` / `degraded`(Neo4j 만) / `unavailable`. 컨테이너 재시작 판단은 `/healthz` 만 |
+| 메일·SMS | `/opt/ontobot/config/notify.yaml` + 비밀값은 `app.env`(ADR-0012) |
+| HTTPS | 앞단 역방향 프록시에서 종료, `app.env` 의 `ONTOBOT_COOKIE_SECURE=true`·`ONTOBOT_ALLOWED_ORIGINS` |
+| 방화벽 | 8000(모두)·8100(관리자 대역). PG·Neo4j·Ollama 는 컨테이너 네트워크 밖으로 열지 않는다 |
 
-## 6. 개발 PC 에서 설치 스크립트 시험
+## 5. 개발 PC
 
-관리자 권한 없이 앱 부분만(선행 구성 요소·서비스 없이) 설치해 본다. `shared\.env` 를 미리 만들어 기존 DB 를 가리킨다.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File deploy\offline\build_bundle.ps1 -AppOnly
-powershell -ExecutionPolicy Bypass -File dist\bundle\ontobot-<버전>\install.ps1 -Mode Install -Root D:\ontobot-trial -SkipPrerequisites -NoServices -SeedSample
-```
+Docker Desktop(WSL2) 또는 WSL 안의 Docker Engine. 통합 테스트·평가 재생은 `task.py test-int`·`eval-prepare`·
+`eval-replay` 가 `deploy/docker/compose.test.yaml` 을 띄운다. 개발 저장소를 컨테이너로 쓰려면 `task.py dev-up`.
+설치 절차 시험(서버 대신): 번들을 Docker Desktop 의 `/opt/ontobot-trial` 로 복사하고 배포 콘솔 이미지 안에서
+`ontobotctl install` 을 돌린다(`ONTOBOT_HOME=/opt/ontobot-trial`, `-dirty` 번들이면 `ONTOBOT_ALLOW_DIRTY=1`).

@@ -1,0 +1,10 @@
+# 제3자 이미지 고정(ADR-0013). 빌드 장비가 `<이미지>@<다이제스트>` 로 받아 아래 태그로 붙여 번들에 담는다.
+# 운영은 레지스트리 없이 태그로만 쓴다 — 무결성은 서명된 manifest 의 images.tar SHA-256 이 지킨다
+# (docker save/load 는 다이제스트를 보존하지 않는다).
+# 올릴 때: 새 이미지를 받아 다이제스트를 바꾸고, 통합 테스트·평가 게이트·번들 왕복을 다시 돈다.
+ONTOBOT_PG_IMAGE=pgvector/pgvector:pg18
+ONTOBOT_PG_DIGEST=sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11
+ONTOBOT_NEO4J_IMAGE=neo4j:5.26-community
+ONTOBOT_NEO4J_DIGEST=sha256:0a6e7aedf54a531f76286032d4365ead65b11cca05e4a15cdf23b8e53d6db02b
+ONTOBOT_OLLAMA_IMAGE=ollama/ollama:0.40.6
+ONTOBOT_OLLAMA_DIGEST=sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7

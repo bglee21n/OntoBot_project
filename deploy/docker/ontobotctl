@@ -1,0 +1,484 @@
+#!/usr/bin/env bash
+# ontobotctl — OntoBot 설치·업그레이드·롤백·백업·상태(ADR-0013·0014). 절차의 정본이다.
+#
+# WSL2 배포판 'ontobot' 안(또는 배포 콘솔 컨테이너 안)에서 root 로 실행한다. 인터넷을 쓰지 않는다.
+# 필요한 것: docker CLI + compose 플러그인, coreutils, openssl, tar.
+#
+#   ontobotctl verify    <번들>                 서명·파일 해시 확인만
+#   ontobotctl preflight <번들>                 바꾸지 않고 점검(서명·버전·디스크·GPU)
+#   ontobotctl install   <번들> [--seed-sample] [--admin 이름]   최초 설치(비밀번호는 ONTOBOT_NEW_PASSWORD 또는 입력)
+#   ontobotctl upgrade   <번들>                 백업 → 중지 → 마이그레이션 → 새 버전 기동 → 준비 확인
+#   ontobotctl rollback  [--restore-db] [--confirm RESTORE]   이전 버전으로(+ 업그레이드 직전 백업으로 DB 복원)
+#   ontobotctl backup    [--label 이름]         pg_dump(-Fc) → $ONTOBOT_HOME/backups
+#   ontobotctl status
+#   ontobotctl audit --event deploy.<…> --actor-id N --payload '{…}'   (배포 콘솔이 부른다)
+#   ontobotctl deployer-update                  배포 콘솔을 업그레이드 번들의 새 이미지로(일회성 컨테이너가 바꾼다)
+#
+# 공통: --json(마지막 줄에 결과 JSON) · --non-interactive(묻지 않는다 — 배포 콘솔이 쓴다)
+# 진행 줄은 '==> ' 로 시작한다(배포 콘솔이 단계로 읽는다). 종료 코드: 0 성공, 1 실패, 2 준비 확인 실패.
+set -Eeuo pipefail
+
+ONTOBOT_HOME="${ONTOBOT_HOME:-/opt/ontobot}"
+STATE="$ONTOBOT_HOME/state.env"
+LOCK="$ONTOBOT_HOME/.lock"
+KEYS="$ONTOBOT_HOME/trusted-keys"
+JSON=0
+INTERACTIVE=1
+READY_SECONDS="${ONTOBOT_READY_SECONDS:-180}"
+
+step() { printf '==> %s\n' "$*"; }
+note() { printf '    %s\n' "$*"; }
+warn() { printf '경고: %s\n' "$*" >&2; }
+die() {
+  printf '오류: %s\n' "$*" >&2
+  if [[ $JSON == 1 ]]; then printf '{"ok":false,"error":"%s"}\n' "$(jesc "$*")"; fi
+  exit 1
+}
+jesc() { local s="$1"; s="${s//\\/\\\\}"; s="${s//\"/\\\"}"; s="${s//$'\n'/\\n}"; printf '%s' "$s"; }
+
+# ---------------------------------------------------------------- 설정 파일(KEY=VALUE)
+env_get() { # 파일 키 → 값(없으면 빈 문자열). source 하지 않는다 — 값에 셸 문법이 섞여도 실행되지 않게.
+  local file="$1" key="$2"
+  [[ -f $file ]] || return 0
+  grep -E "^${key}=" "$file" | tail -n1 | cut -d= -f2- || true
+}
+env_set() {
+  local file="$1" key="$2" val="$3" tmp
+  tmp="$(mktemp "${file}.XXXX")"
+  if [[ -f $file ]]; then grep -vE "^${key}=" "$file" >"$tmp" || true; fi
+  printf '%s=%s\n' "$key" "$val" >>"$tmp"
+  chmod --reference="$file" "$tmp" 2>/dev/null || chmod 600 "$tmp"
+  mv "$tmp" "$file"
+}
+secret() { openssl rand -base64 33 | tr -d '/+=\n' | cut -c1-32; }
+
+# ---------------------------------------------------------------- compose
+compose() { (cd "$ONTOBOT_HOME" && docker compose --env-file "$ONTOBOT_HOME/.env" "$@"); }
+compose_deployer() {
+  (cd "$ONTOBOT_HOME" && docker compose -f compose.deployer.yaml --env-file "$ONTOBOT_HOME/.env" "$@")
+}
+has_gpu() { docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia; }
+
+lock() {
+  exec 9>"$LOCK"
+  flock -n 9 || die "다른 배포 작업이 진행 중입니다($LOCK)"
+}
+
+# ---------------------------------------------------------------- 번들 확인
+bundle_get() { env_get "$1/bundle.env" "$2"; }
+
+verify_bundle() {
+  local b="$1"
+  [[ -f $b/SHA256SUMS && -f $b/bundle.env ]] || die "번들이 아닙니다: $b (SHA256SUMS·bundle.env 없음)"
+  step "번들 서명 확인"
+  local keys=()
+  if [[ -d $KEYS ]]; then mapfile -t keys < <(find "$KEYS" -maxdepth 1 -name '*.pub' | sort); fi
+  if ((${#keys[@]} == 0)); then
+    [[ ${ONTOBOT_ALLOW_UNSIGNED:-0} == 1 ]] || die "신뢰 공개키가 없습니다($KEYS) — 서명 확인 없이 설치하지 않습니다"
+    warn "신뢰 공개키가 없어 서명을 확인하지 않습니다(ONTOBOT_ALLOW_UNSIGNED=1 — 개발용)"
+  else
+    [[ -f $b/SHA256SUMS.sig ]] || die "서명이 없는 번들입니다"
+    local sig ok=0 k
+    sig="$(mktemp)"
+    tr -d '\r\n' <"$b/SHA256SUMS.sig" | base64 -d >"$sig" 2>/dev/null || die "서명 파일 형식이 잘못되었습니다"
+    for k in "${keys[@]}"; do
+      if openssl pkeyutl -verify -pubin -inkey "$k" -rawin -in "$b/SHA256SUMS" -sigfile "$sig" >/dev/null 2>&1; then
+        ok=1; note "서명 일치: $(basename "$k")"; break
+      fi
+    done
+    rm -f "$sig"
+    ((ok == 1)) || die "서명이 신뢰 공개키와 맞지 않습니다"
+  fi
+  step "파일 해시 확인(SHA256SUMS)"
+  (cd "$b" && sha256sum -c --quiet SHA256SUMS) || die "번들 파일이 손상되었거나 바뀌었습니다"
+  # 목록에 없는 파일이 끼어 있으면 안 된다(서명 밖의 파일).
+  local extra
+  extra="$(cd "$b" && find . -type f ! -name SHA256SUMS ! -name SHA256SUMS.sig -printf '%P\n' | sort \
+    | comm -23 - <(cut -c67- SHA256SUMS | sort) | head -n5)"
+  [[ -z $extra ]] || die "목록에 없는 파일이 있습니다: $extra"
+  if [[ $(bundle_get "$b" ONTOBOT_BUNDLE_DIRTY) == true && ${ONTOBOT_ALLOW_DIRTY:-0} != 1 ]]; then
+    die "커밋하지 않은 변경으로 만든 번들(.dirty)입니다 — 운영에 쓰지 않습니다"
+  fi
+  note "버전 $(bundle_get "$b" ONTOBOT_BUNDLE_VERSION) · 커밋 $(bundle_get "$b" ONTOBOT_BUNDLE_COMMIT)"
+}
+
+load_images() {
+  local b="$1" t
+  for t in "$b"/images/*.tar; do
+    [[ -f $t ]] || continue
+    step "이미지 적재 $(basename "$t")"
+    docker load -q -i "$t"
+  done
+  if [[ -f $b/ollama-models.tar ]]; then
+    step "모델 적재(ollama-models)"
+    docker volume create ontobot_ollama-models >/dev/null
+    docker run --rm --user 0 --entrypoint tar -v ontobot_ollama-models:/root/.ollama -v "$b":/bundle:ro \
+      "$(bundle_get "$b" ONTOBOT_APP_IMAGE)" -xf /bundle/ollama-models.tar -C /root/.ollama
+  fi
+}
+
+# 번들의 스택 파일 → 릴리스 기록 + 지금 쓰는 위치($ONTOBOT_HOME)
+stage_release() {
+  local b="$1" ver rel
+  ver="$(bundle_get "$b" ONTOBOT_BUNDLE_VERSION)"
+  rel="$ONTOBOT_HOME/releases/$ver"
+  mkdir -p "$rel"
+  cp -a "$b/stack/." "$rel/"
+  cp "$b/bundle.env" "$b/manifest.json" "$rel/"
+  printf '%s' "$rel"
+}
+activate_release() { # 릴리스의 compose 파일을 지금 쓰는 위치로, 이미지 태그를 .env 에
+  local rel="$1"
+  cp "$rel/compose.yaml" "$rel/compose.gpu.yaml" "$rel/compose.deployer.yaml" "$ONTOBOT_HOME/"
+  rm -rf "$ONTOBOT_HOME/postgres-init" && cp -a "$rel/postgres-init" "$ONTOBOT_HOME/"
+  local k
+  for k in ONTOBOT_APP_IMAGE ONTOBOT_PG_IMAGE ONTOBOT_NEO4J_IMAGE ONTOBOT_OLLAMA_IMAGE; do
+    local v; v="$(env_get "$rel/bundle.env" "$k")"
+    [[ -n $v ]] && env_set "$ONTOBOT_HOME/.env" "$k" "$v"
+  done
+  env_set "$ONTOBOT_HOME/.env" ONTOBOT_VERSION "$(env_get "$rel/bundle.env" ONTOBOT_BUNDLE_VERSION)"
+}
+
+# ---------------------------------------------------------------- 준비 확인·백업
+readyz() { # API 컨테이너 안에서 /readyz 본문(네트워크 구성과 무관)
+  compose exec -T api python -c \
+    "import urllib.request as u,sys
+try: print(u.urlopen('http://127.0.0.1:8000/readyz',timeout=8).read().decode())
+except Exception as e:
+    b=getattr(e,'read',None); print(b().decode() if b else '{\"status\":\"unreachable\"}')" 2>/dev/null \
+    || printf '{"status":"unreachable"}'
+}
+wait_ready() {
+  step "준비 확인(/readyz, 최대 ${READY_SECONDS}초)"
+  local deadline=$((SECONDS + READY_SECONDS)) body=""
+  while ((SECONDS < deadline)); do
+    body="$(readyz)"
+    if [[ $body == *'"status":"ok"'* ]]; then note "준비됨: $body"; return 0; fi
+    sleep 3
+  done
+  warn "준비되지 않음: $body"
+  return 1
+}
+
+do_backup() { # $1 = 이름표 → 백업 파일 경로(호스트)
+  local label="${1:-manual}" name
+  name="$(date +%Y%m%d-%H%M%S)-${label//[^A-Za-z0-9._-]/_}.dump"
+  step "DB 백업 → backups/$name" >&2
+  mkdir -p "$ONTOBOT_HOME/backups"
+  compose exec -T postgres sh -c \
+    'pg_dump -U postgres -Fc -f "/backups/$1" "$2"' _ "$name" "$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DB_NAME)" >&2
+  printf '%s' "$ONTOBOT_HOME/backups/$name"
+}
+
+restore_db() {
+  local file="$1" db owner
+  db="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DB_NAME)"
+  owner="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DB_USER)"
+  [[ -f $file ]] || die "백업 파일이 없습니다: $file"
+  step "DB 복원 ← $(basename "$file")"
+  # 감사 로그는 트리거로 지울 수 없으므로 덮어쓰기(--clean) 대신 DB 를 새로 만든다(ADR-0010 과 같은 이유).
+  compose exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -d postgres \
+    -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$db' AND pid <> pg_backend_pid()" \
+    -c "DROP DATABASE \"$db\"" \
+    -c "CREATE DATABASE \"$db\" OWNER \"$owner\" TEMPLATE template0"
+  compose exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -d "$db" -c "CREATE EXTENSION IF NOT EXISTS vector"
+  # 확장(vector)은 위에서 슈퍼유저가 만들었다 — 목록에서 확장과 그 주석을 빼고 복원한다(앱 계정은 확장의
+  # 주인이 아니라 COMMENT ON EXTENSION 에서 실패하고, pg_restore 가 1 로 끝난다 — 개발 PC 시험에서 실측).
+  compose exec -T postgres sh -c '
+    pg_restore -l "/backups/$1" | grep -v -E " EXTENSION |COMMENT - EXTENSION" > /tmp/restore.list &&
+    pg_restore -U postgres --no-owner --role "$2" -d "$3" -L /tmp/restore.list "/backups/$1"' \
+    _ "$(basename "$file")" "$owner" "$db"
+}
+
+# 앱을 멈춘 뒤 명령이 실패하면, 지금 설정된 버전으로 앱을 다시 띄우고 실패를 알린다 — 서비스를 내려 둔 채
+# 끝내지 않는다(개발 PC 시험에서 DB 복원 오류로 앱이 멈춘 채 남았다). 정리는 운영자가 상태를 보고 한다.
+stop_app() {
+  step "앱 중지(api·worker)"
+  compose stop api worker
+  trap 'warn "작업이 중간에 실패했습니다 — 지금 설정된 버전으로 앱을 다시 띄웁니다. 상태를 확인하세요"; compose up -d --pull never >/dev/null 2>&1 || true' ERR
+}
+
+# ---------------------------------------------------------------- 명령
+cmd_verify() { verify_bundle "$1"; [[ $JSON == 1 ]] && printf '{"ok":true,"version":"%s"}\n' "$(bundle_get "$1" ONTOBOT_BUNDLE_VERSION)"; return 0; }
+
+cmd_preflight() {
+  local b="$1" problems=() warnings=() cur ver free
+  verify_bundle "$b"
+  ver="$(bundle_get "$b" ONTOBOT_BUNDLE_VERSION)"
+  cur="$(env_get "$STATE" CURRENT)"
+  step "점검"
+  [[ -n $cur ]] || warnings+=("설치 기록이 없습니다 — 업그레이드가 아니라 설치입니다")
+  [[ $cur != "$ver" ]] || problems+=("이미 $ver 입니다")
+  [[ $(env_get "$STATE" PREVIOUS) != "$ver" ]] || warnings+=("직전 버전 $ver 로 다시 올립니다(롤백이 더 알맞을 수 있습니다)")
+  if [[ $(bundle_get "$b" ONTOBOT_BUNDLE_APP_ONLY) == true && -z $cur ]]; then
+    problems+=("앱만 담긴 번들로는 처음 설치할 수 없습니다(전체 번들 필요)")
+  fi
+  free=$(df -Pk "$ONTOBOT_HOME" | awk 'NR==2{print int($4/1024)}')
+  # 번들은 이미 디스크에 있다 — 이미지를 풀 자리(번들 크기)와 백업·여유 1GB 를 본다(대략).
+  local need=$(( $(du -sk "$b" | cut -f1) / 1024 + 1024 ))
+  ((free > need)) || problems+=("디스크 여유 ${free}MB < 필요 ${need}MB")
+  has_gpu || warnings+=("GPU(nvidia 런타임)가 없습니다 — 모델이 CPU 로 돌아 느립니다")
+  local p; for p in "${problems[@]}"; do note "막힘: $p"; done; for p in "${warnings[@]}"; do note "주의: $p"; done
+  if [[ $JSON == 1 ]]; then
+    printf '{"ok":%s,"version":"%s","current":"%s","app_only":%s,"free_mb":%s,"problems":[%s],"warnings":[%s]}\n' \
+      "$([[ ${#problems[@]} == 0 ]] && echo true || echo false)" "$ver" "$cur" \
+      "$(bundle_get "$b" ONTOBOT_BUNDLE_APP_ONLY)" "$free" \
+      "$(for p in "${problems[@]}"; do printf '"%s",' "$(jesc "$p")"; done | sed 's/,$//')" \
+      "$(for p in "${warnings[@]}"; do printf '"%s",' "$(jesc "$p")"; done | sed 's/,$//')"
+  fi
+  [[ ${#problems[@]} == 0 ]]
+}
+
+cmd_install() {
+  local b="$1" seed=0 admin=""; shift
+  while (($#)); do case $1 in --seed-sample) seed=1 ;; --admin) admin="$2"; shift ;; *) die "모르는 옵션: $1" ;; esac; shift; done
+  lock
+  [[ ! -f $STATE ]] || die "이미 설치되어 있습니다($STATE) — upgrade 를 쓰세요"
+  [[ $(bundle_get "$b" ONTOBOT_BUNDLE_APP_ONLY) != true ]] || die "앱만 담긴 번들로는 설치할 수 없습니다"
+  verify_bundle "$b"
+  step "설치 폴더 $ONTOBOT_HOME"
+  mkdir -p "$ONTOBOT_HOME"/{config,logs,backups,releases,bundles,deployer}
+  chmod 700 "$ONTOBOT_HOME"
+  # 앱 컨테이너는 uid 10001 로 돈다 — 로그 폴더에 쓸 수 있어야 한다.
+  chown 10001:10001 "$ONTOBOT_HOME/logs"
+  if [[ ! -f $ONTOBOT_HOME/.env ]]; then
+    step ".env 생성(비밀값 무작위, 600)"
+    umask 077
+    cat >"$ONTOBOT_HOME/.env" <<EOF
+# OntoBot compose 치환값 — ontobotctl 이 관리한다. 비밀값이 있으니 복사·공유하지 말 것.
+ONTOBOT_DB_NAME=ontobot_db
+ONTOBOT_DB_USER=ontobot
+ONTOBOT_DB_PASSWORD=$(secret)
+ONTOBOT_PG_SUPER_PASSWORD=$(secret)
+ONTOBOT_NEO4J_PASSWORD=$(secret)
+ONTOBOT_API_PORT=${ONTOBOT_API_PORT:-8000}
+ONTOBOT_DEPLOYER_PORT=${ONTOBOT_DEPLOYER_PORT:-8100}
+ONTOBOT_DEPLOYER_ALLOW_CIDRS=${ONTOBOT_DEPLOYER_ALLOW_CIDRS:-}
+ONTOBOT_DEPLOYER_DROP_HOST_DIR=${ONTOBOT_DEPLOYER_DROP_HOST_DIR:-/mnt/c/OntoBot-bundles}
+ONTOBOT_BACKUP_COPY_DIR=${ONTOBOT_BACKUP_COPY_DIR:-}
+ONTOBOT_BACKUP_KEEP=${ONTOBOT_BACKUP_KEEP:-14}
+ONTOBOT_HOME=$ONTOBOT_HOME
+EOF
+    if has_gpu; then env_set "$ONTOBOT_HOME/.env" COMPOSE_FILE "compose.yaml:compose.gpu.yaml"
+    else env_set "$ONTOBOT_HOME/.env" COMPOSE_FILE "compose.yaml"; warn "GPU 없이 설치합니다"; fi
+  fi
+  [[ -f $ONTOBOT_HOME/app.env ]] || cp "$b/stack/app.env.example" "$ONTOBOT_HOME/app.env"
+  chmod 600 "$ONTOBOT_HOME/app.env"
+  load_images "$b"
+  # compose.yaml 에서 external 이다 — 모델이 없는 번들이어도 볼륨은 있어야 한다.
+  docker volume create ontobot_ollama-models >/dev/null
+  local rel; rel="$(stage_release "$b")"
+  activate_release "$rel"
+  if [[ ! -f $ONTOBOT_HOME/config/llm.yaml ]]; then
+    step "설정 견본(config/) — 이미지에서 꺼낸다"
+    local cid; cid="$(docker create "$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_APP_IMAGE)")"
+    docker cp "$cid:/app/config/." "$ONTOBOT_HOME/config/" >/dev/null
+    docker rm "$cid" >/dev/null
+    # 컨테이너 안에서 Ollama 는 서비스 이름으로 닿는다.
+    sed -i 's#http://localhost:11434#http://ollama:11434#' "$ONTOBOT_HOME/config/llm.yaml"
+  fi
+  step "저장소 기동(postgres·neo4j·ollama)"
+  compose up -d --pull never --wait postgres neo4j ollama
+  step "마이그레이션"
+  compose run --rm --pull never migrate
+  if ((seed)); then
+    step "샘플 도메인 팩(합성 데이터)·그래프 재구축"
+    compose run --rm --pull never -w /app migrate python scripts/seed_domain_pack.py --pack sample --grant-read user --grant-read admin
+    compose run --rm --pull never -w /app migrate python scripts/graph_rebuild.py
+  fi
+  if [[ -n $admin ]]; then
+    step "관리자 계정 $admin"
+    if [[ -z ${ONTOBOT_NEW_PASSWORD:-} ]]; then
+      [[ $INTERACTIVE == 1 ]] || die "--non-interactive 에서는 ONTOBOT_NEW_PASSWORD 가 필요합니다"
+      read -r -s -p "관리자 비밀번호(12자 이상): " ONTOBOT_NEW_PASSWORD; echo
+    fi
+    compose run --rm --pull never -e ONTOBOT_NEW_PASSWORD="$ONTOBOT_NEW_PASSWORD" migrate \
+      python -m ontobot.security.cli create-user --username "$admin" --display-name 관리자 --role admin --role modeler
+  fi
+  step "앱 기동(api·worker)"
+  compose up -d --pull never
+  step "배포 콘솔 기동"
+  env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE "$(bundle_get "$b" ONTOBOT_DEPLOYER_IMAGE)"
+  compose_deployer up -d --pull never
+  # 매일 백업 — WSL 배포판(systemd) 안에서 설치할 때만. 배포 콘솔 컨테이너 안에서는 건너뛴다.
+  if [[ -d /run/systemd/system && -d $b/stack/systemd ]]; then
+    step "매일 백업 타이머(ontobot-backup.timer)"
+    install -m 755 "$b/bin/ontobotctl" /usr/local/bin/ontobotctl
+    cp "$b"/stack/systemd/ontobot-backup.* /etc/systemd/system/
+    systemctl daemon-reload && systemctl enable --now ontobot-backup.timer
+  fi
+  printf 'CURRENT=%s\nPREVIOUS=\nLAST_BACKUP=\nINSTALLED_AT=%s\n' \
+    "$(bundle_get "$b" ONTOBOT_BUNDLE_VERSION)" "$(date -Iseconds)" >"$STATE"
+  local rc=0; wait_ready || rc=2
+  [[ $JSON == 1 ]] && printf '{"ok":%s,"version":"%s"}\n' "$([[ $rc == 0 ]] && echo true || echo false)" "$(env_get "$STATE" CURRENT)"
+  step "설치 완료"
+  return $rc
+}
+
+cmd_upgrade() {
+  local b="$1" cur ver backup rel old_rel
+  lock
+  [[ -f $STATE ]] || die "설치 기록이 없습니다 — install"
+  verify_bundle "$b"
+  cur="$(env_get "$STATE" CURRENT)"
+  ver="$(bundle_get "$b" ONTOBOT_BUNDLE_VERSION)"
+  [[ $cur != "$ver" ]] || die "이미 $ver 입니다"
+  old_rel="$ONTOBOT_HOME/releases/$cur"
+  load_images "$b"                      # 서비스가 도는 동안 준비한다(중단 시간 단축)
+  rel="$(stage_release "$b")"
+  backup="$(do_backup "before-$ver")"
+  stop_app
+  activate_release "$rel"
+  step "마이그레이션($ver)"
+  if ! compose run --rm --pull never migrate; then
+    warn "마이그레이션 실패 — 이전 버전($cur)으로 다시 시작합니다. DB 가 일부 바뀌었으면: ontobotctl rollback --restore-db"
+    activate_release "$old_rel"
+    compose up -d --pull never
+    die "업그레이드 실패(마이그레이션)"
+  fi
+  step "새 버전 기동"
+  compose up -d --pull never --remove-orphans
+  printf 'CURRENT=%s\nPREVIOUS=%s\nLAST_BACKUP=%s\nUPGRADED_AT=%s\n' "$ver" "$cur" "$backup" "$(date -Iseconds)" >"$STATE"
+  # 배포 콘솔 새 이미지는 스스로 바꾸지 않는다 — 화면의 '배포 콘솔 갱신'(ADR-0014).
+  local dep; dep="$(bundle_get "$b" ONTOBOT_DEPLOYER_IMAGE)"
+  [[ -n $dep ]] && env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_NEXT "$dep"
+  local rc=0; wait_ready || rc=2
+  ((rc == 0)) || warn "준비 확인 실패 — 되돌리려면: ontobotctl rollback [--restore-db]"
+  [[ $JSON == 1 ]] && printf '{"ok":%s,"from":"%s","to":"%s","backup":"%s"}\n' \
+    "$([[ $rc == 0 ]] && echo true || echo false)" "$cur" "$ver" "$(basename "$backup")"
+  step "업그레이드 완료: $cur → $ver"
+  return $rc
+}
+
+cmd_rollback() {
+  local restore=0 confirm="" cur prev backup
+  while (($#)); do case $1 in --restore-db) restore=1 ;; --confirm) confirm="$2"; shift ;; *) die "모르는 옵션: $1" ;; esac; shift; done
+  lock
+  cur="$(env_get "$STATE" CURRENT)"; prev="$(env_get "$STATE" PREVIOUS)"; backup="$(env_get "$STATE" LAST_BACKUP)"
+  [[ -n $prev ]] || die "되돌릴 이전 버전이 없습니다"
+  [[ -d $ONTOBOT_HOME/releases/$prev ]] || die "이전 릴리스 기록이 없습니다: releases/$prev"
+  if ((restore)); then
+    [[ -n $backup && -f $backup ]] || die "업그레이드 직전 백업이 없습니다"
+    warn "DB 를 $(basename "$backup") 시점으로 되돌립니다 — 업그레이드 뒤에 쓰인 데이터(대화·감사 로그 포함)는 사라집니다"
+    if [[ $confirm != RESTORE ]]; then
+      [[ $INTERACTIVE == 1 ]] || die "--non-interactive 에서는 --confirm RESTORE 가 필요합니다"
+      read -r -p "계속하려면 RESTORE 를 입력: " confirm
+      [[ $confirm == RESTORE ]] || die "취소했습니다"
+    fi
+  fi
+  stop_app
+  ((restore)) && restore_db "$backup"
+  activate_release "$ONTOBOT_HOME/releases/$prev"
+  step "이전 버전 기동($prev)"
+  compose up -d --pull never --remove-orphans
+  printf 'CURRENT=%s\nPREVIOUS=\nLAST_BACKUP=%s\nROLLED_BACK_FROM=%s\nROLLED_BACK_AT=%s\n' \
+    "$prev" "$backup" "$cur" "$(date -Iseconds)" >"$STATE"
+  local rc=0; wait_ready || rc=2
+  [[ $JSON == 1 ]] && printf '{"ok":%s,"from":"%s","to":"%s","restored_db":%s}\n' \
+    "$([[ $rc == 0 ]] && echo true || echo false)" "$cur" "$prev" "$([[ $restore == 1 ]] && echo true || echo false)"
+  step "롤백 완료: $cur → $prev"
+  return $rc
+}
+
+cmd_backup() {
+  local label="manual"
+  while (($#)); do case $1 in --label) label="$2"; shift ;; *) die "모르는 옵션: $1" ;; esac; shift; done
+  local f keep copy; f="$(do_backup "$label")"
+  note "$(du -h "$f" | cut -f1) $f"
+  # 서버 백업 체계가 가져가도록 Windows 쪽 폴더에도 둔다(설정했을 때만).
+  copy="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_BACKUP_COPY_DIR)"
+  if [[ -n $copy ]]; then mkdir -p "$copy" && cp "$f" "$copy/" && note "복사 → $copy"; fi
+  # 오래된 백업 정리 — 업그레이드 직전 백업(state.env 의 LAST_BACKUP)은 남긴다.
+  keep="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_BACKUP_KEEP)"; keep="${keep:-14}"
+  local last; last="$(env_get "$STATE" LAST_BACKUP)"
+  ls -1t "$ONTOBOT_HOME"/backups/*.dump 2>/dev/null | tail -n +"$((keep + 1))" | while read -r old; do
+    [[ $old == "$last" ]] || rm -f "$old"
+  done
+  [[ $JSON == 1 ]] && printf '{"ok":true,"backup":"%s"}\n' "$(basename "$f")"
+  return 0
+}
+
+cmd_audit() { # 배포 콘솔이 작업 결과를 앱 감사 로그에 남긴다(ADR-0014). 내부는 audit.record 그대로.
+  local event="" actor="" payload="{}"
+  while (($#)); do
+    case $1 in --event) event="$2"; shift ;; --actor-id) actor="$2"; shift ;; --payload) payload="$2"; shift ;;
+      *) die "모르는 옵션: $1" ;; esac
+    shift
+  done
+  [[ -n $event ]] || die "--event 가 필요합니다"
+  compose run --rm --pull never --no-deps -T migrate python -m ontobot.security.cli audit-deploy \
+    --event "$event" ${actor:+--actor-id "$actor"} --payload "$payload"
+}
+
+# 배포 콘솔 갱신 — 콘솔 컨테이너는 자기 자신을 바꿀 수 없으므로, 새 이미지로 띄운 일회성 컨테이너가 바꾼다.
+cmd_deployer_update() {
+  local next; next="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_NEXT)"
+  [[ -n $next ]] || die "갱신할 배포 콘솔 이미지가 없습니다"
+  docker image inspect "$next" >/dev/null 2>&1 || die "이미지가 적재되지 않았습니다: $next"
+  step "배포 콘솔 갱신 예약 → $next (잠시 뒤 다시 로그인)"
+  docker rm -f ontobot-deployer-update >/dev/null 2>&1 || true
+  docker run -d --rm --name ontobot-deployer-update -e ONTOBOT_HOME="$ONTOBOT_HOME" \
+    -v /var/run/docker.sock:/var/run/docker.sock -v "$ONTOBOT_HOME:$ONTOBOT_HOME" \
+    --entrypoint ontobotctl "$next" deployer-apply >/dev/null
+  [[ $JSON == 1 ]] && printf '{"ok":true,"scheduled":"%s"}\n' "$next"
+  return 0
+}
+cmd_deployer_apply() {
+  local next prev cid
+  next="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_NEXT)"
+  prev="$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE)"
+  [[ -n $next ]] || die "갱신할 이미지가 없습니다"
+  sleep 3   # 부른 쪽(콘솔)이 응답을 마치게
+  env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE "$next"
+  compose_deployer up -d --pull never
+  for _ in $(seq 1 20); do
+    cid="$(compose_deployer ps -q deployer)"
+    if [[ -n $cid && $(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null) == healthy ]]; then
+      env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_NEXT ""
+      env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_PREV "$prev"
+      step "배포 콘솔 갱신 완료: $next"; return 0
+    fi
+    sleep 3
+  done
+  warn "새 배포 콘솔이 준비되지 않아 되돌립니다: $prev"
+  env_set "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE "$prev"
+  compose_deployer up -d --pull never
+  return 1
+}
+
+cmd_status() {
+  local ready ps
+  ready="$(readyz)"
+  ps="$(compose ps -a --format json 2>/dev/null | paste -sd, - || true)"
+  if [[ $JSON == 1 ]]; then
+    printf '{"ok":true,"current":"%s","previous":"%s","last_backup":"%s","gpu":%s,"free_mb":%s,"readyz":%s,"containers":[%s],"deployer_next":"%s"}\n' \
+      "$(env_get "$STATE" CURRENT)" "$(env_get "$STATE" PREVIOUS)" "$(basename "$(env_get "$STATE" LAST_BACKUP)" 2>/dev/null)" \
+      "$(has_gpu && echo true || echo false)" "$(df -Pk "$ONTOBOT_HOME" | awk 'NR==2{print int($4/1024)}')" \
+      "${ready:-null}" "$ps" "$(env_get "$ONTOBOT_HOME/.env" ONTOBOT_DEPLOYER_IMAGE_NEXT)"
+  else
+    step "설치 상태"; cat "$STATE" 2>/dev/null || note "설치 기록 없음"
+    step "컨테이너"; compose ps -a
+    step "/readyz"; note "$ready"
+  fi
+}
+
+main() {
+  local args=()
+  while (($#)); do
+    case $1 in --json) JSON=1 ;; --non-interactive) INTERACTIVE=0 ;; *) args+=("$1") ;; esac
+    shift
+  done
+  set -- "${args[@]}"
+  local cmd="${1:-status}"; shift || true
+  case $cmd in
+    verify | preflight | install | upgrade)
+      [[ $# -ge 1 ]] || die "번들 폴더를 주세요: ontobotctl $cmd <번들>"
+      local b; b="$(cd "$1" && pwd)"; shift
+      "cmd_$cmd" "$b" "$@" ;;
+    rollback | backup | status | audit) "cmd_$cmd" "$@" ;;
+    deployer-update) cmd_deployer_update ;;
+    deployer-apply) cmd_deployer_apply ;;
+    *) die "모르는 명령: $cmd (verify|preflight|install|upgrade|rollback|backup|status)" ;;
+  esac
+}
+main "$@"

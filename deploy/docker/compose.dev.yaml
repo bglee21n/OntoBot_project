@@ -1,0 +1,56 @@
+# 개발 PC 저장소(ADR-0013) — 앱은 호스트에서 `task.py dev-api`·`worker` 로 돌리고 저장소만 컨테이너로 띄운다.
+#
+#   docker compose -f deploy/docker/compose.dev.yaml --env-file .env up -d       (task.py dev-up)
+#
+# 루트 .env 의 ONTOBOT_DB_PASSWORD·ONTOBOT_NEO4J_PASSWORD 를 그대로 쓴다. 포트는 .env 로 바꿀 수 있다 —
+# 이미 네이티브 PostgreSQL·Neo4j 가 떠 있는 PC 에서는 ONTOBOT_DB_PORT 등을 다른 값으로 두고 띄운다.
+# 데이터는 이름 있는 볼륨에 남는다(down -v 로 지운다).
+name: ontobot-dev
+
+services:
+  postgres:
+    image: ${ONTOBOT_PG_IMAGE:-pgvector/pgvector:pg18}
+    environment:
+      POSTGRES_USER: postgres
+      # 정렬은 플랫폼과 무관한 코드 포인트 순서(builtin C.UTF-8) — 한글이 가나다 순이고, glibc 로캘에 따라
+      # 그룹·제목 순서가 달라져 답·카세트 키가 바뀌는 일이 없다.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8"
+      POSTGRES_PASSWORD: ${ONTOBOT_PG_SUPER_PASSWORD:-ontobot-dev-super}
+      ONTOBOT_DB_USER: ${ONTOBOT_DB_USER:-ontobot}
+      ONTOBOT_DB_PASSWORD: ${ONTOBOT_DB_PASSWORD:?루트 .env 에 ONTOBOT_DB_PASSWORD 가 필요합니다}
+      ONTOBOT_DB_NAMES: ${ONTOBOT_DB_NAME:-ontobot_db} ontobot_source_dev
+    volumes:
+      - dev-pgdata:/var/lib/postgresql
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${ONTOBOT_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  neo4j:
+    image: ${ONTOBOT_NEO4J_IMAGE:-neo4j:5.26-community}
+    environment:
+      NEO4J_AUTH: neo4j/${ONTOBOT_NEO4J_PASSWORD:?루트 .env 에 ONTOBOT_NEO4J_PASSWORD 가 필요합니다}
+      NEO4J_dbms_usage__report_enabled: "false"
+    volumes:
+      - dev-neo4jdata:/data
+    ports:
+      - "127.0.0.1:${ONTOBOT_DEV_NEO4J_PORT:-7687}:7687"
+
+  ollama:
+    image: ${ONTOBOT_OLLAMA_IMAGE:-ollama/ollama:latest}
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - dev-ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:${ONTOBOT_DEV_OLLAMA_PORT:-11434}:11434"
+    profiles: [ollama]   # 호스트에 Ollama 가 이미 있으면 띄우지 않는다(--profile ollama 로 켠다)
+
+volumes:
+  dev-pgdata:
+  dev-neo4jdata:
+  dev-ollama:

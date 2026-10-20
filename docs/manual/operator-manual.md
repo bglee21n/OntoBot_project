@@ -3,7 +3,7 @@
 이 문서는 OntoBot 을 **설치하고, 매일 지켜보고, 문제가 생겼을 때 고치는 사람**(시스템 운영자·관리자)을 위한
 안내서입니다. 개발 지식이 없어도 따라 할 수 있도록 명령은 복사해 붙여 넣을 수 있는 형태로 적었습니다.
 
-- 대상 버전: v1 개발 중(Phase 11 까지 반영, 2026-10)
+- 대상 버전: v1 개발 중(Phase 11 + Docker·배포 콘솔 전환 반영, 2026-10)
 - 화면 사용법(질문하기, Action 요청 등)은 [사용자 매뉴얼](user-manual.md)을 보세요.
 - 더 깊은 기술 근거: [설치 안내 원본](../../deploy/INSTALL.md), [TRD](../trd/OntoBot_project-trd.md).
 
@@ -41,8 +41,9 @@ OntoBot 은 회사의 업무 데이터(예: 시설 목록, 조직, 지역)에 �
 3. **바꾸는 일은 승인을 거칩니다.** "이 시설 위험등급을 3으로 바꿔줘" 같은 요청(Action)은 바로 실행되지 않고,
    미리보기 → 승인자 승인 → 실행 순서를 밟으며, 실행한 뒤에도 되돌릴(롤백) 수 있습니다.
 
-운영 환경은 **인터넷이 끊긴 사내망(폐쇄망)의 Windows Server** 를 기본으로 합니다. 설치할 때도, 운영할 때도
-인터넷을 쓰지 않습니다. AI 모델도 서버 안에서 돌아갑니다(Ollama).
+운영 환경은 **인터넷이 끊긴 사내망(폐쇄망)의 Windows Server 2022 이상**입니다. 설치할 때도, 운영할 때도
+인터넷을 쓰지 않습니다. AI 모델도 서버 안에서 돌아갑니다(Ollama). 업그레이드·되돌리기·백업은 **배포 콘솔**이라는
+별도 화면에서 클릭으로 합니다.
 
 ---
 
@@ -60,127 +61,135 @@ OntoBot 은 회사의 업무 데이터(예: 시설 목록, 조직, 지역)에 �
 | Action | 챗봇이나 화면에서 요청하는 "데이터를 바꾸는 일"(예: 위험등급 조정). 미리보기 → 승인 → 실행 → (필요하면) 롤백 |
 | 근거 / 등급 | 답 문장이 기댄 데이터 / 답이 근거로 얼마나 확인됐는지: ① 모두 확인, ② 일부 추정, ③ 확인 실패(본문 숨김) |
 | 워커 | 화면 뒤에서 동기화·알림 발송·매일 점검 같은 일을 하는 별도 프로그램 |
-| 서비스 | Windows 가 켜질 때 자동으로 시작되는 프로그램. OntoBot 은 여러 서비스로 이루어져 있다 |
+| WSL | Windows 안에서 리눅스를 돌리는 기능. OntoBot 은 그 안의 리눅스(`ontobot`)에서 돈다 |
+| 컨테이너 / Docker | 프로그램 하나와 그 실행 환경을 한 덩어리로 묶어 돌리는 방식 / 그 실행기. OntoBot 은 컨테이너 여섯 개로 이루어져 있다 |
+| 번들(꾸러미) | 설치·업그레이드에 필요한 것을 모은 폴더(또는 zip). **서명**으로 진짜인지 확인한다 |
+| 배포 콘솔 | 업그레이드·되돌리기·백업을 하는 관리자 전용 화면(포트 8100) |
 
 ---
 
 ## 3. 시스템 구성 한눈에 보기
 
-OntoBot 은 서버 한 대 안에서 다섯 개의 Windows 서비스로 돌아갑니다.
+서버(Windows Server 2022 이상) 한 대 안에 **WSL2**(Windows 안의 리눅스)가 있고, 그 안의 **Docker**(컨테이너
+실행기)가 OntoBot 을 이루는 프로그램들을 각각 "컨테이너"로 돌립니다. 운영자는 이 구조를 몰라도 대부분의 일을
+**배포 콘솔 화면**으로 할 수 있습니다.
 
-| 서비스 이름 | 하는 일 | 꺼지면 생기는 일 |
+| 컨테이너 | 하는 일 | 멈추면 생기는 일 |
 | --- | --- | --- |
-| `ontobot-api` | 웹 화면과 API 를 제공(포트 **8000**) | 아무도 접속할 수 없음 |
-| `ontobot-worker` | 동기화, 그래프 반영, 알림 발송, 매일 점검, 평가 실행 | 화면은 되지만 동기화·알림이 멈추고 쌓임 |
-| `postgresql-x64-18` (또는 사내 표준 PostgreSQL) | **모든 기록의 원본** 데이터베이스 | 접속·질문 모두 실패 |
-| `neo4j-ontobot` | 객체 사이 관계(링크)를 빠르게 찾는 보조 저장소 | "○○지사가 소유한 시설" 같은 관계 질문만 실패. 나머지는 정상 |
-| `ontobot-ollama` | 서버 안의 AI 모델(질문 해석·답 작성) | 질문에 답하지 못함("답변 모델 연결 불가") |
+| `api` | 웹 화면과 API 제공(포트 **8000**) | 아무도 접속할 수 없음 |
+| `worker` | 동기화, 그래프 반영, 알림 발송, 매일 점검, 평가 실행 | 화면은 되지만 동기화·알림이 멈추고 쌓임 |
+| `postgres` | **모든 기록의 원본** 데이터베이스 | 접속·질문 모두 실패 |
+| `neo4j` | 객체 사이 관계(링크)를 빠르게 찾는 보조 저장소 | "○○지사가 소유한 시설" 같은 관계 질문만 실패 |
+| `ollama` | 서버 안의 AI 모델(질문 해석·답 작성), GPU 사용 | 질문에 답하지 못함("답변 모델 연결 불가") |
+| `deployer` | **배포 콘솔**(포트 **8100**) — 업그레이드·롤백·백업 화면 | 화면으로 배포를 못 함(앱은 그대로 동작) |
 
-중요한 원칙 두 가지:
+중요한 원칙:
 
-- **PostgreSQL 이 원본입니다.** Neo4j 는 PostgreSQL 에서 언제든 다시 만들 수 있는 복사본입니다. 백업은
-  PostgreSQL 만 하면 됩니다.
-- 외부로 나가는 연결은 없습니다. 예외는 운영자가 직접 설정한 **사내 메일 서버·SMS 게이트웨이**뿐입니다
-  (8절).
+- **PostgreSQL 이 원본입니다.** Neo4j 는 언제든 다시 만들 수 있는 복사본입니다. 백업은 PostgreSQL 만 합니다.
+- 바깥에서 닿는 포트는 **8000(사용자)**과 **8100(관리자만)** 두 개뿐입니다. 데이터베이스와 AI 모델은
+  서버 안에서만 접속됩니다.
+- 외부로 나가는 연결은 없습니다. 예외는 운영자가 설정한 **사내 메일 서버·SMS 게이트웨이**뿐입니다(8절).
+- 배포 콘솔은 OntoBot 과 **따로** 돌아갑니다. 그래서 업그레이드가 잘못돼 OntoBot 이 안 떠도 콘솔에서 되돌릴
+  수 있습니다.
 
-폴더 구조(기본 설치 위치 `C:\OntoBot`):
+파일 위치(WSL 배포판 `ontobot` 안, 리눅스 경로):
 
 ```
-C:\OntoBot\
-  current\            ← 지금 쓰는 프로그램(아래 releases 중 하나를 가리키는 바로가기)
-  releases\<버전>\    ← 설치한 버전별 프로그램
-  shared\.env         ← 설정과 비밀번호(관리자만 읽기 가능)
-  shared\notify.yaml  ← 메일·SMS 발송 설정
-  logs\               ← 로그(api.log, worker.log, service\)
-  backups\            ← 업그레이드 직전 DB 백업
+/opt/ontobot/
+  .env            ← 인프라 비밀값(DB·Neo4j 비밀번호 — 자동 생성, 관리자만)
+  app.env         ← 앱 설정(SSO·세션·보존 기간·원천 DB·메일 비밀번호 등)
+  config/         ← llm.yaml(AI 모델), notify.yaml(메일·SMS)
+  logs/           ← 앱 로그
+  backups/        ← DB 백업(매일 자동)
+  bundles/        ← 가져온 설치 꾸러미
+  releases/       ← 설치했던 버전 기록(되돌리기용)
 ```
+
+Windows 쪽 폴더:
+
+```
+C:\OntoBot\backups\       ← 매일 백업 복사본(서버 백업 체계가 가져가는 곳)
+C:\OntoBot\host\          ← 부팅 스크립트
+C:\OntoBot\wsl\           ← WSL 가상 디스크(데이터가 들어 있다 — 지우지 말 것)
+C:\OntoBot-bundles\       ← 반입 폴더(새 버전 꾸러미를 여기에 복사하면 배포 콘솔에 보인다)
+```
+
+> WSL 안의 파일을 Windows 탐색기로 볼 때는 주소창에 `\\wsl$\ontobot\opt\ontobot` 을 입력합니다.
+> 설정 파일은 되도록 아래 13절의 명령으로 고치세요(권한·줄 끝 문자가 바뀌지 않게).
 
 ---
 
 ## 4. 설치하기
 
-설치는 두 단계입니다. **① 인터넷이 되는 PC 에서 설치 꾸러미(번들)를 만들고**, **② 그것을 USB 등으로 폐쇄망
-서버에 옮겨 설치**합니다.
+설치는 두 단계입니다. **① 인터넷이 되는 PC 에서 설치 꾸러미(번들)를 만들고**, **② USB 등으로 폐쇄망 서버에
+옮겨 설치**합니다. 최초 설치만 PowerShell 로 하고, 이후 업그레이드는 배포 콘솔 화면으로 합니다(11절).
 
 ### 4.1 서버 요구 사항
 
 | 항목 | 최소 / 권장 |
 | --- | --- |
-| 운영체제 | Windows Server 2019 이상 |
-| 메모리 | 16GB 이상 권장 |
-| 디스크 여유 | 30GB 이상 |
-| GPU | 있으면 좋음. 없으면 AI 답변이 많이 느려진다 |
-| 권한 | 설치하는 사람은 **관리자 권한 PowerShell** 을 쓸 수 있어야 한다 |
-| 방화벽 | 사용자 PC → 서버 **8000 포트**만 열면 된다 |
+| 운영체제 | **Windows Server 2022 이상**(2019 는 WSL2 를 지원하지 않아 설치할 수 없습니다) |
+| 메모리 | 16GB 이상 권장(그중 12GB 를 WSL 에 줍니다) |
+| 디스크 여유 | 60GB 이상(꾸러미 14GB + 적재 + 데이터) |
+| GPU | NVIDIA 권장. Windows 에 WSL 용 드라이버를 먼저 설치. 없으면 AI 답변이 많이 느려집니다 |
+| 권한 | 설치하는 사람은 **관리자 권한 PowerShell** 을 쓸 수 있어야 합니다 |
+| 계정 | 서비스 전용 로컬 계정을 만들어 그 계정으로 설치하길 권합니다(WSL 은 설치한 계정의 것입니다) |
+| 방화벽 | 사용자 PC → 서버 **8000**, 관리자 PC → 서버 **8100** |
 
-### 4.2 설치 꾸러미(번들) 만들기 — 인터넷이 되는 PC
+> **처음 도입할 때 한 번:** 개발팀은 이 설치 방식을 Windows 11 개발 PC 에서만 시험했습니다. 운영과 같은
+> Windows Server 에서 [ADR-0013](../adr/0013-docker-on-wsl2.md) 의 "0단계 점검"(오프라인 WSL 설치·GPU·재부팅
+> 뒤 자동 시작·다른 PC 에서 접속)을 개발팀과 함께 먼저 해 보세요.
 
-보통 개발팀이 만들어 전달합니다. 직접 만들어야 한다면 [INSTALL.md 1절](../../deploy/INSTALL.md)을 따르세요.
-요약하면, PostgreSQL·Neo4j·Java·Ollama·WinSW 설치 파일을 공식 사이트에서 받아 한 폴더에 모으고 다음을
-실행합니다.
+### 4.2 준비물
 
-```powershell
-powershell -ExecutionPolicy Bypass -File deploy\offline\build_bundle.ps1 -PrereqDir D:\ontobot-prereqs
-```
+배포 담당(보통 개발팀)이 넘겨주는 것:
 
-결과 폴더 `dist\bundle\ontobot-<버전>-<커밋>\` 를 통째로 USB 에 담습니다.
+| 준비물 | 설명 |
+| --- | --- |
+| 전체 번들 폴더 `ontobot-<버전>\` | 프로그램·AI 모델 전부(약 14GB). 최초 설치용 |
+| 서명 공개키 `ontobot-release.pub` | 번들이 진짜인지 확인하는 열쇠. **서버에 등록** |
+| 호스트 자산 폴더 | WSL 설치 파일, 우분투 이미지, Docker 설치 파일(`debs\`) — [INSTALL.md](../../deploy/INSTALL.md) 1절 목록 |
 
-> 폴더 이름에 `.dirty` 가 붙어 있으면 정식 버전이 아닙니다. 운영 서버에 설치하지 마세요.
+번들을 만드는 방법은 [INSTALL.md](../../deploy/INSTALL.md) 0~1절에 있습니다(개발팀 일).
 
 ### 4.3 서버에 설치하기
 
-1. 번들 폴더를 서버의 아무 곳(예: `E:\ontobot-0.1.0-abc1234`)에 복사합니다.
+1. 번들 폴더·공개키·호스트 자산을 서버에 복사합니다(예: `E:\`).
 2. **시작 메뉴 → Windows PowerShell 을 마우스 오른쪽 클릭 → "관리자 권한으로 실행"** 합니다.
-3. 번들 폴더로 이동해 설치를 실행합니다.
+3. 번들 폴더로 이동해 실행합니다.
 
 ```powershell
 cd E:\ontobot-0.1.0-abc1234
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Mode Install -AdminUsername admin -SeedSample
+powershell -ExecutionPolicy Bypass -File .\host\install-host.ps1 `
+    -HostAssets E:\ontobot-host-assets -TrustedKey E:\ontobot-release.pub `
+    -AdminUsername admin -SeedSample -AllowCidrs 10.10.0.0/24
 ```
 
-- `-AdminUsername admin` : 첫 관리자 계정 이름입니다. 원하는 이름으로 바꿔도 됩니다.
-- `-SeedSample` : 시험용 샘플 데이터(가짜 시설·조직)를 넣습니다. **실제 운영 데이터를 바로 넣을 계획이면
-  빼도 됩니다.** 처음 설치 확인용으로는 넣는 것을 권합니다.
+- `-AdminUsername admin` : 첫 관리자 계정 이름입니다.
+- `-SeedSample` : 시험용 샘플 데이터(가짜 시설·조직)를 넣습니다. 처음 설치 확인용으로 권합니다.
+- `-AllowCidrs` : 배포 콘솔(8100)에 접속할 수 있는 관리자 PC 의 주소 대역입니다. 비우면 같은 네트워크만.
 
-설치 중 두 번 비밀번호를 묻습니다.
+설치 중 묻는 것:
 
 | 언제 | 무엇 | 주의 |
 | --- | --- | --- |
-| PostgreSQL 설치 때 | 데이터베이스 최고 관리자(postgres) 비밀번호 | 스크립트가 저장하지 않습니다. **반드시 따로 안전하게 보관**하세요 |
-| 마지막 단계 | OntoBot 관리자 계정 비밀번호(12자 이상) | 첫 로그인에 씁니다 |
+| 처음 실행 | (WSL 기능을 켜야 하면) **재부팅 안내** | 재부팅한 뒤 같은 명령을 다시 실행 |
+| 중간 | OntoBot 관리자 계정 비밀번호(12자 이상) | 첫 로그인에 씁니다 |
+| 끝 무렵 | 부팅 예약 작업을 실행할 **Windows 계정 비밀번호** | 지금 로그인한 계정의 비밀번호 |
 
-그 밖의 비밀번호(OntoBot 용 DB 계정, Neo4j)는 설치 스크립트가 무작위로 만들어 `C:\OntoBot\shared\.env`
-에 저장합니다.
+DB·Neo4j 비밀번호는 무작위로 만들어 `/opt/ontobot/.env` 에 저장됩니다(사람이 알 필요 없음).
 
-설치 스크립트가 하는 일(참고):
-
-1. 번들 파일이 손상되지 않았는지 확인
-2. 설정 파일(`.env`) 만들기
-3. PostgreSQL 설치, OntoBot 용 DB 만들기
-4. Java·Neo4j 설치(이 서버 안에서만 접속 가능하게)
-5. Ollama 와 AI 모델 설치(이 서버 안에서만 접속 가능하게)
-6. OntoBot 프로그램 설치(인터넷 없이)
-7. 데이터베이스 표 만들기(마이그레이션)
-8. (`-SeedSample`) 샘플 데이터 넣기
-9. 관리자 계정 만들기
-10. 서비스 등록·시작, 정상 동작 확인(최대 2분 기다림)
-
-이미 설치된 구성 요소는 건너뜁니다. 사내 표준 PostgreSQL 을 써야 하면 `-PgService <서비스이름>
--PgPort <포트>` 를 덧붙입니다.
+설치 스크립트가 하는 일(참고): OS 확인 → WSL 켜기 → 리눅스(우분투) 배포판 만들기 → Docker·GPU 도구 설치 →
+번들 서명 확인 → 프로그램·AI 모델 적재 → DB 만들기 → 샘플 데이터·관리자 → OntoBot·배포 콘솔 시작 → 매일 백업
+예약 → 부팅 때 자동 시작 예약 → 방화벽.
 
 ### 4.4 설치가 잘 됐는지 확인하기
 
-1. 상태 확인 명령을 실행합니다.
-
-   ```powershell
-   .\install.ps1 -Mode Status
-   ```
-
-   서비스 넷(`ontobot-api`, `ontobot-worker`, `neo4j-ontobot`, `ontobot-ollama`)이 모두 **Running**,
-   준비 상태가 **ok** 이면 정상입니다.
-2. 사용자 PC 의 브라우저에서 `http://<서버 주소>:8000` 에 접속해 관리자 계정으로 로그인합니다.
-3. (`-SeedSample` 로 설치했다면) 채팅 화면에서 `위험등급이 3 이상인 시설은 몇 개야?` 라고 물어봅니다.
-   **"18"** 이 들어간 답과 등급 **①**, 근거 단추가 나오면 설치가 끝난 것입니다.
+1. 다른 PC 의 브라우저에서 `http://<서버 주소>:8000` 에 접속해 관리자로 로그인합니다.
+2. (`-SeedSample` 로 설치했다면) 채팅에서 `위험등급이 3 이상인 시설은 몇 개야?` → **"18"**·등급 **①**·근거 단추.
+3. 관리자 PC 에서 `http://<서버 주소>:8100` → 같은 관리자 계정으로 **배포 콘솔** 로그인 → **현황**에서 준비 상태
+   **정상**, 컨테이너가 모두 running.
+4. **서버를 한 번 재부팅**하고 1번을 다시 해 봅니다(부팅 자동 시작 확인).
 
 ---
 
@@ -190,12 +199,12 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -Mode Install -AdminUsern
 
 | 순서 | 할 일 | 누가 | 어디서 | 자세히 |
 | --- | --- | --- | --- | --- |
-| 1 | HTTPS 적용(권장) | 운영자 | 서버 설정 | 14절 |
+| 1 | HTTPS 적용(권장), `app.env` 의 `ONTOBOT_DEPLOYER_URL` 을 실제 주소로 | 운영자 | 서버 설정 | 13·14절 |
 | 2 | 사용자 계정 만들기, 역할 주기 | 관리자 | 화면 '관리' | 6절 |
 | 3 | 역할별로 읽을 수 있는 데이터 종류 정하기 | 관리자 | 화면 '관리 → 역할별 읽기 권한' | 6.3 |
 | 4 | 온톨로지(데이터 설계도) 게시 | 모델러 | 화면 '온톨로지' | 사용자 매뉴얼 7장 |
-| 5 | 데이터 소스 연결·동기화 | 모델러 + 운영자 | 화면 '데이터 소스' + `.env` | 7절 |
-| 6 | 메일·SMS 발송 설정(Action 알림을 쓸 때만) | 운영자 | `shared\notify.yaml` | 8절 |
+| 5 | 데이터 소스 연결·동기화 | 모델러 + 운영자 | 화면 '데이터 소스' + `app.env` | 7절 |
+| 6 | 메일·SMS 발송 설정(Action 알림을 쓸 때만) | 운영자 | `config/notify.yaml` | 8절 |
 | 7 | 알림 받을 사람의 메일·전화번호 입력 | 관리자 | 화면 '관리 → 사용자' | 6.4 |
 
 > **주의:** 관리자(admin) 역할이라도 3번에서 데이터 종류를 골라 주지 않으면 데이터를 읽을 수 없습니다.
@@ -229,16 +238,16 @@ Action 의 승인·요청 권한은 역할과 별도로 **Action 정의마다** 
 **서버 명령으로(화면에 들어갈 수 없을 때, 예: 관리자 비밀번호 분실):** 관리자 PowerShell 에서
 
 ```powershell
-cd C:\OntoBot\current\backend
-.\.venv\Scripts\python.exe -m ontobot.security.cli create-user --username 홍길동 --display-name "홍길동" --role admin --role modeler
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -it migrate python -m ontobot.security.cli create-user --username 홍길동 --display-name 홍길동 --role admin --role modeler"
 ```
 
 비밀번호를 두 번 묻습니다. 역할은 `--role` 을 여러 번 써서 여러 개 줄 수 있습니다.
 
-**사내 통합 로그인(SSO, OIDC)** 을 쓰는 경우: `.env` 에 `ONTOBOT_OIDC_ISSUER`·`ONTOBOT_OIDC_CLIENT_ID`·
+**사내 통합 로그인(SSO, OIDC)** 을 쓰는 경우: `app.env`(13절)에 `ONTOBOT_OIDC_ISSUER`·`ONTOBOT_OIDC_CLIENT_ID`·
 `ONTOBOT_OIDC_CLIENT_SECRET`·`ONTOBOT_OIDC_REDIRECT_URI` 를 채우면 로그인 화면에 "SSO 로 로그인" 단추가
 생깁니다. SSO 로 처음 들어온 사람은 `ONTOBOT_OIDC_DEFAULT_ROLES`(기본 `["user"]`) 역할을 받습니다.
-로컬 계정을 막으려면 `ONTOBOT_LOCAL_AUTH_ENABLED=false`.
+로컬 계정을 막으려면 `ONTOBOT_LOCAL_AUTH_ENABLED=false`. 단 **배포 콘솔 로그인은 로컬 관리자 계정(비밀번호)이
+필요**하니, 배포 담당 관리자 계정 하나는 비밀번호를 남겨 두세요.
 
 ### 6.3 역할별로 읽을 수 있는 데이터 정하기
 
@@ -273,7 +282,7 @@ OntoBot 은 사내 DB 의 데이터를 **읽어서 복사**해 옵니다. 원본
 
 ### 7.1 접속 정보 등록(운영자)
 
-접속 비밀번호는 화면이나 DB 에 저장하지 않고 서버의 `.env` 에 둡니다. 원천 하나마다 이름 앞머리(PREFIX)를
+접속 비밀번호는 화면이나 DB 에 저장하지 않고 서버의 `app.env`(13절)에 둡니다. 원천 하나마다 이름 앞머리(PREFIX)를
 정해 다섯 줄을 추가합니다. 예를 들어 앞머리를 `ONTOBOT_SRC_FAC` 로 정했다면:
 
 ```ini
@@ -285,8 +294,7 @@ ONTOBOT_SRC_FAC_PASSWORD=비밀번호
 ```
 
 - 원천 DB 쪽에는 **읽기 전용 계정**을 만들어 주는 것을 권합니다.
-- `.env` 를 바꾼 뒤에는 서비스를 다시 시작합니다(15절).
-- 또는 파일로 둘 수도 있습니다: `file:C:\OntoBot\shared\secrets\facility.json`.
+- `app.env` 를 바꾼 뒤에는 반영 명령을 실행합니다(13절).
 
 ### 7.2 화면에서 연결·매핑(모델러)
 
@@ -309,7 +317,7 @@ ONTOBOT_SRC_FAC_PASSWORD=비밀번호
 | 표시 | 뜻 | 할 일 |
 | --- | --- | --- |
 | Neo4j 연결 ✓, 미반영 이벤트 0 | 정상 | 없음 |
-| 반영 지연 10분 초과 경고 | 워커가 밀려 있거나 멈춤 | `ontobot-worker` 서비스 상태 확인 |
+| 반영 지연 10분 초과 경고 | 워커가 밀려 있거나 멈춤 | 배포 콘솔 현황에서 worker 상태 확인 |
 | PostgreSQL 과 Neo4j 가 어긋난 항목 | 두 저장소 내용이 다름 | **지금 대사** 로 다시 확인, 계속되면 **재구축**(관리자) |
 | 참조 대상 없음 | 링크가 가리키는 객체가 원천에 없음 | 원천 데이터 확인(오류는 아님) |
 
@@ -336,7 +344,8 @@ Action(예: 위험등급 조정)이 실행되면 관련자에게 알림을 보�
 
 ### 8.1 설정 파일 고치기
 
-`C:\OntoBot\shared\notify.yaml` 을 메모장으로 엽니다. 처음에는 `channels: {}`(모두 꺼짐)입니다.
+WSL 안의 `/opt/ontobot/config/notify.yaml` 을 엽니다: `wsl -d ontobot -u root -- nano /opt/ontobot/config/notify.yaml`.
+처음에는 `channels: {}`(모두 꺼짐)입니다.
 예시(사내 SMTP + HTTP 방식 SMS 게이트웨이):
 
 ```yaml
@@ -360,12 +369,12 @@ channels:
     token_env: ONTOBOT_SMS_TOKEN
 ```
 
-- 비밀번호·토큰은 이 파일에 쓰지 않고 `.env` 에 `ONTOBOT_SMTP_PASSWORD=...` 처럼 넣은 뒤, 위처럼 **이름만**
+- 비밀번호·토큰은 이 파일에 쓰지 않고 `app.env` 에 `ONTOBOT_SMTP_PASSWORD=...` 처럼 넣은 뒤, 위처럼 **이름만**
   가리킵니다.
 - SMS 를 사내 발송 테이블(UMS 등)에 한 줄 넣는 방식이면 `adapter: sms_table` 을 씁니다.
   예시는 `notify.yaml` 의 주석에 있습니다.
 - **사내 주소만** 적으세요. 외부 인터넷 발송 서비스는 쓰지 않습니다.
-- 저장한 뒤 서비스를 다시 시작합니다: `Restart-Service ontobot-api, ontobot-worker`
+- 저장한 뒤 반영합니다: `wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart api worker"`
 
 ### 8.2 발송이 어떻게 이루어지나
 
@@ -380,95 +389,105 @@ channels:
 
 ## 9. 매일·매주 점검할 것
 
-### 9.1 매일(5분)
+### 9.1 매일(5분) — 배포 콘솔 **현황** 화면
 
-| 점검 | 방법 | 정상 |
-| --- | --- | --- |
-| 서비스 상태 | 설치에 쓴 번들 폴더에서 `.\install.ps1 -Mode Status`, 또는 어디서든 `Get-Service ontobot-*, neo4j-ontobot, postgresql*` | 모두 Running |
-| 준비 상태 | 브라우저에서 `http://<서버>:8000/readyz` | `ok` |
-| 동기화 | 데이터 소스 화면 → 매핑별 '마지막 성공' 시각 | 일정 주기 안에 성공 |
-| 그래프 반영 | 데이터 소스 화면 → 그래프 투영 | 미반영 이벤트 0 에 가깝고 지연 경고 없음 |
-| 알림 발송 실패 | Action 화면 → 전체 기록 → 발송 '실패' | 없음 |
+| 점검 | 정상 |
+| --- | --- |
+| 준비 상태 | **정상** |
+| 컨테이너 목록 | 모두 running, 건강 칸이 healthy(있는 것만) |
+| 마지막 백업 | 오늘 새벽 날짜 |
+| 디스크 여유 | 수십 GB 이상 |
+| OntoBot 데이터 소스 화면 | 매핑별 '마지막 성공'이 일정 주기 안, 그래프 투영 미반영 0 근처 |
+| OntoBot Action 화면 → 전체 기록 | 발송 '실패' 없음 |
 
-`/readyz` 의 세 가지 값:
+준비 상태의 뜻:
 
 | 값 | 뜻 | 사용자 영향 |
 | --- | --- | --- |
-| `ok` | 모두 정상 | 없음 |
-| `degraded` | Neo4j 만 안 됨 | 관계(링크)를 따라가는 질문만 실패, 나머지는 정상 |
-| `unavailable` (503) | PostgreSQL 이나 AI 모델이 안 됨 | 질문 대부분이 실패 |
-
-> 서비스 감시 도구에 연결할 때는 `/healthz` 를 쓰세요. `/readyz` 를 연결하면 DB 가 잠깐 끊긴 것만으로
-> 멀쩡한 서비스를 재시작해 버릴 수 있습니다.
+| 정상(`ok`) | 모두 정상 | 없음 |
+| 일부 저하(`degraded`) | Neo4j 만 안 됨 | 관계(링크)를 따라가는 질문만 실패 |
+| 사용 불가(`unavailable`) | PostgreSQL 이나 AI 모델이 안 됨 | 질문 대부분이 실패 |
+| 응답 없음 | api 컨테이너가 안 뜸 | 접속 불가 — 12절 |
 
 ### 9.2 매주
 
-- 디스크 여유 공간(로그·백업 폴더 크기) 확인.
-- 감사 로그에서 낯선 권한 변경·로그인 확인.
-- Action 화면에서 오래 **승인 대기**로 남은 요청을 승인자에게 알리기.
+- 디스크 여유 공간과 `C:\OntoBot\backups` 크기 확인.
+- 감사 로그에서 낯선 권한 변경·로그인, `deploy.*`(배포) 기록 확인.
+- 오래 **승인 대기**로 남은 Action 요청을 승인자에게 알리기.
 
-### 9.3 자동으로 도는 일(워커)
+### 9.3 자동으로 도는 일
 
 | 작업 | 주기 | 하는 일 |
 | --- | --- | --- |
 | 매핑 동기화 | 매핑에 적은 일정 | 원천 데이터 복사 |
 | 그래프 반영 | 계속 | 바뀐 관계를 Neo4j 에 반영 |
 | 그래프 대사 | 하루 한 번 | PostgreSQL 과 Neo4j 가 같은지 비교·보고 |
-| 보존 기간 정리 | 하루 한 번 | 오래된 대화·트레이스 삭제(13절 기본값). **감사 로그는 지우지 않음** |
+| 보존 기간 정리 | 하루 한 번 | 오래된 대화·트레이스 삭제(13절). **감사 로그는 지우지 않음** |
 | 알림 발송 | 계속 | 메일·SMS 보내기·재시도 |
+| **DB 백업** | 매일 02:30 | `backups/` 에 저장, `C:\OntoBot\backups` 로 복사, 최근 14개 보관 |
 
 ---
 
 ## 10. 백업
 
-- **업그레이드할 때는 자동으로 백업**됩니다(`C:\OntoBot\backups\`). 자동으로 지우지 않으니 보관 정책에 맞춰
-  다른 곳으로 옮기세요.
-- 평소 정기 백업은 자동으로 하지 않습니다. **PostgreSQL 만 정기적으로 백업하면 됩니다**(Neo4j 는 재구축 가능).
-  다음은 매일 밤 실행을 권하는 예시입니다(사내 백업 정책이 있으면 그것을 따르세요).
+- **매일 새벽 자동**으로 PostgreSQL 전체를 백업합니다(14개 보관 — 업그레이드 직전 백업은 지우지 않음).
+  복사본이 `C:\OntoBot\backups` 에 있으니 **서버 백업 체계(테이프·백업 서버)가 이 폴더를 가져가게** 하세요.
+- 업그레이드할 때마다 그 직전에도 자동 백업됩니다(되돌리기용).
+- 지금 바로 백업하려면 배포 콘솔 **현황 → 지금 백업**.
+- Neo4j 와 AI 모델은 백업하지 않습니다(다시 만들 수 있습니다).
+- 백업 파일에는 민감한 정보가 들어 있습니다. 접근을 관리자로 제한하세요.
 
-```powershell
-# 관리자 PowerShell. 아래 < > 값은 C:\OntoBot\shared\.env 에서 확인한다
-#   <DB 계정> = ONTOBOT_DB_USER (기본 ontobot), <DB 이름> = ONTOBOT_DB_NAME (기본 ontobot_db)
-$env:PGPASSWORD = "<ONTOBOT_DB_PASSWORD 값>"
-# pg_dump.exe 는 PostgreSQL 설치 폴더의 bin 아래에 있다(기본 C:\Program Files\PostgreSQL\18\bin)
-& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" -h localhost -U <DB 계정> -F c -f "D:\backup\ontobot_$(Get-Date -Format yyyyMMdd).dump" <DB 이름>
-Remove-Item Env:PGPASSWORD
-```
-
-복원이 필요하면 개발팀과 함께 `pg_restore` 로 되살립니다(되살린 뒤 Neo4j 는 7.3 의 재구축으로 다시 만듭니다).
-
-- `C:\OntoBot\shared\` 폴더(`.env`, `notify.yaml`)도 함께 안전한 곳에 복사해 두세요. 이 파일이 없으면 복구 뒤
-  DB 에 접속할 수 없습니다.
-- 백업 파일과 `.env` 에는 민감한 정보가 들어 있습니다. 접근을 관리자로 제한하세요.
+백업에서 되살리기는 데이터가 사라질 수 있는 작업이라 개발팀과 함께 합니다. 업그레이드 직후라면 11.3 의 **DB
+까지 복원** 롤백이 같은 일을 화면으로 해 줍니다.
 
 ---
 
-## 11. 업그레이드와 되돌리기
+## 11. 업그레이드와 되돌리기 — 배포 콘솔
 
-### 11.1 업그레이드
+브라우저에서 `http://<서버>:8100` 에 관리자 계정으로 로그인합니다. 화면 위 탭: **현황 · 번들 · 롤백 · 작업 기록**.
 
-1. 새 번들 폴더를 서버에 복사합니다.
-2. **사용자에게 미리 알립니다** — 업그레이드 중 몇 분간 접속이 끊깁니다.
-3. 관리자 PowerShell 에서 **새 번들 폴더**로 이동해 실행합니다.
+### 11.1 새 버전 꾸러미 넣기 (둘 중 하나)
 
-```powershell
-.\install.ps1 -Mode Upgrade
-```
+- **올리기**: 개발팀에게 받은 업그레이드용 zip(`ontobot-<버전>.zip`, 수백 MB)을 **번들 → 번들 올리기**에서
+  고릅니다. 진행률이 보이고, 끊기면 이어서 올립니다.
+- **반입 폴더**: 서버의 `C:\OntoBot-bundles` 에 zip(또는 폴더)을 복사해 두면 **번들 → 반입 폴더**에 보입니다.
+  **가져오기**를 누릅니다.
 
-자동으로 "새 버전 준비 → DB 백업 → 서비스 중지 → DB 표 갱신 → 새 버전으로 전환 → 시작 → 정상 확인"을 합니다.
-끝나면 4.4 의 확인을 다시 합니다.
+넣고 나면 자동으로 **사전 점검**을 합니다: 서명이 진짜인지, 파일이 손상되지 않았는지, 지금 버전과 비교, 디스크.
 
-### 11.2 문제가 있으면 되돌리기
+| 사전 점검 결과 | 뜻 |
+| --- | --- |
+| **통과** | 업그레이드할 수 있습니다 |
+| **막힘** + 이유 | 예: 서명이 맞지 않음(위조·손상), 이미 같은 버전, 디스크 부족, 개발용(.dirty) 번들. 개발팀에 문의 |
 
-```powershell
-.\install.ps1 -Mode Rollback                    # 프로그램만 이전 버전으로(데이터는 그대로)
-.\install.ps1 -Mode Rollback -RestoreDatabase   # 프로그램 + DB 를 업그레이드 직전 백업으로
-```
+### 11.2 업그레이드
 
-- 먼저 `-Mode Rollback` 만 해 봅니다. 그래도 오류가 나면 `-RestoreDatabase` 를 씁니다.
-- `-RestoreDatabase` 는 확인을 위해 `RESTORE` 를 입력하라고 합니다.
-- **경고:** DB 를 되돌리면 **업그레이드 뒤에 생긴 대화·Action·감사 기록이 모두 사라집니다.** 꼭 필요할 때만
-  쓰세요.
+1. **사용자에게 미리 알립니다** — 몇 분간 접속이 끊깁니다.
+2. 번들 목록에서 **업그레이드** → 확인 칸에 **대상 버전을 그대로 입력** → **실행**.
+3. **작업 기록** 화면으로 바뀌며 단계와 출력이 실시간으로 보입니다:
+   이미지 적재 → DB 백업 → 앱 중지 → 마이그레이션 → 새 버전 기동 → 준비 확인.
+4. 결과:
+   - **성공** — 4.4 의 1·2번 확인을 다시 합니다.
+   - **끝났으나 준비 확인 실패** — 새 버전이 떴지만 정상 확인을 못 함. **현황**을 보고, 이상하면 11.3 롤백.
+   - **실패** — 마이그레이션이 실패하면 콘솔이 **이전 버전으로 다시 띄웁니다**. 출력(로그 내려받기)을 개발팀에 보내세요.
+
+### 11.3 되돌리기(롤백)
+
+**롤백** 탭(업그레이드 직후에만 이전 버전이 보입니다):
+
+- **프로그램만 되돌리기**(기본) — 이전 버전으로 다시 띄웁니다. 데이터는 그대로.
+- **DB 까지 업그레이드 직전 백업으로 복원** — `RESTORE` 를 입력해야 실행됩니다.
+  **경고: 업그레이드 뒤에 생긴 대화·Action·감사 기록이 모두 사라집니다.** 프로그램만 되돌려 안 될 때만.
+
+### 11.4 배포 콘솔 갱신
+
+업그레이드 꾸러미에 새 배포 콘솔이 들어 있으면 **현황**에 "새 배포 콘솔이 준비되어 있습니다"와 **배포 콘솔 갱신**
+단추가 보입니다. 누르면 콘솔이 잠깐 다시 시작됩니다(다시 로그인). 새 콘솔이 정상으로 뜨지 않으면 자동으로 이전
+콘솔로 돌아갑니다.
+
+### 11.5 기록
+
+모든 작업은 **작업 기록**에 남고(누가·언제·무엇·결과·출력), OntoBot 감사 로그에도 `deploy.*` 로 남습니다.
 
 ---
 
@@ -478,89 +497,116 @@ Remove-Item Env:PGPASSWORD
 
 | 증상 | 가능한 원인 | 해결 |
 | --- | --- | --- |
-| 브라우저에서 접속이 안 됨 | `ontobot-api` 꺼짐, 방화벽 | `Get-Service ontobot-api` → 꺼져 있으면 `Start-Service ontobot-api`. 서버 안에서 `http://localhost:8000/healthz` 가 열리는지 확인. 열리면 방화벽 8000 포트 확인 |
-| 로그인이 안 됨 | 비밀번호 오류, 계정 정지 | 관리 화면에서 계정 상태 확인. 관리자 본인이면 6.2 의 서버 명령으로 새 관리자 계정을 만든다 |
-| 모든 질문이 "답변 모델에 연결하지 못해 실패" | Ollama 꺼짐 | `Restart-Service ontobot-ollama`. 그래도 안 되면 `logs\service\` 의 ollama 로그 확인 |
-| 관계 질문만 "관계 정보를 조회할 수 없습니다" | Neo4j 꺼짐 | `Restart-Service neo4j-ontobot`. 켜진 뒤 그래프 투영 패널에서 '지금 대사' |
+| 브라우저에서 접속이 안 됨(8000) | WSL·컨테이너가 안 뜸, 포트 전달 끊김 | 배포 콘솔(8100) 현황 확인. 콘솔도 안 되면 12.3 의 명령으로 상태 확인, 예약 작업 `OntoBot-Host` 를 작업 스케줄러에서 **실행** |
+| 재부팅 뒤 접속 안 됨 | 부팅 예약 작업 실패 | 작업 스케줄러 → `OntoBot-Host` 의 마지막 실행 결과 확인 → 수동 **실행** |
+| 로그인이 안 됨 | 비밀번호 오류, 계정 정지 | 관리 화면에서 계정 상태 확인. 관리자 본인이면 6.2 의 명령으로 새 관리자 계정 |
+| 모든 질문이 "답변 모델에 연결하지 못해 실패" | ollama 컨테이너 문제 | 12.3 의 `restart ollama` |
+| 관계 질문만 "관계 정보를 조회할 수 없습니다" | neo4j 컨테이너 문제 | 12.3 의 `restart neo4j` 뒤 그래프 투영 패널에서 '지금 대사' |
 | 모든 질문이 "조회 권한이 없는 정보입니다" | 역할별 읽기 권한 미설정 | 6.3 대로 권한 저장 |
 | "게시된 온톨로지가 없어 조회할 수 없습니다" | 온톨로지 미게시 | 모델러가 온톨로지 게시 |
-| 답이 예전 데이터 | 동기화 실패·워커 멈춤 | 데이터 소스 화면의 최근 실행 확인, `ontobot-worker` 상태 확인 |
-| 답이 매우 느림(수십 초) | 사용자 몰림, GPU 없음 | 3절·13절의 동시 사용 한도 참고. 사람이 많으면 실패보다 지연이 먼저 는다 |
-| Action 미리보기가 "발송 채널이 설정되지 않았습니다" | 메일·SMS 미설정 | 8절 설정 또는 그 Action 에서 메일·SMS 알림을 빼 달라고 모델러에게 요청 |
-| Action 발송이 계속 '실패' | 게이트웨이 주소·계정 오류 | `logs\worker.log` 에서 `notify` 검색, `notify.yaml`·`.env` 확인 후 서비스 재시작 |
-| 동기화 실패 "변환 실패" | 원천에 잘못된 값(예: 숫자 칸에 글자) | 실패 사유의 행을 원천에서 고치거나 매핑의 자료형 확인 |
+| 답이 예전 데이터 | 동기화 실패·worker 멈춤 | 데이터 소스 화면 최근 실행, 현황의 worker 상태 |
+| 답이 매우 느림 | 사용자 몰림, GPU 미사용 | 현황의 GPU 칸이 '없음'이면 개발팀 문의(드라이버·WSL GPU) |
+| Action 미리보기 "발송 채널이 설정되지 않았습니다" | 메일·SMS 미설정 | 8절 설정 |
+| Action 발송이 계속 '실패' | 게이트웨이 주소·계정 오류 | 12.2 의 worker 로그에서 `notify` 검색, `notify.yaml`·`app.env` 확인 |
+| 업그레이드 사전 점검 "서명이 맞지 않습니다" | 위조·손상·다른 키로 서명 | 쓰지 말고 개발팀에 문의(다시 받기) |
 
 ### 12.2 로그 보는 법
 
-- 위치: `C:\OntoBot\logs\api.log`(화면·질문), `worker.log`(동기화·발송·점검), `logs\service\`(서비스 시작 기록)
-- 한 줄이 하나의 기록(JSON)이고, 개인정보는 가려져 있습니다. 파일이 커지면 자동으로 나뉩니다.
-- 최근 오류만 보기:
+배포 콘솔의 **작업 기록**에는 배포 작업 출력이 있습니다. OntoBot 자체 로그는 관리자 PowerShell 에서:
 
 ```powershell
-Get-Content C:\OntoBot\logs\api.log -Tail 200 | Select-String '"ERROR"'
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose logs --tail 200 api"
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose logs --tail 200 worker"
 ```
 
-- 사용자가 특정 답이 이상하다고 하면, 그 대화 시각을 물어 **관리 → 트레이스**에서 확인하는 것이 빠릅니다.
+한 줄이 하나의 기록(JSON)이고 개인정보는 가려져 있습니다. 사용자가 특정 답이 이상하다고 하면 그 시각을 물어
+**관리 → 트레이스**에서 보는 것이 빠릅니다.
 
-### 12.3 서비스 다시 시작
+### 12.3 상태 확인·다시 시작 (관리자 PowerShell)
 
 ```powershell
-Restart-Service ontobot-api, ontobot-worker          # 설정(.env, notify.yaml)을 바꾼 뒤
-Restart-Service ontobot-ollama                       # AI 모델 문제
-Restart-Service neo4j-ontobot                        # 관계 저장소 문제
+wsl -d ontobot -u root -- ontobotctl status                                         # 버전·컨테이너·준비 상태
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart api worker"   # 설정을 바꾼 뒤
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart ollama"      # AI 모델 문제
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart neo4j"       # 관계 저장소 문제
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose -f compose.deployer.yaml restart"  # 배포 콘솔
 ```
 
-PostgreSQL 은 꼭 필요할 때만 재시작하세요(재시작하는 동안 모든 기능이 멈춥니다).
+`postgres` 는 꼭 필요할 때만 다시 시작하세요(그동안 모든 기능이 멈춥니다).
 
-### 12.4 개발팀에 문의할 때 보낼 것
+### 12.4 배포 콘솔이 안 될 때의 비상 경로
+
+배포 콘솔과 같은 일을 명령으로 할 수 있습니다(같은 절차를 씁니다).
+
+```powershell
+wsl -d ontobot -u root -- ontobotctl preflight /opt/ontobot/bundles/<번들 폴더>
+wsl -d ontobot -u root -- ontobotctl upgrade /opt/ontobot/bundles/<번들 폴더>
+wsl -d ontobot -u root -- ontobotctl rollback                 # 프로그램만
+wsl -d ontobot -u root -- ontobotctl rollback --restore-db    # DB 까지(RESTORE 를 묻는다)
+wsl -d ontobot -u root -- ontobotctl backup
+```
+
+번들을 WSL 로 옮기려면: `wsl -d ontobot -u root -- cp -a /mnt/c/OntoBot-bundles/<번들 폴더> /opt/ontobot/bundles/`
+
+### 12.5 개발팀에 문의할 때 보낼 것
 
 - 증상과 발생 시각, 사용자 아이디
-- `install.ps1 -Mode Status` 결과
-- 해당 시각 앞뒤의 `api.log`·`worker.log` 부분
-- (질문 관련이면) 트레이스 번호
+- 배포 콘솔 **현황** 화면(또는 `ontobotctl status` 출력)
+- 배포 문제면 **작업 기록 → 로그 내려받기** 파일
+- 앱 문제면 12.2 의 로그, 질문 관련이면 트레이스 번호
 
 ---
 
 ## 13. 설정 항목 모음
 
-설정은 `C:\OntoBot\shared\.env` 에 있습니다. 바꾼 뒤에는 `Restart-Service ontobot-api, ontobot-worker`.
+앱 설정은 WSL 안의 `/opt/ontobot/app.env` 입니다. 고치는 방법(관리자 PowerShell):
+
+```powershell
+wsl -d ontobot -u root -- nano /opt/ontobot/app.env        # 고치고 Ctrl+O 저장, Ctrl+X 나가기
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose up -d"   # 반영
+```
 
 | 항목 | 기본값 | 설명 |
 | --- | --- | --- |
-| `ONTOBOT_DB_POOL_SIZE` / `ONTOBOT_DB_MAX_OVERFLOW` | 20 / 10 | DB 연결 수. **두 값의 합이 동시에 답을 만들 수 있는 질문 수의 한도**입니다 |
-| `ONTOBOT_SESSION_TTL_HOURS` | 8 | 로그인이 유지되는 시간 |
+| `ONTOBOT_DB_POOL_SIZE` / `ONTOBOT_DB_MAX_OVERFLOW` | 20 / 10 | DB 연결 수. **두 값의 합이 동시에 답을 만들 수 있는 질문 수의 한도** |
+| `ONTOBOT_SESSION_TTL_HOURS` | 8 | 로그인 유지 시간 |
 | `ONTOBOT_COOKIE_SECURE` | false | HTTPS 를 쓰면 반드시 `true` |
-| `ONTOBOT_ALLOWED_ORIGINS` | 개발 주소 | 접속 주소 목록. 예: `["https://ontobot.corp.local"]` |
-| `ONTOBOT_LOCAL_AUTH_ENABLED` | true | 아이디·비밀번호 로그인 허용 여부(SSO 만 쓰려면 false) |
-| `ONTOBOT_OIDC_*` | 비어 있음 | 사내 SSO 설정(6.2) |
-| `ONTOBOT_GRADE2_ENABLED` | true | 일부만 근거가 확인된 답(등급 ②)을 보여 줄지 |
-| `ONTOBOT_RETENTION_TRACE_DAYS` | 90 | 질문 처리 기록(트레이스) 보관 일수. 0 이면 지우지 않음 |
-| `ONTOBOT_RETENTION_MESSAGE_DAYS` | 365 | 대화 내용 보관 일수 |
+| `ONTOBOT_ALLOWED_ORIGINS` | `["http://localhost:8000"]` | 접속 주소 목록. 예: `["https://ontobot.corp.local"]` |
+| `ONTOBOT_LOCAL_AUTH_ENABLED` | true | 아이디·비밀번호 로그인 허용(SSO 만 쓰려면 false — 단 배포 콘솔은 로컬 관리자 계정이 필요) |
+| `ONTOBOT_OIDC_*` | 비어 있음 | 사내 SSO(6.2) |
+| `ONTOBOT_GRADE2_ENABLED` | true | 일부만 근거가 확인된 답(등급 ②)을 보일지 |
+| `ONTOBOT_RETENTION_TRACE_DAYS` | 90 | 질문 처리 기록 보관 일수(0 = 지우지 않음) |
+| `ONTOBOT_RETENTION_MESSAGE_DAYS` | 365 | 대화 보관 일수 |
 | `ONTOBOT_RETENTION_UTTERANCE_DAYS` | 180 | 인터뷰 발언 보관 일수 |
-| `ONTOBOT_NOTIFY_CONFIG_PATH` | `shared\notify.yaml` | 메일·SMS 설정 파일 위치 |
-| `ONTOBOT_LOG_DIR` | `C:\OntoBot\logs` | 로그 폴더 |
+| `ONTOBOT_DEPLOYER_URL` | `http://localhost:8100` | 관리 화면의 '배포 콘솔 열기' 링크 — 실제 주소로 |
 
-**AI 모델 설정**(`C:\OntoBot\current\config\llm.yaml`)은 바꾸지 않는 것을 원칙으로 합니다. 모델을 바꾸면 답의
-정확도가 달라지므로, 개발팀이 평가(정답률·근거 확인)를 다시 통과시킨 버전으로만 바꿉니다.
+인프라 설정은 `/opt/ontobot/.env` 에 있습니다(자동 생성). 사람이 바꿀 만한 것: `ONTOBOT_DEPLOYER_ALLOW_CIDRS`
+(배포 콘솔 허용 대역), `ONTOBOT_BACKUP_KEEP`(백업 보관 개수), `ONTOBOT_NEO4J_HEAP`. 비밀번호 항목은 바꾸지 마세요.
 
-**용량 참고**(개발 PC, GPU 1장 기준 측정): 동시 8명일 때 응답 95%가 23초 안, 16명부터 분당 약 40건에서 더
-늘지 않음, 24명까지 실패 없음. 운영 서버에서는 다시 재 보길 권합니다(INSTALL.md 3절).
+**AI 모델 설정**(`/opt/ontobot/config/llm.yaml`)은 바꾸지 않는 것을 원칙으로 합니다. 모델을 바꾸면 정확도가
+달라지므로, 개발팀이 평가를 다시 통과시킨 버전으로만 바꿉니다.
+
+**용량 참고**(개발 PC, GPU 1장): 동시 8명일 때 응답 95%가 23초 안, 16명부터 분당 약 40건에서 포화, 24명까지 실패 없음.
 
 ---
 
 ## 14. 보안 수칙
 
-1. **HTTPS 적용**: 사내 역방향 프록시(IIS ARR 등)에서 HTTPS 를 처리하고 `.env` 에
-   `ONTOBOT_COOKIE_SECURE=true`, `ONTOBOT_ALLOWED_ORIGINS=["https://<주소>"]` 를 넣습니다.
-2. **방화벽**: 8000(또는 프록시 포트)만 엽니다. PostgreSQL(5432)·Neo4j·Ollama(11434)는 이 서버 안에서만 씁니다.
-3. **비밀번호 파일**: `shared\.env` 는 관리자·SYSTEM 만 읽게 되어 있습니다. 권한을 넓히지 마세요. 메일로
-   보내거나 공유 폴더에 두지 마세요.
-4. **퇴사·이동자**: 바로 계정을 정지하고 역할을 정리합니다(즉시 로그인이 끊김).
-5. **권한 최소화**: 업무에 필요한 데이터 종류만 읽게 합니다(6.3).
-6. **개인정보**: 개인정보 속성(이름·전화 등)은 로그·트레이스·알림 화면에서 가려집니다. 그래도 백업 파일에는
-   원본이 있으므로 백업 보관을 엄격히 합니다.
-7. **외부 연결 금지**: 메일·SMS 설정에 사내 주소 외에는 적지 않습니다.
-8. **감사 로그**: 지울 수 없게 되어 있습니다. 보관 의무 기간에 맞춰 백업을 장기 보관합니다.
+1. **HTTPS 적용**: 사내 역방향 프록시(IIS ARR 등)에서 HTTPS 를 처리하고 `app.env` 에
+   `ONTOBOT_COOKIE_SECURE=true`, `ONTOBOT_ALLOWED_ORIGINS=["https://<주소>"]`. 배포 콘솔도 프록시 뒤에 두고
+   `.env` 의 `ONTOBOT_DEPLOYER_COOKIE_SECURE=true`.
+2. **배포 콘솔은 관리자 PC 에서만**: 배포 콘솔은 서버 전체를 바꿀 수 있는 강한 권한입니다. 방화벽과
+   `ONTOBOT_DEPLOYER_ALLOW_CIDRS` 로 관리자 대역만 허용하세요. 로그인은 OntoBot 관리자 계정만 됩니다.
+3. **서명 키 관리**: 서버에는 공개키만 둡니다. 개인키(`.key`)는 배포 담당자가 오프라인으로 보관합니다. 서명이
+   맞지 않는 꾸러미는 설치되지 않습니다 — 이 검사를 끄지 마세요(`ONTOBOT_ALLOW_UNSIGNED`·`ONTOBOT_ALLOW_DIRTY` 는
+   개발 시험용).
+4. **방화벽**: 8000(사용자)·8100(관리자 대역)만 엽니다. 데이터베이스·AI 모델은 서버 안에서만 쓰입니다.
+5. **비밀번호 파일**: `/opt/ontobot/.env`·`app.env` 는 관리자만 읽게 되어 있습니다. 복사·공유하지 마세요.
+6. **퇴사·이동자**: 바로 계정을 정지하고 역할을 정리합니다(즉시 로그인이 끊김).
+7. **권한 최소화**: 업무에 필요한 데이터 종류만 읽게 합니다(6.3).
+8. **개인정보**: 화면·로그·트레이스에서는 가려지지만 백업 파일에는 원본이 있으니 백업 보관을 엄격히 합니다.
+9. **외부 연결 금지**: 메일·SMS 설정에 사내 주소 외에는 적지 않습니다.
+10. **감사 로그**: 지울 수 없게 되어 있습니다. 보관 의무 기간에 맞춰 백업을 장기 보관합니다.
 
 ---
 
@@ -569,33 +615,27 @@ PostgreSQL 은 꼭 필요할 때만 재시작하세요(재시작하는 동안 �
 모두 **관리자 PowerShell** 에서 실행합니다.
 
 ```powershell
-# 상태 확인(번들 폴더 또는 설치한 번들에서)
-.\install.ps1 -Mode Status
+# 상태(버전·컨테이너·준비 상태)
+wsl -d ontobot -u root -- ontobotctl status
 
-# 서비스 목록
-Get-Service ontobot-*, neo4j-ontobot, postgresql*
+# 다시 시작
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart api worker"
 
-# 서비스 재시작
-Restart-Service ontobot-api, ontobot-worker
-
-# 관리자 계정 새로 만들기(화면에 들어갈 수 없을 때)
-cd C:\OntoBot\current\backend
-.\.venv\Scripts\python.exe -m ontobot.security.cli create-user --username admin2 --display-name "관리자2" --role admin --role modeler
+# 관리자 계정 새로 만들기(화면에 들어갈 수 없을 때 — 비밀번호를 묻는다)
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -it migrate python -m ontobot.security.cli create-user --username admin2 --display-name 관리자2 --role admin --role modeler"
 
 # 역할에 데이터 종류 읽기 권한 주기(화면 대신)
-.\.venv\Scripts\python.exe -m ontobot.security.cli grant-type --role user --type Facility
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm migrate python -m ontobot.security.cli grant-type --role user --type Facility"
 
 # 관계 저장소 비교·재구축(화면의 '지금 대사'·'재구축'과 같음)
-cd C:\OntoBot\current
-.\backend\.venv\Scripts\python.exe scripts\graph_rebuild.py --check   # 비교만
-.\backend\.venv\Scripts\python.exe scripts\graph_rebuild.py           # 재구축
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -w /app migrate python scripts/graph_rebuild.py --check"
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -w /app migrate python scripts/graph_rebuild.py"
 
-# 업그레이드·되돌리기(새 번들 폴더에서)
-.\install.ps1 -Mode Upgrade
-.\install.ps1 -Mode Rollback
-.\install.ps1 -Mode Rollback -RestoreDatabase
+# 백업·업그레이드·되돌리기(배포 콘솔이 안 될 때)
+wsl -d ontobot -u root -- ontobotctl backup
+wsl -d ontobot -u root -- ontobotctl upgrade /opt/ontobot/bundles/<번들 폴더>
+wsl -d ontobot -u root -- ontobotctl rollback
 
-# 최근 오류 로그
-Get-Content C:\OntoBot\logs\api.log -Tail 200 | Select-String '"ERROR"'
-Get-Content C:\OntoBot\logs\worker.log -Tail 200 | Select-String '"ERROR"'
+# 로그
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose logs --tail 200 api worker"
 ```

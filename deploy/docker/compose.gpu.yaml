@@ -1,0 +1,10 @@
+# GPU 가 있으면 ontobotctl 이 compose.yaml 위에 겹친다(nvidia 런타임이 있을 때만). GPU 가 없으면 CPU 로 돈다(느리다).
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

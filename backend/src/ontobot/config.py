@@ -89,6 +89,8 @@ class Settings(BaseSettings):
     # 프론트 빌드 산출물(frontend/dist). 설치본은 API 가 같은 오리진에서 서빙한다.
     # 개발은 비운다(Vite 가 서빙).
     frontend_dist: Path | None = None
+    # 배포 콘솔 주소(ADR-0014) — 관리 화면에 링크만 보인다. 비우면 링크를 숨긴다.
+    deployer_url: str = ""
 
     # 보존 기간(일, TRD 9.3). 0 이면 지우지 않는다. 만료분은 워커가 매일 지운다(tracing.retention).
     # 감사 로그는 DB 트리거로 추가 전용이라 여기서 지우지 않는다 — 보관·이관은 운영 절차(P1)다.
@@ -133,3 +135,9 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+def app_version() -> str:
+    """설치된 버전 — 이미지 빌드가 저장소 루트에 남긴 VERSION. 개발 체크아웃은 "dev"."""
+    f = _REPO_ROOT / "VERSION"
+    return f.read_text(encoding="utf-8").strip() if f.is_file() else "dev"

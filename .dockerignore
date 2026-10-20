@@ -1,0 +1,23 @@
+# 이미지에 넣지 않는 것 — 비밀값·가상환경·빌드 산출물·로그·문서(ADR-0013)
+.git
+.github
+.claude
+.env
+.env.*
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.import_linter_cache
+**/node_modules
+frontend/dist
+frontend/dist-deploy
+dist
+deploy/offline/out
+logs
+docs
+backend/tests
+deployer/tests
+*.swp

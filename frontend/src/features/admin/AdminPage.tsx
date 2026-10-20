@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type {
   AuditLogOut,
   RoleOut,
+  SystemOut,
   TraceOut,
   TypeOut,
   UserCreate,
@@ -23,6 +24,7 @@ export function AdminPage() {
   return (
     <section className="stack">
       <h1>{t.title}</h1>
+      <SystemCard />
       <nav className="row" role="tablist">
         {(Object.keys(t.tabs) as Tab[]).map((k) => (
           <button
@@ -42,6 +44,29 @@ export function AdminPage() {
       {tab === "audit" && <AuditPanel />}
       {tab === "trace" && <TracePanel />}
     </section>
+  );
+}
+
+/** 지금 버전과 배포 콘솔 링크. 배포(업그레이드·롤백·백업)는 앱 밖의 배포 콘솔이 한다(ADR-0014). */
+function SystemCard() {
+  const sys = useQuery({ queryKey: ["admin", "system"], queryFn: () => api.get<SystemOut>("/admin/system") });
+  if (!sys.data) {
+    return null;
+  }
+  return (
+    <div className="card row">
+      <span>
+        {t.version}: <code>{sys.data.version}</code>
+      </span>
+      <span className="spacer" />
+      {sys.data.deployer_url ? (
+        <a href={sys.data.deployer_url} target="_blank" rel="noreferrer">
+          {t.deployerOpen}
+        </a>
+      ) : (
+        <span className="muted">{t.deployerNone}</span>
+      )}
+    </div>
   );
 }
 

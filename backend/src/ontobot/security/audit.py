@@ -46,6 +46,18 @@ ACTION_EXECUTED = "action.executed"
 ACTION_REJECTED = "action.rejected"
 ACTION_FAILED = "action.failed"
 ACTION_ROLLED_BACK = "action.rolled_back"
+# 배포 콘솔(ADR-0014)이 작업이 끝난 뒤 `security.cli audit-deploy` 로 남긴다.
+DEPLOY_EVENTS = frozenset(
+    {
+        "deploy.bundle_imported",
+        "deploy.upgrade",
+        "deploy.rollback",
+        "deploy.backup",
+        "deploy.deployer_update",
+        "deploy.login",
+        "deploy.login_failed",
+    }
+)
 
 
 def record(

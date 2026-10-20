@@ -5038,6 +5038,31 @@
         "title": "SyncRunOut",
         "type": "object"
       },
+      "SystemOut": {
+        "properties": {
+          "deployer_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deployer Url"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "deployer_url"
+        ],
+        "title": "SystemOut",
+        "type": "object"
+      },
       "TestResult": {
         "properties": {
           "error": {
@@ -6211,6 +6236,28 @@
           }
         },
         "summary": "Set Permissions",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/system": {
+      "get": {
+        "description": "지금 버전(이미지의 VERSION)과 배포 콘솔 주소 — 배포는 앱 밖의 콘솔이 한다(ADR-0014).",
+        "operationId": "system_api_v1_admin_system_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "System",
         "tags": [
           "admin"
         ]

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
+from ontobot.config import app_version, get_settings
 from ontobot.db.models.chat import Trace
 from ontobot.ontology import registry
 from ontobot.security import admin, audit
@@ -149,6 +150,17 @@ async def set_contacts(user_id: int, body: ContactsIn, db: Db, me: Admin) -> Use
 class TypeOut(BaseModel):
     api_name: str
     display_name: str
+
+
+class SystemOut(BaseModel):
+    version: str
+    deployer_url: str | None
+
+
+@router.get("/admin/system", response_model=SystemOut)
+async def system(_: Admin) -> SystemOut:
+    """지금 버전(이미지의 VERSION)과 배포 콘솔 주소 — 배포는 앱 밖의 콘솔이 한다(ADR-0014)."""
+    return SystemOut(version=app_version(), deployer_url=get_settings().deployer_url or None)
 
 
 @router.get("/admin/object-types", response_model=list[TypeOut])

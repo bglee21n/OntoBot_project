@@ -192,6 +192,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/system": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System
+         * @description 지금 버전(이미지의 VERSION)과 배포 콘솔 주소 — 배포는 앱 밖의 콘솔이 한다(ADR-0014).
+         */
+        get: operations["system_api_v1_admin_system_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -2877,6 +2897,13 @@ export interface components {
             /** Watermark */
             watermark: string | null;
         };
+        /** SystemOut */
+        SystemOut: {
+            /** Deployer Url */
+            deployer_url: string | null;
+            /** Version */
+            version: string;
+        };
         /** TestResult */
         TestResult: {
             /** Error */
@@ -3402,6 +3429,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    system_api_v1_admin_system_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemOut"];
                 };
             };
         };

@@ -3,6 +3,7 @@
     uv run python -m ontobot.security.cli create-user --username alice --display-name 앨리스 \\
         --role modeler --role user
     uv run python -m ontobot.security.cli grant-type --role user --type Facility
+    python -m ontobot.security.cli audit-deploy --event deploy.upgrade --actor-id 3 --payload '{}'
 
 비밀번호는 인자로 받지 않는다(셸 기록·프로세스 목록에 남는다). 대화형 입력을 쓰고,
 자동화에는 ``ONTOBOT_NEW_PASSWORD`` 환경변수를 쓴다.
@@ -13,6 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import getpass
+import json
 import os
 import sys
 
@@ -92,6 +94,18 @@ async def grant_type(role_name: str, object_type: str) -> None:
         print(f"읽기 권한 부여: {role_name} → {object_type}")
 
 
+async def audit_deploy(event: str, actor_id: int | None, payload: str) -> None:
+    """배포 콘솔의 작업 결과를 감사 로그에(ADR-0014). 이벤트 이름은 정해진 것만."""
+    if event not in audit.DEPLOY_EVENTS:
+        sys.exit(f"알 수 없는 배포 이벤트: {event}")
+    data = json.loads(payload) if payload else {}
+    if not isinstance(data, dict):
+        sys.exit("payload 는 JSON 객체여야 합니다")
+    async with session_scope() as db:
+        audit.record(db, event, actor_id=actor_id, target="deployment", payload=data)
+        await db.commit()
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="ontobot.security.cli")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -102,12 +116,18 @@ def main(argv: list[str] | None = None) -> None:
     gt = sub.add_parser("grant-type", help="역할에 객체 타입 읽기 권한 부여")
     gt.add_argument("--role", required=True)
     gt.add_argument("--type", required=True, dest="object_type")
+    ad = sub.add_parser("audit-deploy", help="배포 콘솔 작업을 감사 로그에 남김")
+    ad.add_argument("--event", required=True)
+    ad.add_argument("--actor-id", type=int, default=None)
+    ad.add_argument("--payload", default="{}")
     args = parser.parse_args(argv)
 
     async def run() -> None:
         try:
             if args.cmd == "create-user":
                 await create_user(args.username, args.display_name, args.roles)
+            elif args.cmd == "audit-deploy":
+                await audit_deploy(args.event, args.actor_id, args.payload)
             else:
                 await grant_type(args.role, args.object_type)
         finally:

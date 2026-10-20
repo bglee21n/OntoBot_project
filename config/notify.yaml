@@ -4,7 +4,7 @@
 #   앱 안 알림은 설정 없이 언제나 된다.
 # - 비밀값은 이 파일에 적지 않는다 — 환경변수 이름(*_env)이나 시크릿 참조(secret_ref: env:PREFIX)만 적는다.
 # - 사내 게이트웨이 주소만 적는다. 외부 인터넷 발송 서비스를 적지 말 것(폐쇄망 전제, CLAUDE.md).
-# - 설치본은 shared\notify.yaml 을 쓴다(ONTOBOT_NOTIFY_CONFIG_PATH, install.ps1 이 견본을 복사).
+# - 설치본(컨테이너)은 /opt/ontobot/config/notify.yaml 을 쓴다(ontobotctl install 이 이미지의 견본을 꺼내 둔다).
 
 max_recipients: 50   # 실행 한 번에 채널별 수신자 상한
 max_attempts: 5      # 발송 재시도 상한(넘으면 failed — 실행 기록에 보인다)

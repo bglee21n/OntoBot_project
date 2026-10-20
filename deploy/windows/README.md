@@ -1,7 +1,22 @@
-# Windows 네이티브 설치 (Docker 미사용 — ADR-0007)
+# 개발 PC 구성 (Windows)
 
-운영 설치(오프라인 번들·`install.ps1`·WinSW 서비스)는 [INSTALL.md](../INSTALL.md)와 ADR-0010 이 정본이다.
-여기는 **개발 PC 구성**만 적는다.
+운영 설치는 WSL2 + Docker(ADR-0013, [INSTALL.md](../INSTALL.md))다. 이 폴더의 `install-host.ps1` 은 운영 서버의
+호스트 준비 스크립트다. 아래는 **개발 PC** 구성이다.
+
+## 컨테이너(통합 테스트·평가·설치 시험) — 2026-10-20 전환
+
+Docker Desktop(WSL2 백엔드). 통합 테스트와 평가는 더 이상 아래 네이티브 테스트 DB·Neo4j 를 쓰지 않는다 —
+`task.py test-int`·`eval-prepare` 가 `deploy/docker/compose.test.yaml`(PostgreSQL 55432·Neo4j 57687)을 띄운다.
+
+```powershell
+uv run --project backend python scripts/task.py test-int    # 컨테이너가 없으면 띄운다
+uv run --project backend python scripts/task.py test-down   # 다 쓰면 지운다
+```
+
+설치 절차 시험은 Docker Desktop VM 의 `/opt/ontobot-trial` 에 번들을 복사하고 배포 콘솔 이미지 안에서
+`ontobotctl install` 을 돌린다(INSTALL.md 5절).
+
+## 네이티브 개발 DB (그대로 써도 된다)
 
 ## 개발 PC (2026-10-20 설치 완료)
 
@@ -31,13 +46,7 @@
   키는 위쪽 원래 줄을 주석 처리했다(`server.https.enabled`, `server.windows_service_name`).
 - 비밀번호는 첫 기동 전에 `neo4j-admin dbms set-initial-password`로 정했고 `.env`에만 있다.
   첫 기동 뒤에는 이 명령이 효과가 없다 — 바꾸려면 `ALTER CURRENT USER SET PASSWORD`를 쓴다.
-- 테스트 인스턴스는 수동 시작이다. 통합 테스트 전에 켠다.
-
-```powershell
-Get-Service neo4j-ontobot-*            # 상태
-Start-Service neo4j-ontobot-test       # 통합 테스트 전
-uv run --project backend python scripts/task.py test-int
-```
+- 테스트 인스턴스(7688)·`ontobot_test` 는 컨테이너 전환(ADR-0013) 뒤 쓰지 않는다 — 지워도 된다.
 
 ### 개발용 원천 DB
 

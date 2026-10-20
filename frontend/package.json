@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:deploy": "vite --config vite.deploy.config.ts",
     "build": "tsc -b && vite build",
+    "build:deploy": "tsc -b && vite build --config vite.deploy.config.ts",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview",

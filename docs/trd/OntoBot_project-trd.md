@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.15                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.16                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -35,7 +35,7 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 8. write-back          | 하지 않음                                             | 하면 `actions/`에 원천 쓰기 어댑터 추가    |
 | (추가) Action 부수효과 | **앱 안 알림·메일·SMS** — 사내 SMTP 릴레이·SMS 게이트웨이로만 (사용자 결정, 17.1) | 다른 외부 호출이 필요하면 `notify/channels/` 어댑터 추가 |
 | (추가) 폐쇄망 여부     | `ONTOBOT_CLOSED_NETWORK`(기본 `true`) — 외부 서버를 부르는 화면 기능(음성 입력)을 끈다 (사용자 결정, 17.1) | SaaS 면 `false` |
-| (추가) 설치 수단       | **Docker 미사용 — Windows Server 네이티브 설치** (사용자 결정, ADR-0007) | Linux 지원이 필요하면 설치 스크립트 추가 |
+| (추가) 설치 수단       | **Windows Server 2022+ 의 WSL2 + Docker Engine 컨테이너**, 배포는 화면(배포 콘솔) (사용자 결정, ADR-0013·0014 — ADR-0007 대체) | Linux 서버면 호스트 준비 스크립트만 바뀐다 |
 
 ## 3. 기술 스택
 
@@ -54,9 +54,9 @@ PRD 10절에서 아직 확정되지 않은 항목은 아래 가정으로 설계�
 | 프론트엔드       | React + TypeScript + Vite, TanStack Query, React Router                            | 상태가 많은 편집·검토 화면             |
 | API 타입         | OpenAPI → `openapi-typescript`로 프론트 타입 생성                                  | 백엔드·프론트 스키마 일치              |
 | 정적 분석        | ruff, mypy, import-linter / eslint, tsc                                            | 16절 의존 규칙 강제                    |
-| 테스트           | pytest, pytest-asyncio, 로컬 설치 PostgreSQL·Neo4j의 테스트 전용 DB·인스턴스       | 19절                                   |
+| 테스트           | pytest, pytest-asyncio, 운영과 같은 이미지의 PostgreSQL·Neo4j 컨테이너(`compose.test.yaml`) | 19절                                   |
 | 관측성           | JSON 구조화 로그 + DB `trace` 테이블                                               | 외부 APM 의존 없음(폐쇄망)             |
-| 패키징           | Windows Server 네이티브 설치 + 오프라인 번들(uv·CPython 3.12, 해시 고정 wheelhouse, 프론트 빌드 산출물, PostgreSQL·pgvector·Neo4j·JRE·Ollama 설치본과 모델, 설치 스크립트, SHA-256 manifest). api·worker·Ollama 는 WinSW 2.12 로 Windows 서비스 등록, 릴리스 폴더 + `current` 정션으로 업그레이드·롤백(ADR-0010). **Docker는 쓰지 않는다**(ADR-0007) | 폐쇄망 설치, 운영 대상 최소화 |
+| 패키징           | 컨테이너 이미지(앱 하나 — api·worker·migrate, 배포 콘솔) + 제3자 이미지(pgvector·Neo4j·Ollama, `images.lock` 다이제스트 고정) + Ollama 모델을 `docker save` 한 **서명된 오프라인 번들**(Ed25519 `SHA256SUMS.sig`). 운영은 WSL2 배포판 안의 Docker Engine + compose, 절차의 정본은 `ontobotctl`, 업그레이드·롤백·백업은 배포 콘솔 화면(ADR-0013·0014). WinSW·릴리스 폴더 방식(ADR-0010)은 대체됨 | 폐쇄망 설치, 운영 대상 최소화, 화면 배포 |
 
 ## 4. 시스템 아키텍처
 
@@ -482,7 +482,7 @@ class LLMGateway:
 | 구분   | 요구사항                                                                                                                                                                    |
 | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 성능   | 단계별 지연을 `trace.stage_latency_ms`에 남긴다. PRD 7절 P95 목표가 정해지면 13절 게이트에 넣는다. 타임아웃 기본값: SQL 10초, Cypher 5초, LLM은 역할별 설정. 채팅 한 건은 답이 끝날 때까지 DB 연결 하나를 쥐므로 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`, 기본 20+10)이 API 프로세스의 동시 채팅 상한이다. 부하 측정은 `scripts/load_test.py`, 수치는 ADR-0011 |
-| 폐쇄망 | 실행 중 외부 네트워크를 호출하지 않는다(외부 LLM 공급자를 켠 SaaS 배포는 예외). 프론트 자산은 빌드에 포함하고 CDN을 쓰지 않는다 — 설치본은 API 가 `ONTOBOT_FRONTEND_DIST` 를 같은 오리진에서 서빙한다(화면 경로는 `index.html` 로 되돌림, `/api/`·`/healthz`·`/readyz` 는 되돌리지 않는다). 오프라인 번들로 설치한다(설치 중 네트워크 없음: `uv pip install --offline --no-index`) |
+| 폐쇄망 | 실행 중 외부 네트워크를 호출하지 않는다(외부 LLM 공급자를 켠 SaaS 배포는 예외). 프론트 자산은 빌드에 포함하고 CDN을 쓰지 않는다 — 설치본은 API 가 `ONTOBOT_FRONTEND_DIST` 를 같은 오리진에서 서빙한다(화면 경로는 `index.html` 로 되돌림, `/api/`·`/healthz`·`/readyz` 는 되돌리지 않는다). 오프라인 번들로 설치한다(설치 중 네트워크 없음: 이미지는 `docker load`, 레지스트리 없음 — ADR-0013) |
 | 가용성 | MVP는 단일 노드(api 1 + worker 1 + PostgreSQL + Neo4j). 워커는 `SKIP LOCKED`로 수평 확장이 가능한 구조로 만든다. `/healthz`(프로세스 — 재시작 판단은 이것만), `/readyz`(PostgreSQL `SELECT 1`·Neo4j 접속·LLM: Ollama 는 `/api/tags` 로 역할 모델 설치 여부, 외부 공급자는 호출하지 않고 키 설정만. 구성 요소마다 3초 상한, 동시에 본다). `/readyz` 판정: PG 또는 LLM 이 안 되면 `unavailable`(503), Neo4j 만 안 되면 `degraded`(200 — 탐색 질의만 `graph_unavailable`), 모두 되면 `ok`. 인증 없이 열리므로 구성 요소 상태와 오류 종류만 싣는다. 매일 대사(`graph_reconcile`)·보존 기간 정리는 워커가 하루 한 번 발행한다 |
 | 로깅   | JSON 한 줄 로그, 요청 ID 전파, PII 마스킹, 회전                                                                                                                             |
 | 언어   | UI·안내 문구는 한국어 우선, 문구는 한 파일(`chat/templates.py`, 프론트 `i18n/ko`)에 모은다                                                                                  |
@@ -596,15 +596,19 @@ OntoBot_project/
 │       └── i18n/ko/
 ├── domain-packs/
 │   └── sample/                     # ontology.yaml mappings.yaml golden.yaml seed/(CSV)
+├── deployer/                       # 배포 콘솔(ADR-0014) — ontobot 을 import 하지 않는 별도 파이썬 프로젝트
 ├── deploy/
-│   ├── windows/                    # 설치 스크립트(PowerShell) · 서비스 등록 · INSTALL.md
-│   ├── offline/                    # build_bundle.ps1 (uv·Python · wheelhouse · 프론트 빌드 · DB 설치본)
+│   ├── docker/                     # app·deployer Dockerfile · compose(운영·gpu·deployer·test·dev) · images.lock · ontobotctl · postgres-init · systemd
+│   ├── windows/                    # install-host.ps1(WSL2·Docker 호스트 준비, 최초 1회)
+│   ├── INSTALL.md
 │   └── env.example
 ├── scripts/
 │   ├── seed_domain_pack.py
 │   ├── export_openapi.py           # 프론트 타입 생성 입력
 │   ├── run_eval.py
-│   └── graph_rebuild.py
+│   ├── graph_rebuild.py
+│   ├── build_bundle.py             # 이미지·모델·스택 → 서명 번들(ADR-0013)
+│   └── bundle_sign.py              # Ed25519 키·서명·확인
 ├── Makefile
 └── README.md
 ```
@@ -738,7 +742,8 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 층          | 대상                                                                                                                                       | 비고                                         |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
 | 단위        | 근거 대조 규칙(정규화·사실 문장·등급), QueryPlan 검증, 컴파일러(값이 언제나 바인드로 나가는지), RBAC, PII 토큰화 왕복, 근거 발언 정확 포함 | `grounding`은 순수 함수라 픽스처만으로 검증  |
-| 통합        | 로컬 설치 PostgreSQL(테스트 전용 DB `ontobot_test`, 원천 역할 `ontobot_source_test`) + Neo4j(테스트 전용 인스턴스 — Community는 사용자 DB가 하나뿐이라 개발 그래프와 분리한다): 동기화 → 아웃박스 → 투영, 그래프 재구축·대사, 탐색 질의 | CI도 Docker 없이 러너에 직접 설치한다 |
+| 통합        | `deploy/docker/compose.test.yaml` 의 PostgreSQL(pgvector, builtin `C.UTF-8` 정렬 — DB `ontobot_test`·`ontobot_source_test`·`ontobot_eval`) + Neo4j(테스트 전용 컨테이너): 동기화 → 아웃박스 → 투영, 그래프 재구축·대사, 탐색 질의 | `task.py test-int` 가 띄운다. CI 는 ubuntu 러너 + 같은 compose, 이미지 빌드·스모크 잡 |
+| 배포        | 배포 콘솔(인증·zip 안전 해제·작업 기록·API 규칙, 가짜 ontobotctl), ontobotctl shellcheck, 번들 왕복(서명 → 설치 → 업그레이드 → 롤백) | ADR-0013·0014 |
 | 계약        | SSE 이벤트 순서·스키마, OpenAPI 스냅샷                                                                                                     | 프론트 타입 생성과 함께 깨지면 알 수 있게    |
 | 권한 침투   | 역할별 문항: 읽을 수 없는 타입을 대상·필터·탐색 경로로 묻기, 데이터 값 속 지시문                                                           | `golden_item.test_role`·`forbidden_values`   |
 | 장애        | 실행기 오류·타임아웃·Neo4j 중단 시 `failed`로 나가는지                                                                                     | `golden_item.fault`                          |
@@ -766,7 +771,9 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 0004 | 플래너 구조화 출력                 | 로컬 소형 모델의 JSON 실패율을 골든셋으로 측정해, `plan_invalid` 비율이 임계를 넘으면 모델 상향                      |
 | 0005 | IdP                                | OIDC 기본. 사내가 LDAP/AD뿐이면 LDAP 어댑터 추가                                                                     |
 | 0006 | 답변 본문 비스트리밍(검증 후 전송) | 체감 지연이 문제 되면 "검증 중" 표시와 함께 스트리밍 후 교체 방식 검토                                               |
-| 0007 | Docker 미사용, Windows Server 네이티브 | 서비스 등록·업그레이드·롤백을 설치 스크립트가 맡는다. Linux 운영이 필요해지면 systemd 설치 스크립트를 추가한다 |
+| 0007 | (대체됨 → 0013) Docker 미사용 | — |
+| 0013 | Docker(WSL2) 전환 | Windows Server 2022+ WSL2 + Docker Engine, 서명 이미지 번들, ontobotctl. 대상 OS 0단계 점검(WSL 오프라인·GPU·재부팅·포트)이 실패하면 Linux 서버 또는 Ollama 호스트 설치로 재검토 |
+| 0014 | 배포 콘솔 | 앱과 독립된 컨테이너(docker.sock — 관리자 대역·관리자 계정만), 서명 필수, 사전 점검 + 버전 재입력. 이중화·SSO 전용이 되면 재검토 |
 | 0008 | 인터뷰 워크숍 면담자·추출기 | 다음 질문은 상태기계, LLM 은 평가·되묻기·추출만. gemma4:e4b(대본 7/8, p50 2.1초). 프롬프트·추출 스키마를 바꾸거나 실제 인터뷰 기록이 생기면 다시 잰다 |
 | 0009 | 평가 게이트 | 운영 파이프라인 인프로세스 + 실행기 주입 장애, PR 은 녹화 응답(놓침 = 실패), 실제 모델 게이트는 모델·프롬프트 변경 때 로컬에서 녹화와 함께. 가안 수치는 PRD 7절이 정해지면 고친다 |
 | 0012 | Action 실행·메일·SMS 발송 | 승인 = 실행(한 트랜잭션 재검증, 실패는 `failed` 기록), 발송은 아웃박스를 커밋 뒤 워커가 최소 한 번, 채널 미설정 = 미리보기에서 막힘. 게이트웨이가 요청 ID 중복 제거를 지원하면 "한 번" 발송으로 |
@@ -780,6 +787,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.15 | 2026-10-20 | Phase 11 구현 반영 — 17.3 채팅에서 Action: 플래너 `kind: action`·`ActionProposal`, 요청할 수 있는 Action 만 요약에, 대상·값 대조 규칙(질문·맥락에 그대로, pk → 제목 정확 일치, 후보), 재계획 뒤 확인 사항, 채팅 API 가 미리보기 기록(`origin=chat`). 7.3 상태 `action_preview`, 14.2 SSE `action_preview`, 13.1·13.2 지표 `action_param_accuracy`(가안·optional)·`action_fabrications`(불변식) |
 | v0.14 | 2026-10-20 | Phase 10 구현 반영(ADR-0012) — 17.2 Action 실행: `action_type`·`action_run`·`notification`·`notification_delivery` 표, `app_user` 연락처, 정의 모양과 게시 전 검사, 미리보기 → 승인 = 실행(재검증) → 롤백(정정 발송) 흐름, 권한 판정, 발송 아웃박스(최소 한 번·재시도·채널 꺼짐 = 막힘), API·감사 이벤트. 17.1-4 의 아웃박스 표 이름을 `notification_delivery` 로 정정 |
 | v0.13 | 2026-10-20 | Phase 9 구현 반영 — 편집 레이어 덮어 읽기(reader 파생 행, 조회 조건·집계·참조 대조 모두), 충돌 판정 규칙·편집당 살아 있는 충돌 하나, 재편집·해제 규칙, 값 계보, 객체·충돌·편집 해제 API, 감사 이벤트 2종, Action 변경 금지에 제목 속성 추가(17.1-3) |

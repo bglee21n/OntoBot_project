@@ -18,15 +18,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 운영 전제
 
-- **폐쇄망 온프레미스(Windows Server)가 기본, Docker 를 쓰지 않는다**(ADR-0007). 개발·CI·운영 모두 네이티브 설치.
+- **폐쇄망 온프레미스 — Windows Server 2022+ 의 WSL2 배포판 안 Docker Engine 으로 돈다**(ADR-0013, ADR-0007 대체).
+  설치본은 서명된 이미지 번들(`scripts/build_bundle.py`), 절차의 정본은 `deploy/docker/ontobotctl`, 업그레이드·롤백·
+  백업은 배포 콘솔(`deployer/`, ADR-0014) 화면으로. 통합 테스트·평가·CI 도 같은 이미지의 컨테이너를 쓴다.
   실행 중 외부 네트워크를 호출하는 코드를 넣지 않는다(예외는 외부 LLM 공급자와, v1 Phase 10 부터 운영자가 설정한
   사내 메일·SMS 게이트웨이뿐 — TRD 17.1-4). 외부 서버를 부르는 화면 기능(음성 입력)은 `ONTOBOT_CLOSED_NETWORK` 면 끈다.
 - LLM 은 로컬 Ollama. 역할별 모델은 [config/llm.yaml](config/llm.yaml) 에만 적는다(코드에 모델 ID 금지).
   planner·answerer 기본값 `gemma4:e4b` 는 ADR-0004 의 측정 결과다 — 바꾸려면 다시 잰다.
 - 저장소: PostgreSQL 이 **기록의 원본**, Neo4j Community 는 링크 **투영**(언제든 PostgreSQL 에서 재구축).
-- 개발 PC: PostgreSQL 18(`ontobot_db` 개발, `ontobot_test`·`ontobot_source_test` 통합 테스트,
-  `ontobot_source_dev` 개발용 원천), Neo4j 개발 7687 / 테스트 7688(Windows 서비스 `neo4j-ontobot-dev`·`-test`).
-  상세는 [deploy/windows/README.md](deploy/windows/README.md). 비밀값은 루트 `.env` 에만 있다(커밋 금지).
+- 개발 PC: Docker Desktop(WSL2). 통합 테스트·평가는 `deploy/docker/compose.test.yaml`(PG 55432·Neo4j 57687,
+  고정 테스트 값)을 `task.py` 가 띄운다. 개발 DB 는 네이티브 PostgreSQL 18(`ontobot_db`)·Neo4j 7687 을 계속 쓰거나
+  `task.py dev-up`(compose.dev). 상세는 [deploy/windows/README.md](deploy/windows/README.md). 비밀값은 루트 `.env` 에만.
 
 ## 명령
 
@@ -34,29 +36,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 가상환경은 uv 가 `backend/.venv` 에 만든다.
 
 ```bash
-uv run --project backend python scripts/task.py lint          # ruff·ruff format --check·mypy·import-linter·eslint·tsc
+uv run --project backend python scripts/task.py lint          # ruff·format·mypy·import-linter(+deployer)·eslint·tsc
 uv run --project backend python scripts/task.py test-unit
-uv run --project backend python scripts/task.py test-int      # 실제 PostgreSQL·Neo4j(테스트 전용 DB·인스턴스)
+uv run --project backend python scripts/task.py test-int      # compose.test 의 PG·Neo4j 컨테이너(없으면 띄운다)
+uv run --project backend python scripts/task.py test-down     # 테스트 컨테이너 지우기
 uv run --project backend python scripts/task.py test-contract # OpenAPI 스냅샷
 uv run --project backend python scripts/task.py migrate       # alembic upgrade head (.env 의 DB)
 uv run --project backend python scripts/task.py openapi       # API 를 바꾸면 반드시 — 프론트 타입 재생성
 uv run --project backend python scripts/task.py dev-api       # :8000
 uv run --project backend python scripts/task.py dev-web       # :5173 (/api 를 :8000 으로 프록시)
 uv run --project backend python scripts/task.py worker        # 동기화·그래프 투영·주기 작업·평가 실행
-# 평가(TRD 13절) — 평가 전용 DB·테스트 Neo4j 를 환경변수로 가리킨 뒤(아래):
+# 평가(TRD 13절) — compose.test 의 평가 전용 DB(ontobot_eval)·테스트 Neo4j 를 task.py 가 가리킨다:
 uv run --project backend python scripts/task.py eval-prepare  # 마이그레이션·샘플 팩 시드(FK 링크)·그래프 재구축
 uv run --project backend python scripts/task.py eval          # 실제 모델 게이트
 uv run --project backend python scripts/task.py eval-record   # 실제 모델 게이트 + 카세트 녹화(커밋한다)
 uv run --project backend python scripts/task.py eval-replay   # 녹화 응답 회귀(CI 와 같다)
-# 운영 패키징(ADR-0010) — PowerShell:
-powershell -ExecutionPolicy Bypass -File deploy/offline/build_bundle.ps1 -AppOnly   # 앱만(설치본은 -PrereqDir)
-powershell -ExecutionPolicy Bypass -File dist/bundle/<번들>/install.ps1 -Mode Install -Root D:/trial -SkipPrerequisites -NoServices
+# 운영 패키징(ADR-0013·0014) — 이미지·서명 번들. PYTHONUTF8=1
+uv run --project backend python scripts/task.py image                   # ontobot-app:dev·ontobot-deployer:dev
+uv run --project backend python scripts/bundle_sign.py keygen --out <경로>   # 서명 키(한 번)
+uv run --project backend python scripts/build_bundle.py --signing-key <키>   # 전체(최초 설치) — --app-only --zip 은 업그레이드용
 # 부하 측정(API 가 떠 있어야 한다, 비밀번호는 환경변수 ONTOBOT_LOAD_PASSWORD — .env 에 개발 DB loadtest 계정):
 uv run --project backend python scripts/load_test.py --username loadtest --users 1,4,8,16 --rounds 8
 ```
 
-평가 환경: `ONTOBOT_DB_NAME=ontobot_eval`, `ONTOBOT_NEO4J_URI=bolt://localhost:7688`,
-`ONTOBOT_NEO4J_PASSWORD`=테스트 Neo4j 비밀번호(.env 의 `ONTOBOT_TEST_NEO4J_PASSWORD`). 개발 DB 로 돌리면 시드가
+평가 환경은 `task.py` 의 `EVAL_ENV`(compose.test 의 `ontobot_eval` + 테스트 Neo4j)다. 개발 DB 로 돌리면 시드가
 개발 데이터를 덮고, 카세트 키(데이터 블록 포함)가 CI 와 달라진다.
 
 테스트 하나만(backend 에서):
@@ -165,9 +168,17 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - **`/healthz` 만 재시작 판단에 쓴다.** `/readyz` 는 PG·Neo4j·LLM 을 보므로 서비스 관리자에 물리면 DB 가 잠깐
   끊긴 것만으로 멀쩡한 프로세스를 죽인다. Neo4j 만 안 되면 `degraded`(200)이지 503 이 아니다. 외부 LLM 공급자는
   준비 확인에서 호출하지 않는다(키 설정만).
-- 설치본은 ontobot 을 **편집 가능(editable)** 으로 설치한다 — `config.py` 가 `.env`·`config/llm.yaml` 을 패키지
+- **앱 이미지는 저장소 레이아웃(`/app/backend`·`/app/config`)과 편집 가능 설치를 유지한다** — `config.py` 가
+  `.env`·`config/`·`VERSION` 을 패키지
   위치의 `parents[3]`(저장소 루트)에서 찾기 때문이다. 이 경로 규칙을 바꾸면 설치본이 설정을 못 찾는다.
   번들 wheelhouse 에는 hatchling 과 `editables` 가 함께 있어야 한다(오프라인 설치 시험에서 발견).
+- **컨테이너·배포 규칙(ADR-0013·0014)**: PostgreSQL 클러스터는 `--locale-provider=builtin --builtin-locale=C.UTF-8`
+  로 만든다(glibc 로캘은 한글 정렬이 달라 그룹 순서·카세트 키가 바뀐다 — 실측). WSL·컨테이너에서 도는 파일
+  (`ontobotctl`·`*.sh`·systemd)은 **LF**(`.gitattributes`, 번들은 `copy_lf`). 배포 콘솔(`deployer/`)은 `ontobot` 을
+  import 하지 않는다(테스트가 막는다 — 앱이 깨져도 롤백해야 한다). 콘솔은 절차를 직접 하지 않고 `ontobotctl --json
+  --non-interactive` 를 부른다 — 절차를 바꾸면 ontobotctl 하나만 고친다. 번들은 서명 필수·`-dirty` 거부
+  (`ONTOBOT_ALLOW_DIRTY`·`ONTOBOT_ALLOW_UNSIGNED` 는 개발 시험용). 번들 폴더 안에는 아무것도 쓰지 않는다(서명
+  밖 파일이 되어 확인에 걸린다). 제3자 이미지는 `deploy/docker/images.lock` 에만 고정한다.
 - `deploy/**/*.ps1` 은 **UTF-8 BOM** 으로 저장한다(PowerShell 5.1 은 BOM 없는 파일을 cp949 로 읽는다). 문자열에서
   변수 바로 뒤에 한글이 오면 `${n}개` 처럼 감싼다(`$n개` 는 변수 이름이 된다). 네이티브 명령 출력은 `| Out-Host`
   로 보낸다 — 함수 반환값에 섞인다.

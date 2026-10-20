@@ -43,6 +43,7 @@ export type UserOut = S["UserOut"];
 export type UserCreate = S["UserCreate"];
 export type UserPatch = S["UserPatch"];
 export type RoleOut = S["RoleOut"];
+export type SystemOut = S["SystemOut"];
 export type TypeOut = S["TypeOut"];
 export type AuditLogOut = S["AuditLogOut"];
 export type TraceOut = S["TraceOut"];

@@ -1,0 +1,42 @@
+# 통합 테스트·평가용 저장소(ADR-0013) — `task.py test-int`·`eval-*` 가 띄운다. 운영 이미지와 같은 PostgreSQL·Neo4j.
+#
+# 값은 테스트 전용 고정값이다(비밀이 아니다). 개발 PC 에 이미 떠 있는 PostgreSQL(5432)·Neo4j(7687/7688)와
+# 부딪히지 않게 다른 호스트 포트를 쓴다. 데이터는 볼륨 없이 컨테이너 안에만 — `down` 하면 사라진다.
+name: ontobot-test
+
+services:
+  postgres:
+    image: ${ONTOBOT_PG_IMAGE:-pgvector/pgvector:pg18}
+    environment:
+      POSTGRES_USER: postgres
+      # 정렬은 플랫폼과 무관한 코드 포인트 순서(builtin C.UTF-8) — 한글이 가나다 순이고, glibc 로캘에 따라
+      # 그룹·제목 순서가 달라져 답·카세트 키가 바뀌는 일이 없다.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8"
+      POSTGRES_PASSWORD: ontobot-test-super
+      ONTOBOT_DB_USER: ontobot
+      ONTOBOT_DB_PASSWORD: ontobot-test
+      ONTOBOT_DB_NAMES: ontobot_test ontobot_source_test ontobot_eval
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${ONTOBOT_TEST_PG_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ontobot_eval"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  neo4j:
+    image: ${ONTOBOT_NEO4J_IMAGE:-neo4j:5.26-community}
+    environment:
+      NEO4J_AUTH: neo4j/ontobot-test-graph
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+      NEO4J_dbms_usage__report_enabled: "false"
+    ports:
+      - "127.0.0.1:${ONTOBOT_TEST_NEO4J_PORT:-57687}:7687"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/7687'"]
+      interval: 2s
+      timeout: 3s
+      retries: 90

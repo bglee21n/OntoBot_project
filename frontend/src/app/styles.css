@@ -120,3 +120,10 @@ textarea.plain { font-family: inherit; }
 tr.selected-row td { background: #eff6ff; }
 @media (max-width: 900px) { .eval { grid-template-columns: 1fr; } }
 .badge.flag { margin-left: 0.3rem; }
+
+/* 배포 콘솔(ADR-0014) */
+dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; }
+pre.log { background: #0f172a; color: #e2e8f0; padding: 0.7rem; border-radius: 6px; max-height: 60vh; overflow: auto; white-space: pre-wrap; font-size: 0.85em; margin: 0; }
+.running-step { font-weight: 600; color: var(--accent); }
