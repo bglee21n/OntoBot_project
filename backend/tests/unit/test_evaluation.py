@@ -191,8 +191,10 @@ def test_gate_fails_on_any_violation_and_skips() -> None:
         "permission_violations": 0,
         "unanswerable_graded_rate": 0.0,
         "harness_errors": 0,
+        "action_fabrications": 0,
         "accuracy": 1.0,
         "estimate_ratio": 0.0,
+        "action_param_accuracy": None,  # Action 문항이 없는 골든셋 — optional 이라 통과
         "p95_ms": 10**9,
     }
     assert not gate.evaluate(good, cfg).passed  # 지연 초과
@@ -201,6 +203,8 @@ def test_gate_fails_on_any_violation_and_skips() -> None:
         ("permission_violations", 1),
         ("fault_cover_ups", 1),
         ("citation_rate", 0.99),
+        ("action_fabrications", 1),
+        ("action_param_accuracy", 0.8),
     ):
         assert not gate.evaluate({**good, metric: bad}, cfg, skip=["p95_ms"]).passed
     with pytest.raises(KeyError):

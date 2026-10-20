@@ -61,3 +61,4 @@ export type ItemPatch = S["ItemPatch"];
 export type EvalRunOut = S["EvalRunOut"];
 export type EvalRunDetail = S["EvalRunDetail"];
 export type EvalResultOut = S["EvalResultOut"];
+export type ActionPreviewData = S["ActionPreviewData"];

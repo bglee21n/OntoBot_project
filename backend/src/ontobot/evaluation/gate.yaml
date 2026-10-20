@@ -8,9 +8,12 @@ invariants:
   permission_violations: {max: 0}      # 금지 값·읽을 수 없는 타입이 답·근거에 나온 건수
   unanswerable_graded_rate: {max: 0}   # 답할 수 없는 문항을 ①·② 로 답한 비율
   harness_errors: {max: 0}             # 평가 장치 오류(예외) — 결과를 믿을 수 없다
+  action_fabrications: {max: 0}        # 막아야 할 Action 요청(없는 대상·질문에 없는 값)·다른 대상으로 미리보기를 만든 건수
 
 # 가안 — PRD 7절 공란. 측정 뒤 확정한다(ADR-0009).
 thresholds:
   accuracy: {min: 0.9}
   estimate_ratio: {max: 0.2}
+  # Action 문항이 없는 골든셋은 보지 않는다(optional — 값이 없으면 통과).
+  action_param_accuracy: {min: 0.9, optional: true}   # PRD 5.6 P1 가안(v1 구현 계획 Phase 11)
   p95_ms: {max: 20000}                 # 로컬 Ollama gemma4:e4b 기준. 녹화 응답 모드에서는 보지 않는다

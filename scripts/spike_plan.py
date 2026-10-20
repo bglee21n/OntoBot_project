@@ -6,7 +6,9 @@
 대조 실패로 지운 인용, 단계별 지연. 결과는 docs/adr/data/ 에 JSON 으로 남긴다.
 
 권한은 모든 타입 읽기로 둔다 — 권한 침투는 Phase 7 평가의 몫이다. ``.env`` 의 DB 를 읽기만 한다
-(먼저 scripts/seed_domain_pack.py 로 시드).
+(먼저 scripts/seed_domain_pack.py 로 시드, 또는 평가 DB 를 환경변수로 가리킨다).
+Action 문항(Phase 11)은 게시본의 모든 Action 을 요청할 수 있는 것으로 두고, 제안(Action·대상·값)을
+평가 판정과 같은 규칙으로 잰다.
 """
 
 from __future__ import annotations
@@ -22,10 +24,12 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ontobot.actions import params as action_params
 from ontobot.chat import context as chat_context
 from ontobot.chat import pipeline
 from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
+from ontobot.evaluation import metrics
 from ontobot.grounding.normalize import contains
 from ontobot.jobs.handlers import graph_driver
 from ontobot.llm import config as llm_config
@@ -51,6 +55,15 @@ def _check(item: dict[str, Any], res: pipeline.PipelineResult) -> dict[str, Any]
         c in (res.conditions or "") for c in item.get("required_conditions", [])
     )
     first = res.plan_attempts[0] if res.plan_attempts else {}
+    spec = metrics.Spec(
+        key=item["id"],
+        answerable=True,
+        expected_status=item["expected_status"],
+        expected_action=item.get("expected_action"),
+    )
+    action_ok, fabricated, mismatch = metrics.judge_action(
+        spec, metrics.Outcome(status=res.status, action=res.action)
+    )
     return {
         "id": item["id"],
         "question": item["question"],
@@ -60,7 +73,11 @@ def _check(item: dict[str, Any], res: pipeline.PipelineResult) -> dict[str, Any]
         "grade": res.grade,
         "status_ok": status_ok,
         "values_ok": values_ok,
-        "correct": status_ok and values_ok,
+        "correct": status_ok and values_ok and action_ok,
+        "action_ok": action_ok,
+        "action_fabricated": fabricated,
+        "action_mismatch": mismatch,
+        "action": res.action,
         "first_structured_ok": first.get("structured_ok"),
         "first_valid": bool(first.get("structured_ok")) and not first.get("errors"),
         "plan_attempts": res.plan_attempts,
@@ -101,6 +118,9 @@ async def _run_items(
                 if schema and item.get("context")
                 else []
             )
+            actions = (
+                action_params.requestable(schema.document, readable, None) if schema else set()
+            )
             started = time.perf_counter()
             res = await pipeline.run(
                 db,
@@ -111,6 +131,7 @@ async def _run_items(
                 grade2_enabled=get_settings().grade2_enabled,
                 graph_driver=driver,
                 context=ctx,
+                actions=actions,
             )
             await db.rollback()
         row = _check(item, res)
@@ -127,6 +148,7 @@ async def _run_items(
 
 def summarize(model: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
     answerable = [r for r in rows if r["expected"] == "ok"]
+    actions = [r for r in rows if r["expected"] == "action_preview"]
     queried = [r for r in rows if r["expected"] != "not_query"]
     facts = sum(r["fact_sentences"] for r in rows)
     return {
@@ -137,6 +159,8 @@ def summarize(model: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         "first_structured_fail": sum(r["first_structured_ok"] is False for r in rows),
         "first_plan_invalid": sum(not r["first_valid"] for r in queried),
         "final_plan_invalid": sum(r["failure_reason"] == "plan_invalid" for r in rows),
+        "action_correct": f"{sum(r['action_ok'] for r in actions)}/{len(actions)}",
+        "action_fabrications": sum(r["action_fabricated"] for r in rows),
         "grades": {g: sum(r["grade"] == g for r in rows) for g in (1, 2, 3)},
         "estimated_ratio": round(sum(r["estimated"] for r in rows) / facts, 3) if facts else None,
         "removed_citations": sum(len(r["removed_citations"]) for r in rows),

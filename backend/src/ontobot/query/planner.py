@@ -3,6 +3,10 @@
 LLM 은 SQL 도 Cypher 도 쓰지 않는다(TRD 5.3). 권한으로 거른 스키마 요약만 보고 계획 JSON 을 낸다.
 예시는 샘플 도메인 팩과 **다른 가상의 타입**으로 든다 — 평가 대상 스키마로 예시를 들면 모델이
 예시를 베끼는 것과 스키마를 이해하는 것을 구분할 수 없다.
+
+Action 규칙(``ACTION_RULES``)은 요약에 ``action_types`` 가 있을 때만 붙인다 — Action 이 없는 배포의
+프롬프트는 측정한 그대로다. 예시의 키 순서는 ``PlannerOutput``·``ActionProposal`` 필드 순서와 같다
+(구조화 출력은 스키마 순서대로 생성된다 — 순서가 어긋나면 앞 필드를 비운 채 지나간다).
 """
 
 from __future__ import annotations
@@ -69,6 +73,31 @@ Team 타입, name:string / 링크 assigned_to: Ticket→Team):
 """
 
 
+ACTION_RULES = """
+Action(데이터를 바꾸거나 요청·알림을 보내는 일):
+- 질문이 <schema> 의 action_types 중 하나를 해 달라는 말(바꿔줘·올려줘·내려줘·요청해줘·보내줘)이면
+  kind 를 "action" 으로 하고 action 에 action_type·target·params 를 넣는다(plan 은 쓰지 않는다).
+  무엇을 묻는 조회 질문에는 action 을 쓰지 않는다.
+- action_type 은 action_types 의 name 그대로 쓴다. 맞는 Action 이 없으면 cannot_answer 를 낸다.
+- target 은 대상 객체를 가리키는 말을 질문에 적힌 그대로(식별자나 이름) 쓴다. "그 시설"처럼 직전 답을 가리키면
+  <context> 의 pk 를 쓴다. 질문과 <context> 에 없는 대상을 지어내지 않는다. 대상을 알 수 없으면 null.
+- params 의 name 은 그 Action 의 params 이름이다. value 는 질문에 있는 값만 넣는다(int·decimal 은 숫자,
+  date 는 YYYY-MM-DD, enum 은 목록의 값 그대로). 질문에 없는 값은 넣지 않는다 — 지어내지 않는다.
+- Action 은 여기서 실행되지 않는다. 사용자가 미리보기를 보고 승인한다.
+
+예시(가상의 Action — escalate_ticket: 대상 Ticket, params priority:int(필수)·note:string(선택) /
+close_ticket: 대상 Ticket, params resolution:enum[fixed,wontfix](필수)):
+질문: "T-12 티켓 우선순위를 5로 올려줘"
+{"kind":"action","action":{"action_type":"escalate_ticket","target":"T-12",
+"params":[{"name":"priority","value":5}]}}
+질문: "로그인 오류 티켓은 wontfix 로 닫아줘"
+{"kind":"action","action":{"action_type":"close_ticket","target":"로그인 오류",
+"params":[{"name":"resolution","value":"wontfix"}]}}
+질문(<context> 에 Ticket/T-7 이 있을 때): "그 티켓 우선순위 바꿔줘"
+{"kind":"action","action":{"action_type":"escalate_ticket","target":"T-7","params":[]}}
+"""
+
+
 def _context_block(context: list[dict[str, str]]) -> str:
     lines = [f"{c['type']}/{c['pk']} — {c.get('title') or c['pk']}" for c in context]
     return "<context>\n직전 답의 객체(type/pk — 제목):\n" + "\n".join(lines) + "\n</context>"
@@ -81,7 +110,8 @@ def messages(
     context: list[dict[str, str]] | None = None,
 ) -> list[Message]:
     schema = json.dumps(summary, ensure_ascii=False)
-    system = f"{SYSTEM}\n<schema>\n{schema}\n</schema>"
+    system = SYSTEM + (ACTION_RULES if summary.get("action_types") else "")
+    system += f"\n<schema>\n{schema}\n</schema>"
     if context:
         # 맥락은 식별자와 (지금 다시 읽은) 제목뿐이다 — 값은 조회 단계에서 다시 읽는다(TRD 7.1 1단계).
         system += "\n" + _context_block(context)

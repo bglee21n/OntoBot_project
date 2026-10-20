@@ -58,3 +58,35 @@ link_types:
     to_type: Region
     cardinality: one
     source: {kind: fk_property, property: region_code}
+
+# Action(TRD 17.1) — 채팅에서 요청하는 말("F-0004 위험등급을 4로 바꿔줘")도 같은 정의를 쓴다(Phase 11).
+# 실행은 편집 레이어에 쓰고, 승인은 관리자가 한다. 알림은 앱 안 알림만(메일·SMS 채널은 배포 설정).
+action_types:
+  - api_name: adjust_risk_grade
+    display_name: 위험등급 조정
+    description: 점검 결과에 따라 시설의 위험등급을 바꾼다
+    target_type: Facility
+    parameters:
+      - {api_name: risk_grade, display_name: 새 위험등급, data_type: int}
+      - {api_name: reason, display_name: 사유, data_type: string, required: false}
+    changes:
+      - {property: risk_grade, param: risk_grade}
+    notify:
+      - channel: app
+        to_roles: [admin]
+        template: "'{target}'({target_pk}) 위험등급을 {risk_grade}(으)로 조정합니다. 사유: {reason}"
+    approval: {roles: [admin]}
+
+  - api_name: request_inspection
+    display_name: 점검 요청
+    description: 위험등급 3 이상 시설의 점검을 요청하고 담당자에게 알린다
+    target_type: Facility
+    parameters:
+      - {api_name: urgency, display_name: 긴급도, data_type: enum, enum_values: [긴급, 일반]}
+    preconditions:
+      - {property: risk_grade, op: gte, value: 3}
+    notify:
+      - channel: app
+        to_roles: [admin, domain_expert]
+        template: "'{target}'({target_pk}) {urgency} 점검 요청"
+    approval: {roles: [admin]}

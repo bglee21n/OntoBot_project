@@ -4,9 +4,10 @@ import { NavLink, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../../api/client";
 import { type ChatEvent, streamChat } from "../../api/sse";
-import type { CitationData, ConversationOut, MessageOut } from "../../api/types";
+import type { ActionPreviewData, CitationData, ConversationOut, MessageOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { ActionProposal } from "./ActionProposal";
 import { AnswerView, ObjectCardPanel, type Selection, type Status } from "./AnswerView";
 
 const t = ko.chat;
@@ -19,6 +20,8 @@ interface Pending {
   graphAsOf: string | null;
   answer: { text: string; status: Status; grade: number | null } | null;
   citations: CitationData[];
+  // Action 요청 말 — 조회 답이 아니다(등급 없음).
+  action: ActionPreviewData | null;
   error: { reason: string; message: string } | null;
 }
 
@@ -36,6 +39,8 @@ function apply(p: Pending, e: ChatEvent): Pending {
       return p.answer
         ? { ...p, answer: { ...p.answer, status: e.data.status, grade: e.data.grade ?? null } }
         : p;
+    case "action_preview":
+      return { ...p, stage: null, action: e.data };
     case "error":
       return { ...p, stage: null, error: { reason: e.data.reason, message: e.data.message } };
     default:
@@ -78,6 +83,7 @@ export function ChatPage() {
       graphAsOf: null,
       answer: null,
       citations: [],
+      action: null,
       error: null,
     };
     setPending(turn);
@@ -139,6 +145,8 @@ export function ChatPage() {
             <div key={m.id} className="bubble-user">
               {m.content}
             </div>
+          ) : m.status === "action_preview" && m.meta?.action ? (
+            <ActionProposal key={m.id} data={m.meta.action} />
           ) : (
             <AnswerView
               key={m.id}
@@ -193,7 +201,9 @@ function PendingTurn({
   return (
     <>
       <div className="bubble-user">{p.question}</div>
-      {p.error ? (
+      {p.action ? (
+        <ActionProposal data={p.action} />
+      ) : p.error ? (
         <AnswerView
           status="failed"
           grade={null}

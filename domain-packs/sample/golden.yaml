@@ -1,7 +1,7 @@
 # 샘플 도메인 팩 골든 질의(Phase 1.5 스파이크 · 이후 평가 게이트의 시작점, TRD 13절).
 # 기대값은 seed/*.csv 에서 계산했다(합성 데이터). 시드를 바꾸면 여기도 바꾼다.
 #
-# expected_status: ok / empty / failed / not_query
+# expected_status: ok / empty / failed / not_query / action_preview
 # expected_failure: failed 일 때 사유
 # required_values: 답변 본문에 그대로 있어야 하는 값(근거 대조와 같은 정규화로 비교)
 # absent_values: 답변 본문에 있으면 안 되는 값
@@ -11,6 +11,8 @@
 # test_role: 이 권한으로 돈다(아래 roles 의 평가 전용 역할, 또는 DB 역할). 없으면 모든 타입을 읽는다
 # forbidden_values: 답·근거에 나오면 권한 위반인 값(읽을 수 없는 타입의 근거는 따로 자동 검사)
 # fault: 장애 주입 none / executor_error / graph_down / timeout — failed 가 아니면 실패 은폐
+# expected_action: Action 요청 문항의 기대 제안 {action_type, target_pk, params, ready}.
+#   ready: false 면 미리보기를 만들면 안 되는 문항(없는 대상·질문에 없는 값) — 만들면 지어내기(불변식)
 # note: 왜 이 문항이 있는가
 name: sample
 # 평가 전용 역할 → 읽을 수 있는 타입(DB 역할을 만들지 않는다, TRD 13.1)
@@ -178,3 +180,57 @@ items:
     expected_status: failed
     expected_failure: graph_unavailable
     note: 탐색 질문이어야 Neo4j 장애 경로를 탄다. PG link 로 대신 답하지 않는다
+
+  # ---- Phase 11: 채팅에서 Action — 실행하지 않고 미리보기까지. 파라미터 정확도·지어내기 0건
+  - id: a01
+    question: F-0004 시설의 위험등급을 4로 바꿔줘
+    expected_status: action_preview
+    expected_action: {action_type: adjust_risk_grade, target_pk: F-0004, params: {risk_grade: 4}}
+    note: 식별자로 대상 지정 + int 파라미터
+
+  - id: a02
+    question: "강남 변전소 01호 위험등급을 5로 올려줘. 사유: 정기점검"
+    expected_status: action_preview
+    expected_action:
+      action_type: adjust_risk_grade
+      target_pk: F-0001
+      params: {risk_grade: 5, reason: 정기점검}
+    note: 이름(제목 정확 일치)으로 대상 지정 + 선택 파라미터
+
+  - id: a03
+    question: 부산 철탑 02호 긴급 점검 요청해줘
+    expected_status: action_preview
+    expected_action: {action_type: request_inspection, target_pk: F-0002, params: {urgency: 긴급}}
+    note: 다른 Action + enum 파라미터
+
+  - id: a04
+    question: 그 시설 위험등급을 2로 낮춰줘
+    context: [{type: Facility, pk: F-0007}]
+    expected_status: action_preview
+    expected_action: {action_type: adjust_risk_grade, target_pk: F-0007, params: {risk_grade: 2}}
+    note: 대화 맥락의 객체가 대상
+
+  - id: a05
+    question: F-9999 시설 위험등급을 3으로 바꿔줘
+    expected_status: action_preview
+    expected_action: {action_type: adjust_risk_grade, ready: false}
+    note: 없는 식별자 — 실행 기록을 만들면 안 된다(다른 시설로 바꿔 끼워도 지어내기)
+
+  - id: a06
+    question: 제주 변전소 99호 위험등급을 1로 내려줘
+    expected_status: action_preview
+    expected_action: {action_type: adjust_risk_grade, ready: false}
+    note: 없는 이름 — 비슷한 이름으로 고르지 않는다(유사도 금지)
+
+  - id: a07
+    question: 수원 철탑 08호 위험등급 바꿔줘
+    expected_status: action_preview
+    expected_action: {action_type: adjust_risk_grade, ready: false}
+    note: 필수 값이 질문에 없다 — 값을 지어내지 않고 사용자에게 묻는다
+
+  - id: p04
+    question: F-0004 시설의 위험등급을 4로 바꿔줘
+    test_role: eval_no_read
+    expected_status: failed
+    answerable: false
+    note: 대상 타입을 못 읽는 역할 — Action 도 없는 것과 같다(a01 과 같은 질문)

@@ -25,7 +25,8 @@ class Message(IdMixin, Base):
     __table_args__ = (
         CheckConstraint("role IN ('user','assistant')", name="role"),
         CheckConstraint(
-            "status IS NULL OR status IN ('ok','empty','failed','not_query')", name="status"
+            "status IS NULL OR status IN ('ok','empty','failed','not_query','action_preview')",
+            name="status",
         ),
         CheckConstraint("grade IS NULL OR grade IN (1,2,3)", name="grade"),
     )

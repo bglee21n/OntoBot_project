@@ -5,6 +5,7 @@
 ``grade`` 보다 늦게 가거나, 실패가 ``answer`` 로 나가 0건처럼 보인다.
 
     성공·0건·질의 아님: answer → citations → grade → done
+    Action 요청:        action_preview → done   (등급 없음 — 조회 답이 아니다)
     실패:               error → done
 
 ``failed`` 는 ``answer`` 이벤트로 나가지 않는다. 화면은 ``error`` 를 실패 모양으로 그린다(TRD 7.3).
@@ -52,6 +53,28 @@ class GradeData(BaseModel):
     grade: Literal[1, 2, 3] | None
 
 
+class ProposalCandidateData(BaseModel):
+    pk: str
+    title: str
+
+
+class ActionPreviewData(BaseModel):
+    """채팅의 Action 제안(``actions.params``). ``run_id`` 가 있으면 미리보기(실행 기록)를 만들었고,
+    없으면 ``issues`` 를 보고 사용자가 대상·값을 골라 Action API 로 미리보기를 요청한다."""
+
+    text: str
+    action_type: str
+    display_name: str
+    target_type: str
+    target_pk: str | None
+    target_title: str | None
+    params: dict[str, Any]
+    issues: list[str]
+    candidates: list[ProposalCandidateData]
+    ready: bool
+    run_id: int | None
+
+
 class ErrorData(BaseModel):
     status: Literal["failed"]
     reason: str
@@ -72,6 +95,7 @@ class ChatEvents(BaseModel):
     answer: AnswerData
     citations: list[CitationData]
     grade: GradeData
+    action_preview: ActionPreviewData
     error: ErrorData
     done: DoneData
 
@@ -96,6 +120,8 @@ def result_events(
             ),
             done,
         ]
+    if res.status == "action_preview" and res.action is not None:
+        return [("action_preview", action_data(res)), done]
     return [
         ("answer", {"text": res.answer, "estimated_sentences": res.estimated_sentences}),
         ("citations", res.citations),
@@ -104,9 +130,15 @@ def result_events(
     ]
 
 
+def action_data(res: PipelineResult) -> dict[str, Any]:
+    a = res.action or {}
+    return ActionPreviewData.model_validate({**a, "text": res.answer}).model_dump(mode="json")
+
+
 def message_meta(res: PipelineResult) -> dict[str, Any]:
     """대화 기록에서 답을 다시 그릴 때 쓰는 것(``message.meta``)."""
     return {
+        "action": action_data(res) if res.action is not None else None,
         "conditions": res.conditions,
         "graph_as_of": res.graph_as_of,
         "citations": res.citations,

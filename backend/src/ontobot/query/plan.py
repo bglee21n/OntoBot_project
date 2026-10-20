@@ -67,14 +67,35 @@ class QueryPlan(_Plan):
     limit: int | None = None
 
 
+class ActionParamValue(_Plan):
+    name: str
+    value: Scalar = None
+
+
+class ActionProposal(_Plan):
+    """채팅에서 Action 을 요청하는 말(TRD 17.1-5) — 실행이 아니라 **제안**이다.
+
+    ``target`` 은 대상 객체를 가리키는 말 그대로(질문에 적힌 식별자나 이름, 또는 맥락의 pk)다.
+    서버가 그 타입의 pk·제목과 **정확히** 맞춰 본다(``actions.params``). 파라미터는 이름·값 목록이다
+    — 사전(dict)으로 두면 구조화 출력 스키마가 키를 열어 두어 작은 모델이 이름을 지어낸다.
+    """
+
+    action_type: str
+    target: str | None = None
+    params: list[ActionParamValue] = Field(default_factory=list)
+
+
 class PlannerOutput(_Plan):
     """질의가 아니면(인사·잡담) ``not_query``, 스키마로 표현할 수 없으면 ``cannot_answer``.
 
     ``cannot_answer`` 는 정직한 출구다. 그것이 없으면 모델은 표현할 수 없는 조건을 **빼고**
     계획을 낸다 — 스파이크에서 "서울 지역 시설"이 지역 조건 없이 전 지역 시설 20건으로 나갔다.
     파이프라인은 이것을 ``failed(plan_invalid)`` 로 밝힌다(TRD 7.3).
+
+    데이터를 바꾸거나 요청·알림하는 말이면 ``action`` — 조회하지 않고 미리보기까지만 간다.
     """
 
-    kind: Literal["query", "not_query", "cannot_answer"]
+    kind: Literal["query", "action", "not_query", "cannot_answer"]
     plan: QueryPlan | None = None
+    action: ActionProposal | None = None
     reason: str | None = None

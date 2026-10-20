@@ -236,7 +236,9 @@ async def test_interview_to_draft_and_golden_items(
         assert not any("010-1234-5678" in s for s in stored)
         events = list(
             await db.scalars(
-                select(AuditLog.event).where(AuditLog.target == f"interview_session:{sid}")
+                select(AuditLog.event)
+                .where(AuditLog.target == f"interview_session:{sid}")
+                .order_by(AuditLog.id)
             )
         )
         assert events == ["workshop.session_started", "workshop.submitted", "workshop.published"]

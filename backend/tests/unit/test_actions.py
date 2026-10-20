@@ -67,7 +67,7 @@ def test_valid_action_passes_publish_checks() -> None:
 
 def test_document_without_actions_keeps_its_content_hash() -> None:
     # Phase 9 이전 게시본의 content_hash 가 그대로 맞아야 한다(권한 지문·버전 비교).
-    doc = _sample()
+    doc = _sample().model_copy(update={"action_types": []})
     assert "action_types" not in json.loads(doc.canonical_json())
     assert "action_types" in json.loads(_doc_with().canonical_json())
 

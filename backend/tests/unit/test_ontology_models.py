@@ -19,7 +19,9 @@ SAMPLE = Path(__file__).resolve().parents[3] / "domain-packs" / "sample" / "onto
 
 
 def sample() -> OntologyDocument:
-    return importer.parse(SAMPLE.read_text(encoding="utf-8"), "yaml")
+    """객체·링크 타입만 — 샘플 팩의 Action 정의는 tests/unit/test_actions.py 가 본다."""
+    doc = importer.parse(SAMPLE.read_text(encoding="utf-8"), "yaml")
+    return doc.model_copy(update={"action_types": []})
 
 
 def prop(name: str, **kw: object) -> PropertyDef:

@@ -35,3 +35,19 @@ def ungrounded(conditions: str) -> str:
         "조회 결과에서 근거를 확인할 수 있는 답을 만들지 못했습니다. "
         f"조회 조건({conditions})의 결과를 아래 근거 목록에서 직접 확인해 주세요."
     )
+
+
+def action_proposed(action: str) -> str:
+    """``action_preview`` — 미리보기(실행 기록)를 만들었다. 실행은 승인 뒤다."""
+    return (
+        f"'{action}' 요청의 미리보기를 만들었습니다. 바뀔 값과 사전 조건을 확인하세요 — "
+        "승인되어야 실행됩니다."
+    )
+
+
+def action_incomplete(action: str) -> str:
+    """``action_preview`` — 대상이나 값이 대조되지 않아 미리보기를 만들지 않았다."""
+    return (
+        f"'{action}' 요청을 그대로 만들 수 없습니다. 아래 확인 사항을 보고 대상과 값을 고른 뒤 "
+        "미리보기를 요청하세요."
+    )

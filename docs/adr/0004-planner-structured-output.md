@@ -116,3 +116,32 @@
 모델이 감추지 못하게.
 
 재현: `scripts/seed_domain_pack.py --pack sample` → `scripts/spike_plan.py --models gemma4:e4b …`
+
+## Phase 11 보강 — 채팅에서 Action (2026-10-20)
+
+플래너 출력에 `kind: action` 과 `ActionProposal{action_type, target, params[{name, value}]}` 를 더했다
+(TRD 17.3). 프롬프트의 Action 규칙·예시는 **요약에 요청할 수 있는 Action 이 있을 때만** 붙인다 — Action 이
+없는 배포의 프롬프트는 위에서 잰 그대로다. 예시는 샘플 팩과 다른 가상의 Action(`escalate_ticket`·
+`close_ticket`)으로 들고, 값이 없는 요청("우선순위 바꿔줘" → `params: []`)의 예시를 꼭 넣었다 — 없으면
+모델이 값을 지어낼 자리가 생긴다. 예시 키 순서는 `PlannerOutput`·`ActionProposal`·`ActionParamValue`
+필드 순서와 같다(단위 테스트로 고정).
+
+샘플 팩에 Action 2개(`adjust_risk_grade`·`request_inspection`)와 골든 Action 문항 7개(식별자·이름·enum·
+맥락 대상 4개, 막아야 할 것 3개 — 없는 식별자·없는 이름·질문에 없는 값)를 더해 gemma4:e4b 로 쟀다.
+
+| 측정 | 전체 정답 | Action 정답 | 지어내기 | 첫 계획 무효 | 최종 plan_invalid | p50 | 근거 |
+|---|---|---|---|---|---|---|---|
+| spike(장애·권한 문항 제외 25문항) | 24/25 | **7/7** | 0 | 3 | 1 | 1.3초 | `data/0004-spike-20261020T131706Z.json` |
+| 평가 게이트(record, 32문항) | 정답률 1.0 | 파라미터 정확도 1.0 | 0 | — | — | p95 10.4초 | `domain-packs/sample/llm_cassette.json` |
+
+- 틀린 1건은 `u01`(스키마에 없는 속성을 묻는 문항)이 `ok/③` 로 나간 것으로, Phase 7 녹화 때와 같다(③ 은 본문을
+  보이지 않아 불변식 위반이 아니다). 기존 조회 문항의 회귀는 없었다.
+- 첫 계획 무효 3건은 막아야 할 Action 문항(a05·a06·a07)이다 — 대조 오류를 붙여 재계획해도 대상·값이 질문에
+  없으므로 `ready=false` 로 남는 것이 정답이다. 모델은 없는 대상을 다른 실재 시설로 바꿔 끼우지 않았고,
+  빠진 위험등급 값을 지어내지 않았다.
+- 모델이 지어내더라도 막히는 것은 모델이 아니라 서버 대조다(`actions.params`): 대상을 가리키는 말이 질문에
+  그대로 있거나 맥락 pk 여야 하고(실재하는 다른 객체도 막음), 값 파라미터는 질문에 그대로 있어야 한다.
+  평가 불변식 `action_fabrications` = 0 이 이것을 지킨다.
+
+재현: 평가 DB(`task.py eval-prepare`) 를 가리킨 채 `scripts/spike_plan.py --models gemma4:e4b`.
+

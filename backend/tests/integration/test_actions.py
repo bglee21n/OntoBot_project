@@ -570,7 +570,8 @@ async def test_ontology_api_checks_action_types(client, make_user) -> None:
     r = await client.post(f"/api/v1/ontology/versions/{draft['id']}/action-types", json=bad)
     assert r.status_code == 201
     detail = (await client.get(f"/api/v1/ontology/versions/{draft['id']}")).json()
-    assert [a["api_name"] for a in detail["action_types"]] == ["rename_it"]
+    # 부모 게시본에 다른 Action 이 있을 수 있다(샘플 팩) — 이 테스트가 넣은 것만 본다.
+    added = next(a for a in detail["action_types"] if a["api_name"] == "rename_it")
     assert any("제목 속성" in i["message"] for i in detail["issues"])
     assert (
         await client.post(f"/api/v1/ontology/versions/{draft['id']}/publish")
@@ -578,7 +579,7 @@ async def test_ontology_api_checks_action_types(client, make_user) -> None:
 
     fixed = {**bad, "changes": [{"property": "risk_grade", "value": 1}], "parameters": []}
     r = await client.put(
-        f"/api/v1/ontology/versions/{draft['id']}/action-types/{detail['action_types'][0]['id']}",
+        f"/api/v1/ontology/versions/{draft['id']}/action-types/{added['id']}",
         json=fixed,
     )
     assert r.status_code == 200

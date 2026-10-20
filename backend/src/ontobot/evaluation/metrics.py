@@ -32,6 +32,8 @@ class Spec:
     forbidden_values: Sequence[str] = ()
     test_role: str | None = None
     fault: str = "none"
+    # {action_type, target_pk, params, ready} — Action 요청 문항(``golden.ExpectedAction``)
+    expected_action: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,7 @@ class Outcome:
     removed_citations: int = 0
     latency_ms: int = 0
     error: str | None = None  # 평가 장치 오류(예외). 파이프라인 실패와 다르다
+    action: dict[str, Any] | None = None  # ``action_preview`` 의 제안(``ProposalCheck.as_dict``)
 
 
 @dataclass
@@ -69,6 +72,42 @@ class Verdict:
     cover_up: bool = False
     unanswerable_graded: bool = False
     error: str | None = None
+    action_ok: bool = True
+    # 미리보기를 만들면 안 되는 문항(Action 이 아닌 문항 포함)에서 만들었거나 대상이 다르다.
+    action_fabricated: bool = False
+    action_mismatch: list[str] = field(default_factory=list)
+
+
+def _same(a: Any, b: Any) -> bool:
+    return str(a) == str(b)
+
+
+def judge_action(spec: Spec, out: Outcome) -> tuple[bool, bool, list[str]]:
+    """(맞음, 지어냄, 어긋난 항목). 파라미터는 문자열 표현으로 비교한다(4 == "4")."""
+    got = out.action
+    want = spec.expected_action
+    ready = bool(got and got.get("ready"))
+    if want is None:
+        return True, ready, (["Action 이 아닌 문항에서 미리보기를 만들었다"] if ready else [])
+    if got is None:
+        return False, False, ["Action 제안이 없다"]
+    want_ready = bool(want.get("ready", True))
+    diff: list[str] = []
+    if got.get("action_type") != want["action_type"]:
+        diff.append(f"action_type {got.get('action_type')} != {want['action_type']}")
+    if ready != want_ready:
+        diff.append(f"ready {ready} != {want_ready}")
+    if want_ready and ready:
+        if not _same(got.get("target_pk"), want.get("target_pk")):
+            diff.append(f"target_pk {got.get('target_pk')} != {want.get('target_pk')}")
+        g, w = got.get("params") or {}, want.get("params") or {}
+        for k in sorted(set(g) | set(w)):
+            if k not in g or k not in w or not _same(g[k], w[k]):
+                diff.append(f"params.{k} {g.get(k)!r} != {w.get(k)!r}")
+    fabricated = ready and (
+        not want_ready or not _same(got.get("target_pk"), want.get("target_pk"))
+    )
+    return not diff, fabricated, diff
 
 
 def ref_type(ref: str) -> str | None:
@@ -100,9 +139,15 @@ def judge(spec: Spec, out: Outcome, readable: Set[str]) -> Verdict:
         }
     )
     values_ok = not missing and not present
+    action_ok, fabricated, mismatch = judge_action(spec, out)
     return Verdict(
         key=spec.key,
-        correct=out.error is None and status_ok and values_ok and not missing_cond and grade_ok,
+        correct=out.error is None
+        and status_ok
+        and values_ok
+        and not missing_cond
+        and grade_ok
+        and action_ok,
         status_ok=status_ok,
         values_ok=values_ok,
         conditions_ok=not missing_cond,
@@ -117,6 +162,9 @@ def judge(spec: Spec, out: Outcome, readable: Set[str]) -> Verdict:
         cover_up=spec.fault != "none" and out.error is None and out.status != "failed",
         unanswerable_graded=not spec.answerable and out.grade in (1, 2),
         error=out.error,
+        action_ok=action_ok,
+        action_fabricated=fabricated,
+        action_mismatch=mismatch,
     )
 
 
@@ -137,6 +185,10 @@ def compute(rows: Sequence[tuple[Spec, Outcome, Verdict]]) -> dict[str, Any]:
     unanswerable = [(s, o, v) for s, o, v in rows if not s.answerable]
     shown = [o for _, o, _ in rows if o.status == "ok" and o.grade in (1, 2)]
     answered = [o for _, o, _ in rows if o.status == "ok"]
+    actions = [(s, v) for s, _, v in rows if s.expected_action is not None]
+    to_propose = [
+        v for s, v in actions if s.expected_action and s.expected_action.get("ready", True)
+    ]
     facts = sum(o.fact_sentences for o in answered)
     # 근거 인용률(불변식): 화면에 보인 답(①·②)에서 "추정" 표시가 없는 사실 문장 중
     # 통과한 인용이 붙은 비율.
@@ -161,6 +213,12 @@ def compute(rows: Sequence[tuple[Spec, Outcome, Verdict]]) -> dict[str, Any]:
         "permission_violations": sum(v.violation for _, _, v in rows),
         "harness_errors": sum(v.error is not None for _, _, v in rows),
         "llm_unavailable": sum(o.failure_reason == "llm_unavailable" for _, o, _ in rows),
+        "action_items": len(actions),
+        # 파라미터 정확도(PRD 5.6 P1): 미리보기를 만들 문항에서 Action·대상·값이 모두 맞은 비율.
+        "action_param_accuracy": _ratio(sum(v.action_ok for v in to_propose), len(to_propose)),
+        # 불변식: 막아야 할 문항(없는 대상·질문에 없는 값)이나 Action 이 아닌 문항에서 미리보기를
+        # 만들었거나, 다른 대상으로 만든 건수.
+        "action_fabrications": sum(v.action_fabricated for _, _, v in rows),
         "p95_ms": p95(o.latency_ms for _, o, _ in normal if o.error is None),
         "grades": {str(g): sum(o.grade == g for _, o, _ in rows) for g in (1, 2, 3)},
     }

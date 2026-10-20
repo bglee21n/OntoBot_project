@@ -9,10 +9,12 @@ import pytest
 
 from ontobot.objects.reader import render_sql
 from ontobot.ontology import importer
+from ontobot.ontology.summary import schema_summary
 from ontobot.query.compiler import compile_hop, compile_plan, compile_traverse
 from ontobot.query.conditions import describe
-from ontobot.query.plan import QueryPlan
-from ontobot.query.planner import SYSTEM
+from ontobot.query.plan import ActionParamValue, ActionProposal, PlannerOutput, QueryPlan
+from ontobot.query.planner import ACTION_RULES, SYSTEM
+from ontobot.query.planner import messages as planner_messages
 from ontobot.query.validator import PlanInvalid, validate
 
 SAMPLE = Path(__file__).resolve().parents[3] / "domain-packs" / "sample" / "ontology.yaml"
@@ -339,3 +341,37 @@ def _decode(start: int) -> tuple[dict, int]:
     # 예시는 보기 좋게 줄을 나눴다 — 줄바꿈을 지운 뒤 JSON 하나를 읽는다.
     text = SYSTEM[start:].replace("\n", "")
     return json.JSONDecoder().raw_decode(text)
+
+
+def test_action_examples_follow_the_schema_key_order() -> None:
+    # 플래너 예시와 같은 규칙(구조화 출력은 스키마 순서대로 생성된다) — Action 예시도
+    # PlannerOutput → ActionProposal → ActionParamValue 필드 순서를 지킨다.
+    examples = []
+    i = ACTION_RULES.find('{"kind"')
+    while i >= 0:
+        text = ACTION_RULES[i:].replace("\n", "")
+        examples.append(json.JSONDecoder().raw_decode(text)[0])
+        i = ACTION_RULES.find('{"kind"', i + 1)
+    assert len(examples) >= 3
+    for e in examples:
+        out = PlannerOutput.model_validate(e)
+        assert out.kind == "action" and out.action is not None
+        for obj, model in [(e, PlannerOutput), (e["action"], ActionProposal)] + [
+            (p, ActionParamValue) for p in e["action"]["params"]
+        ]:
+            order = list(model.model_fields)
+            assert list(obj) == sorted(obj, key=order.index), obj
+    # 값이 없는 요청의 예시가 있어야 한다 — 없으면 모델이 값을 지어낸다.
+    assert any(not e["action"]["params"] for e in examples)
+
+
+def test_action_rules_only_when_summary_has_actions() -> None:
+    # Action 이 없는 배포의 프롬프트는 측정한 그대로다(ADR-0004).
+    plain = schema_summary(DOC, ALL)
+    assert "action_types" not in plain
+    assert ACTION_RULES not in planner_messages(plain, "질문")[0].content
+    with_actions = schema_summary(DOC, ALL, {"adjust_risk_grade"})
+    assert [a["name"] for a in with_actions["action_types"]] == ["adjust_risk_grade"]
+    assert ACTION_RULES in planner_messages(with_actions, "질문")[0].content
+    # 대상 타입을 읽을 수 없으면 요청할 수 있어도 싣지 않는다.
+    assert "action_types" not in schema_summary(DOC, {"Region"}, {"adjust_risk_grade"})

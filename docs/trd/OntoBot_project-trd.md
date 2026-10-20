@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.14                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.15                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -228,7 +228,7 @@ v0.13 (Phase 9 구현):
 | 단계              | 모듈                               | 내용                                                                                                                                    |
 | ----------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. 맥락 로드      | `chat.context`                     | 대화의 객체 식별자를 읽는다. 값은 4단계에서 다시 조회한다                                                                               |
-| 2. 계획           | `query.planner`                    | 권한으로 거른 스키마 요약 + 질문 + 맥락 식별자 → QueryPlan(JSON, 구조화 출력). 질의가 아니면 `not_query`, 조건을 스키마로 표현할 수 없으면 `cannot_answer`(→ `failed(plan_invalid)`) — 표현할 수 없는 조건을 **빼고** 계획을 내지 않는다 |
+| 2. 계획           | `query.planner`                    | 권한으로 거른 스키마 요약 + 질문 + 맥락 식별자 → QueryPlan(JSON, 구조화 출력). 질의가 아니면 `not_query`, 조건을 스키마로 표현할 수 없으면 `cannot_answer`(→ `failed(plan_invalid)`) — 표현할 수 없는 조건을 **빼고** 계획을 내지 않는다. 요청할 수 있는 Action 이 있으면 Action 요청 말에 `action`(제안)을 낸다 — 조회하지 않고 17.3 으로 간다(v0.15) |
 | 3. 검증           | `query.validator`                  | 타입·속성·링크 실재, 연산자 허용 목록, 값 타입 변환, enum·참조 값 실재 대조(링크 FK 속성의 eq·in 값이 대상 타입 pk 로 있는가 — `query.references`, 링크 끝 조건 포함), 권한, `traverse` 항목 수(3). 질문의 숫자가 계획 어디에도 없으면 오류(`query.coverage`, v0.7). 실패하면 **모든 오류를 한꺼번에** 붙여 1회 재계획. 검증 전 결정론적 재작성 하나: FK 속성의 eq·in 값이 pk 가 아니고 **모두** 그 타입 객체의 제목과 정확히 같으면 같은 뜻의 `traverse` 로 옮긴다(조건을 빼지 않는다, 유사도 없음) |
 | 4. 컴파일·실행    | `query.compiler`, `query.executor` | 바인딩 SQL/Cypher 생성 → 실행(타임아웃: SQL 10초, Cypher 5초 기본) → `status = ok / empty / failed`                                     |
 | 5. 조회 조건 문장 | `query.conditions`                 | QueryPlan에서 **결정론적으로** 생성("시설 · 지역 = 서울 · 위험등급 ≥ 3 · 소유 조직 = 강남지사"). LLM이 만들지 않는다                    |
@@ -275,6 +275,7 @@ v0.13 (Phase 9 구현):
 | 결과 과다                 | `failed(too_broad)`                 | 없음  | 조건을 좁혀 달라는 안내                                            |
 | 0건                       | `empty`                             | ①     | 템플릿: "조회 조건(…)에 맞는 객체가 없습니다". LLM을 거치지 않는다 |
 | 정상                      | `ok`                                | ①·②·③ | 8절 판정 결과                                                      |
+| Action 요청(v0.15)        | `action_preview`                    | 없음  | 미리보기(실행 기록) 또는 확인 사항 + 요청 폼(17.3). 실행은 승인 뒤다 |
 
 `failed`는 어떤 경우에도 `empty`처럼 보이게 하지 않는다(PRD 5.0 "조회 실패는 실패라고 밝힌다").
 
@@ -417,7 +418,7 @@ class LLMGateway:
 - 실행 방법: CLI(`scripts/run_eval.py`, `task.py eval·eval-record·eval-replay`)와 API(`POST /api/v1/eval-runs` → 작업 큐 `eval_run` → 워커). 작업이 끝내 실패해 `running` 으로 남은 실행은 다음 실행 요청 때 `failed` 로 닫는다(작업 없이 도는 CLI 실행은 제외).
 - 골든셋의 정본은 도메인 팩 `golden.yaml`(`name`·`roles`·`items`)이다. 적재(`evaluation.golden.load_pack`)는 문항을 `key`(팩의 `id`)로 맞추고, 결과가 붙은 문항을 지워야 하면 멈춘다. 워크숍 문항(`source=workshop`)은 적재가 건드리지 않는다.
 - **녹화 응답(카세트)**: PR 마다 CI 는 `domain-packs/<팩>/llm_cassette.json` 으로 파이프라인 회귀를 돈다(키 = Ollama 요청 본문의 정규 JSON 해시). 카세트에 없는 요청은 실패(`llm_unavailable`)이고 놓친 요청이 하나라도 있으면 게이트 실패다. 녹화는 실제 모델로 게이트를 통과한 실행에서만 한다. 재생에서는 지연(`p95_ms`)을 보지 않는다. 녹화·재생은 같은 시드의 평가 전용 DB(`ontobot_eval`, `task.py eval-prepare`)에서 한다.
-- **게이트**: `evaluation/gate.yaml`. 불변식(`citation_rate` = 1, `fault_cover_ups`·`permission_violations`·`harness_errors` = 0, `unanswerable_graded_rate` = 0)은 확정, `accuracy`·`estimate_ratio`·`p95_ms` 는 가안. 불변식은 값이 없으면(분모 0) 통과, 가안은 값이 없으면 실패. 밑돌면 CI가 실패한다. 모델 교체 시에도 필수다(ADR-0009).
+- **게이트**: `evaluation/gate.yaml`. 불변식(`citation_rate` = 1, `fault_cover_ups`·`permission_violations`·`harness_errors`·`action_fabrications` = 0, `unanswerable_graded_rate` = 0)은 확정, `accuracy`·`estimate_ratio`·`action_param_accuracy`·`p95_ms` 는 가안. 불변식은 값이 없으면(분모 0) 통과, 가안은 값이 없으면 실패 — 단 `optional` 가안(`action_param_accuracy`)은 그 종류의 문항이 없는 골든셋에서 통과. 밑돌면 CI가 실패한다. 모델 교체 시에도 필수다(ADR-0009).
 
 ### 13.2 PRD 7절 지표 계산식
 
@@ -436,6 +437,8 @@ class LLMGateway:
 | 동시 사용자 / 데이터 규모 / 가용성    | 부하 테스트 결과 / 객체 수 / 헬스체크 가동률                                                                                       | 별도 측정     |
 | 주간 활성 사용자                      | 최근 7일 `message`의 고유 사용자 수                                                                                                | message       |
 | 신규 객체 타입 구성 소요 시간         | 타입이 처음 draft에 나타난 시각 → 그 타입을 포함한 버전 게시 시각                                                                  | audit_log     |
+| Action 파라미터 정확도 (v1, 가안 90%) | `expected_action.ready=true` 문항 중 제안의 Action·대상 pk·파라미터(문자열 표현)가 모두 기대와 같은 비율                           | eval          |
+| Action 지어내기 (v1, 불변식 0)        | 미리보기를 만들면 안 되는 문항(`ready=false`, Action 이 아닌 문항)에서 만들었거나 기대와 다른 대상으로 만든 문항 수                 | eval          |
 | Action 성공률 / 승인 거부율 (v1)      | `action_run` 상태 비율                                                                                                             | action_run    |
 | 확인되지 않은 편집 충돌 (v1)          | `sync_conflict.status=open` 건수                                                                                                   | sync_conflict |
 
@@ -468,10 +471,11 @@ class LLMGateway:
 | `answer`     | `{"text": "…", "estimated_sentences": [2, 5]}`                             | 대조 완료 후 한 번 |
 | `citations`  | `[{"ref": "o:Facility/F-001#risk_grade", "title": "…", "synced_at": "…"}]` | `answer` 직후      |
 | `grade`      | `{"status": "ok", "grade": 1}`                                             | `answer` 직후      |
+| `action_preview` | `{"text", "action_type", "display_name", "target_type", "target_pk", "target_title", "params", "issues", "candidates", "ready", "run_id"}` (v0.15) | Action 요청일 때 한 번 |
 | `error`      | `{"status": "failed", "reason": "timeout", "message": "…"}`                | 실패 시            |
 | `done`       | `{"conversation_id": …, "message_id": …, "trace_id": …}`                   | 마지막             |
 
-순서: 진행 이벤트(`stage`·`conditions`) 뒤에 성공·0건·질의 아님은 `answer → citations → grade → done`, 실패는 `error → done` 이다. `failed` 는 `answer` 로 나가지 않는다. 스트림 본문은 OpenAPI 로 기술할 수 없어, 이벤트별 데이터 모양을 문서 모델 `ChatEvents` 로 싣고 프론트는 그 생성 타입으로 읽는다(계약 테스트가 실제 페이로드를 그 모델로 검증한다). 예기치 못한 서버 오류도 `error(internal_error)` 로 밝힌다.
+순서: 진행 이벤트(`stage`·`conditions`) 뒤에 성공·0건·질의 아님은 `answer → citations → grade → done`, Action 요청은 `action_preview → done`(등급 없음), 실패는 `error → done` 이다. `failed` 는 `answer` 로 나가지 않는다. 스트림 본문은 OpenAPI 로 기술할 수 없어, 이벤트별 데이터 모양을 문서 모델 `ChatEvents` 로 싣고 프론트는 그 생성 타입으로 읽는다(계약 테스트가 실제 페이로드를 그 모델로 검증한다). 예기치 못한 서버 오류도 `error(internal_error)` 로 밝힌다.
 
 ## 15. 비기능 요구사항
 
@@ -693,6 +697,13 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 - **발송**(`notify/`): 설정 `config/notify.yaml`(`ONTOBOT_NOTIFY_CONFIG_PATH`, 설치본은 `shared\notify.yaml`). 채널 어댑터 `smtp`·`sms_http`·`sms_table`·`fake`(개발). 설정하지 않은 채널은 꺼진다. 워커가 기한이 된 행을 집어(임대 5분) 트랜잭션 밖에서 보내고, 실패는 `retry_seconds × 시도` 뒤 재시도, `max_attempts` 를 넘으면 `failed` — 최소 한 번 발송. 주기 발행이 재시도 기한이 된 발송을 다시 넣는다. 문구는 `{이름}` 치환뿐(LLM 이 쓰지 않는다).
 - **API**: `GET /action-types`(읽을 수 있는 대상의 게시 Action) · `POST /action-types/{name}/preview` · `GET /action-runs?scope=mine|to_decide|all` · `GET /action-runs/{id}` · `POST /action-runs/{id}/approve|reject|rollback` · `GET /notifications` · `POST /notifications/read` · 온톨로지 `POST·PUT·DELETE /ontology/versions/{id}/action-types[/{aid}]` · `PUT /admin/users/{id}/contacts` · `GET /workshop/action-candidates`(확정한 Action 후보 — 정의를 시작할 때). 감사 이벤트 `action.previewed·executed·rejected·failed·rolled_back`, `security.user_contacts_changed`.
 
+### 17.3 채팅에서 Action (v0.15, Phase 11)
+
+- **계획**: 플래너 출력 `kind` 에 `action` 을 더한다. `ActionProposal{action_type, target, params: [{name, value}]}` — `target` 은 대상을 가리키는 말 그대로(질문의 식별자·이름, 또는 맥락의 pk), 파라미터는 이름·값 목록(사전으로 두면 구조화 출력 스키마가 키를 열어 둔다). 스키마 요약의 `action_types` 는 **이 사용자가 요청할 수 있는** Action(대상 타입 읽기 + 요청 역할) 중 대상을 읽을 수 있는 것만이고, 하나도 없으면 요약에도 프롬프트에도 Action 규칙을 싣지 않는다(Action 이 없는 배포의 프롬프트는 측정한 그대로). 예시 키 순서는 `PlannerOutput`·`ActionProposal` 필드 순서와 같다.
+- **대조**(`actions.params`, 17.1-5): 대상을 가리키는 말이 질문에 **그대로** 있거나(근거 대조 정규화) 맥락의 pk 여야 한다 — 실재하는 다른 객체를 골라도 지어낸 것이다. 그다음 pk, 없으면 제목과 정확히 같은 객체(`objects.reader.pks_with_value`), 같은 제목이 여럿이면 후보. 값 파라미터(string·int·decimal·date·datetime)는 질문에 그대로 있어야 하고(수는 값 같음), enum·bool 은 자료형 변환만. 질문에 없는 값은 버리고 알린다. 오류는 한꺼번에 붙여 **1회 재계획**, 그래도 남으면 `action_preview` + `ready=false` + `issues`·`candidates`(같은 제목 객체, 없으면 맥락의 같은 타입 객체)로 사용자에게 보인다. 모르는·요청할 수 없는 Action 은 재계획 뒤 `failed(plan_invalid)`.
+- **미리보기**: 파이프라인은 저장하지 않는다. 대조를 통과하면(`ready`) 채팅 API 가 같은 트랜잭션에서 `actions.runner.preview`(`origin=chat`, `request_id = chat-<질문 메시지 id>`)로 실행 기록을 만들고 `run_id` 를 싣는다 — 승인·실행·롤백은 17.2 의 Action API 그대로다. 미리보기 단계에서 막히면(권한 등) `ready=false` 로 돌린다. 화면은 `run_id` 가 있으면 그 기록을 지금 상태로 다시 읽어 보여 주고, 없으면 서버가 확인한 값만 채운 요청 폼(후보는 선택지)을 보여 준다.
+- **기록**: `message.status` 에 `action_preview`(마이그레이션 0008), `message.meta.action` 에 이벤트 데이터. 평가 문항은 `golden_item.expected_action{action_type, target_pk, params, ready}`.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -769,6 +780,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.15 | 2026-10-20 | Phase 11 구현 반영 — 17.3 채팅에서 Action: 플래너 `kind: action`·`ActionProposal`, 요청할 수 있는 Action 만 요약에, 대상·값 대조 규칙(질문·맥락에 그대로, pk → 제목 정확 일치, 후보), 재계획 뒤 확인 사항, 채팅 API 가 미리보기 기록(`origin=chat`). 7.3 상태 `action_preview`, 14.2 SSE `action_preview`, 13.1·13.2 지표 `action_param_accuracy`(가안·optional)·`action_fabrications`(불변식) |
 | v0.14 | 2026-10-20 | Phase 10 구현 반영(ADR-0012) — 17.2 Action 실행: `action_type`·`action_run`·`notification`·`notification_delivery` 표, `app_user` 연락처, 정의 모양과 게시 전 검사, 미리보기 → 승인 = 실행(재검증) → 롤백(정정 발송) 흐름, 권한 판정, 발송 아웃박스(최소 한 번·재시도·채널 꺼짐 = 막힘), API·감사 이벤트. 17.1-4 의 아웃박스 표 이름을 `notification_delivery` 로 정정 |
 | v0.13 | 2026-10-20 | Phase 9 구현 반영 — 편집 레이어 덮어 읽기(reader 파생 행, 조회 조건·집계·참조 대조 모두), 충돌 판정 규칙·편집당 살아 있는 충돌 하나, 재편집·해제 규칙, 값 계보, 객체·충돌·편집 해제 API, 감사 이벤트 2종, Action 변경 금지에 제목 속성 추가(17.1-3) |
 | v0.12 | 2026-10-20 | v1 착수 결정(17.1) — 편집 레이어는 조회 조건에도 적용, Action·Function 은 온톨로지 문서에, Action 부수효과는 앱 알림·메일·SMS(사내 게이트웨이, 아웃박스 발송, 사용자 결정), 파라미터 검증·멱등성, 선언형 Function, 속성·행 권한, 감사 해시 체인, 임베딩·문서 인용, 폐쇄망 설정과 음성 입력 비활성화(사용자 결정), 공개 API 키. 2절 가정 표에 Action 부수효과·폐쇄망 여부 추가 |

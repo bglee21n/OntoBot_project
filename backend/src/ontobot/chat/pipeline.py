@@ -6,6 +6,10 @@
 있다(TRD 8.3).
 
 상태와 등급은 다른 축이다(TRD 7.3): ``failed``·``not_query`` 는 등급이 없고, ``empty`` 는 ①이다.
+
+Action 요청 말(플래너 ``kind: action``)은 조회하지 않는다. 제안을 ``actions.params`` 로 대조해
+``action_preview`` 상태로 돌려준다(등급 없음). 실행 기록(미리보기)을 만드는 것은 저장하는 호출부다
+(``api.chat`` → ``actions.runner.preview``) — 승인·실행은 Action API 가 한다(TRD 17.1-5).
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ from typing import Any, Literal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ontobot.actions import params as action_params
 from ontobot.chat import answerer, templates
 from ontobot.graph import client as graph
 from ontobot.graph.projector import LAG_WARN_SECONDS, lag
@@ -38,7 +43,7 @@ from ontobot.query.references import (
 )
 from ontobot.query.validator import PlanInvalid, ValidatedPlan, validate
 
-Status = Literal["ok", "empty", "failed", "not_query"]
+Status = Literal["ok", "empty", "failed", "not_query", "action_preview"]
 Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
 # 조회 실행기. 평가의 장애 주입(``evaluation.faults``)이 바꿔 끼운다.
 # 운영은 언제나 ``execute_plan``.
@@ -71,6 +76,8 @@ class PipelineResult:
     fact_sentences: int = 0
     verified_sentences: int = 0
     raw_answer: str | None = None
+    # ``action_preview`` 일 때: ``actions.params.ProposalCheck.as_dict`` (+ 호출부가 채우는 run_id)
+    action: dict[str, Any] | None = None
     stage_latency_ms: dict[str, int] = field(default_factory=dict)
 
 
@@ -159,11 +166,14 @@ async def _plan_and_validate(
     question: str,
     context: list[dict[str, str]],
     res: PipelineResult,
-) -> ValidatedPlan | PipelineResult:
-    summary = schema_summary(schema.document, readable)
+    actions: Set[str],
+) -> ValidatedPlan | action_params.ProposalCheck | PipelineResult:
+    summary = schema_summary(schema.document, readable, actions)
     allowed = frozenset((c["type"], c["pk"]) for c in context)
     errors: list[str] | None = None
+    proposal: action_params.ProposalCheck | None = None
     for _ in range(2):  # 최초 + 검증 오류를 붙인 재계획 1회(TRD 7.1 3단계)
+        proposal = None
         try:
             out: PlannerOutput = await planner.plan(llm, summary, question, errors, context)
         except StructuredOutputError as e:
@@ -178,6 +188,27 @@ async def _plan_and_validate(
             res.plan_attempts.append({"structured_ok": True, "not_query": True})
             res.status, res.answer = "not_query", templates.NOT_QUERY
             return res
+        if out.kind == "action":
+            if out.action is None:
+                errors = ["kind 가 action 이면 action 이 있어야 합니다"]
+                res.plan_attempts.append({"structured_ok": True, "errors": errors})
+                continue
+            res.plan = {"action": out.action.model_dump(mode="json")}
+            try:
+                proposal = await action_params.check_proposal(
+                    db, schema.document, actions, out.action, question, context
+                )
+            except action_params.UnknownAction as e:
+                errors = e.errors
+                res.plan_attempts.append({"structured_ok": True, "action": True, "errors": errors})
+                continue
+            res.plan_attempts.append(
+                {"structured_ok": True, "action": True, "errors": proposal.errors}
+            )
+            if proposal.errors:
+                errors = proposal.errors
+                continue
+            return proposal
         if out.plan is None:
             errors = ["kind 가 query 이면 plan 이 있어야 합니다"]
             res.plan_attempts.append({"structured_ok": True, "errors": errors})
@@ -210,7 +241,20 @@ async def _plan_and_validate(
             continue
         res.plan_attempts.append({"structured_ok": True, "errors": [], "rewrites": rewrites})
         return vp
+    if proposal is not None:
+        # 재계획 뒤에도 대조되지 않은 제안 — 실행 기록을 만들지 않고 확인 사항으로 보인다.
+        return proposal
     return _failed(res, "plan_invalid")
+
+
+def _action(res: PipelineResult, check: action_params.ProposalCheck) -> PipelineResult:
+    res.status, res.grade = "action_preview", None
+    res.action = check.as_dict()
+    name = check.action.display_name
+    res.answer = (
+        templates.action_proposed(name) if check.ready else templates.action_incomplete(name)
+    )
+    return res
 
 
 def _as_of(oldest_pending_at: str) -> tuple[str, str]:
@@ -231,8 +275,13 @@ async def run(
     graph_driver: graph.AsyncDriver | None = None,
     emit: Emit = _silent,
     executor: Executor = execute_plan,
+    actions: Set[str] = frozenset(),
 ) -> PipelineResult:
-    """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``)."""
+    """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``).
+
+    ``actions`` 는 이 사용자가 요청할 수 있는 Action 이름(``actions.params.requestable``). 비면
+    플래너는 Action 을 모른다.
+    """
     res = PipelineResult(status="failed", answer="")
     timer = _Timer(res.stage_latency_ms)
     if schema is None:
@@ -241,10 +290,12 @@ async def run(
         await emit("stage", {"stage": "planning"})
         with timer.stage("planning"):
             planned = await _plan_and_validate(
-                db, llm, schema, readable, question, context or [], res
+                db, llm, schema, readable, question, context or [], res, actions
             )
         if isinstance(planned, PipelineResult):
             return planned
+        if isinstance(planned, action_params.ProposalCheck):
+            return _action(res, planned)
         vp = planned
         llm.protect(_pii_values(vp))
         res.conditions = conditions.describe(vp)

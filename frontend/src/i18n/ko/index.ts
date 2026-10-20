@@ -115,6 +115,13 @@ export const ko = {
       lineageNone: "원천 기록 없음(시드·직접 적재)",
       unknownUser: "알 수 없음",
     },
+    action: {
+      badge: "Action 요청",
+      issues: "확인할 것",
+      candidates: "후보",
+      fill: "대상과 값을 고른 뒤 미리보기를 요청하세요. 질문에서 확인되지 않은 대상·값은 채우지 않았습니다.",
+      openActions: "Action 화면에서 보기",
+    },
   },
   login: {
     title: "로그인",

@@ -109,6 +109,21 @@ async def existing_values(
     return set(rows)
 
 
+async def pks_with_value(
+    db: AsyncSession, object_type: str, prop: str, value: str, limit: int
+) -> list[str]:
+    """``prop`` 값이 ``value`` 와 **정확히** 같은 살아 있는 객체의 pk(최대 ``limit``개, pk 순)."""
+    rows = await db.scalars(
+        text(
+            f"SELECT o.pk FROM {_OBJECTS} "  # noqa: S608 — 고정 틀
+            "WHERE o.deleted_at IS NULL AND o.properties ->> CAST(:p AS text) = :v "
+            "ORDER BY o.pk LIMIT :n"
+        ),
+        {"__type": object_type, "p": prop, "v": value, "n": limit},
+    )
+    return list(rows)
+
+
 def render_sql(q: CompiledQuery) -> str:
     """실행할 SQL 전문. 트레이스(마스킹 전 값은 바인드라 SQL 에 없다)와 테스트가 함께 쓴다."""
     where = " AND ".join(["o.type = :__type", "o.deleted_at IS NULL", *q.where])

@@ -300,6 +300,98 @@
         "title": "ActionParamDef",
         "type": "object"
       },
+      "ActionPreviewData": {
+        "description": "채팅의 Action 제안(``actions.params``). ``run_id`` 가 있으면 미리보기(실행 기록)를 만들었고,\n없으면 ``issues`` 를 보고 사용자가 대상·값을 골라 Action API 로 미리보기를 요청한다.",
+        "properties": {
+          "action_type": {
+            "title": "Action Type",
+            "type": "string"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalCandidateData"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "target_pk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Pk"
+          },
+          "target_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Title"
+          },
+          "target_type": {
+            "title": "Target Type",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "action_type",
+          "display_name",
+          "target_type",
+          "target_pk",
+          "target_title",
+          "params",
+          "issues",
+          "candidates",
+          "ready",
+          "run_id"
+        ],
+        "title": "ActionPreviewData",
+        "type": "object"
+      },
       "ActionRunOut": {
         "properties": {
           "action_display_name": {
@@ -908,6 +1000,9 @@
       "ChatEvents": {
         "description": "이벤트 이름 → 데이터. 한 응답에 이 필드들이 모두 오는 것이 아니다(순서는 모듈 설명).",
         "properties": {
+          "action_preview": {
+            "$ref": "#/components/schemas/ActionPreviewData"
+          },
           "answer": {
             "$ref": "#/components/schemas/AnswerData"
           },
@@ -940,6 +1035,7 @@
           "answer",
           "citations",
           "grade",
+          "action_preview",
           "error",
           "done"
         ],
@@ -1882,6 +1978,44 @@
         "title": "EvidenceOut",
         "type": "object"
       },
+      "ExpectedAction": {
+        "additionalProperties": false,
+        "description": "Action 요청 문항의 기대 제안(TRD 13.2 파라미터 정확도). ``ready`` 가 거짓이면 미리보기를\n만들면 안 되는 문항(없는 대상·질문에 없는 값)이다 — 만들면 지어내기다(불변식).",
+        "properties": {
+          "action_type": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Action Type",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "ready": {
+            "default": true,
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "target_pk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Pk"
+          }
+        },
+        "required": [
+          "action_type"
+        ],
+        "title": "ExpectedAction",
+        "type": "object"
+      },
       "FieldOut": {
         "properties": {
           "display_name": {
@@ -2333,6 +2467,16 @@
             "title": "Context",
             "type": "array"
           },
+          "expected_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "expected_failure": {
             "anyOf": [
               {
@@ -2366,7 +2510,8 @@
               "ok",
               "empty",
               "failed",
-              "not_query"
+              "not_query",
+              "action_preview"
             ],
             "title": "Expected Status",
             "type": "string"
@@ -2476,6 +2621,16 @@
             "title": "Context",
             "type": "array"
           },
+          "expected_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "expected_answer": {
             "anyOf": [
               {
@@ -2520,7 +2675,8 @@
               "ok",
               "empty",
               "failed",
-              "not_query"
+              "not_query",
+              "action_preview"
             ],
             "title": "Expected Status",
             "type": "string"
@@ -2666,6 +2822,16 @@
             ],
             "title": "Context"
           },
+          "expected_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "expected_failure": {
             "anyOf": [
               {
@@ -2701,7 +2867,8 @@
                   "ok",
                   "empty",
                   "failed",
-                  "not_query"
+                  "not_query",
+                  "action_preview"
                 ],
                 "type": "string"
               },
@@ -3279,6 +3446,16 @@
       },
       "MessageMeta": {
         "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActionPreviewData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "citations": {
             "items": {
               "$ref": "#/components/schemas/CitationData"
@@ -3381,7 +3558,8 @@
                   "ok",
                   "empty",
                   "failed",
-                  "not_query"
+                  "not_query",
+                  "action_preview"
                 ],
                 "type": "string"
               },
@@ -4113,6 +4291,24 @@
           "id"
         ],
         "title": "PropertyOut",
+        "type": "object"
+      },
+      "ProposalCandidateData": {
+        "properties": {
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pk",
+          "title"
+        ],
+        "title": "ProposalCandidateData",
         "type": "object"
       },
       "Providers": {

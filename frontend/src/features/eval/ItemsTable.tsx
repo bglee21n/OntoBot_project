@@ -7,7 +7,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 
 const t = ko.eval;
-const STATUSES = ["ok", "empty", "failed", "not_query"] as const;
+const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
 const FAULTS = ["none", "executor_error", "graph_down", "timeout"] as const;
 
 interface Draft {

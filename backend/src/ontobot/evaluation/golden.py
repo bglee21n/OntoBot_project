@@ -19,7 +19,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
 from ontobot.security import audit
 
-Status = Literal["ok", "empty", "failed", "not_query"]
+Status = Literal["ok", "empty", "failed", "not_query", "action_preview"]
+
+
+class ExpectedAction(BaseModel):
+    """Action 요청 문항의 기대 제안(TRD 13.2 파라미터 정확도). ``ready`` 가 거짓이면 미리보기를
+    만들면 안 되는 문항(없는 대상·질문에 없는 값)이다 — 만들면 지어내기다(불변식)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_type: str = Field(min_length=1, max_length=64)
+    target_pk: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+    ready: bool = True
 
 
 class PackItem(BaseModel):
@@ -39,6 +51,7 @@ class PackItem(BaseModel):
     context: list[dict[str, str]] = Field(default_factory=list)
     test_role: str | None = None
     fault: Literal["none", "executor_error", "graph_down", "timeout"] = "none"
+    expected_action: ExpectedAction | None = None
     note: str | None = None
 
     @field_validator("required_values", "absent_values", "forbidden_values", mode="before")
@@ -87,6 +100,9 @@ def _apply(row: GoldenItem, it: PackItem) -> None:
     row.context = it.context
     row.test_role = it.test_role
     row.fault = it.fault
+    row.expected_action = (
+        it.expected_action.model_dump(mode="json") if it.expected_action is not None else None
+    )
     row.note = it.note
 
 
@@ -183,6 +199,7 @@ ITEM_FIELDS = (
     "context",
     "test_role",
     "fault",
+    "expected_action",
     "note",
 )
 

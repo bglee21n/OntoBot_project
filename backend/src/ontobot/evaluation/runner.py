@@ -22,6 +22,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ontobot.actions import params as action_params
 from ontobot.chat import context as chat_context
 from ontobot.chat import pipeline
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
@@ -74,6 +75,7 @@ def spec_of(item: GoldenItem) -> metrics.Spec:
         forbidden_values=tuple(item.forbidden_values or ()),
         test_role=item.test_role,
         fault=item.fault,
+        expected_action=item.expected_action,
     )
 
 
@@ -90,6 +92,7 @@ def outcome_of(res: pipeline.PipelineResult) -> metrics.Outcome:
         estimated_sentences=len(res.estimated_sentences),
         removed_citations=len(res.removed_citations),
         latency_ms=sum(res.stage_latency_ms.values()),
+        action=res.action,
     )
 
 
@@ -102,6 +105,20 @@ async def readable_for(
     if test_role in roles:
         return frozenset(roles[test_role]) & published
     return await rbac.readable_types_for_role(db, test_role) & published
+
+
+def actions_for(
+    schema: PublishedSchema,
+    readable: frozenset[str],
+    roles: dict[str, list[str]],
+    test_role: str | None,
+) -> frozenset[str]:
+    """문항이 요청할 수 있는 Action. 기본 문항은 역할을 따지지 않고, 평가 전용 역할은 요청 역할이
+    정해지지 않은 Action 만, DB 역할은 그 역할로 판정한다(``rbac``)."""
+    if test_role is None:
+        return action_params.requestable(schema.document, readable, None)
+    held = frozenset() if test_role in roles else frozenset({test_role})
+    return action_params.requestable(schema.document, readable, held)
 
 
 async def create_run(db: AsyncSession, golden_set_id: int, cfg: RunConfig) -> EvalRun:
@@ -162,6 +179,7 @@ async def _one(
             res = await pipeline.run(db, LLMGateway(cfg.llm), None, frozenset(), item.question)
             return outcome_of(res), frozenset(), {}
         readable = await readable_for(db, schema, roles, item.test_role)
+        actions = actions_for(schema, readable, roles, item.test_role)
         ctx = (
             await chat_context.with_titles(db, schema.document, readable, item.context)
             if item.context
@@ -179,6 +197,7 @@ async def _one(
                 context=ctx,
                 graph_driver=drv,
                 executor=executor,
+                actions=actions,
             )
         await db.rollback()
     stats = {
@@ -188,6 +207,7 @@ async def _one(
         "estimated_sentences": len(res.estimated_sentences),
         "removed_citations": res.removed_citations,
         "plan_attempts": len(res.plan_attempts),
+        "action": res.action,
         "llm_calls": [
             {"role": c.role, "model": c.model, "ok": c.ok, "latency_ms": c.latency_ms}
             for c in llm.calls
@@ -291,6 +311,7 @@ async def _recorded(run_id: int) -> list[tuple[metrics.Spec, metrics.Outcome, me
                 removed_citations=len(s.get("removed_citations", [])),
                 latency_ms=int(s.get("latency_ms", 0)),
                 error=(r.verdict or {}).get("error"),
+                action=s.get("action"),
             )
             v = metrics.Verdict(**r.verdict)
             out.append((spec_of(item), o, v))

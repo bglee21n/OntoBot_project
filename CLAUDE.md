@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.14) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.15) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
-설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS) 완료 — 다음은 Phase 11
-(채팅에서 Action). 설치 정본은
+설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action) 완료 —
+다음은 Phase 12(Function). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md).
 
 ## 운영 전제
@@ -95,7 +95,7 @@ backend/src/ontobot/
   jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
   evaluation/ golden(팩 ↔ DB)·runner(파이프라인 인프로세스)·faults(실행기 주입)·metrics·gate(+gate.yaml)·replay(카세트)
   workshop/   topics(주제 상태기계, 순수)·interviewer·extractor·evidence(순수)·elements(payload 검증)·sessions(턴)·review·publish
-  actions/    rules(파라미터·사전 조건·바뀔 값·템플릿, 순수) · runner(미리보기 → 승인 = 실행 → 거부 → 롤백)
+  actions/    rules(파라미터·사전 조건·바뀔 값·템플릿, 순수) · params(채팅 Action 제안 대조) · runner(미리보기 → 승인 = 실행 → 거부 → 롤백)
   notify/     config(notify.yaml, 채널 꺼짐이 기본) · channels(SMTP·SMS 게이트웨이 — 네트워크는 여기만) · delivery(아웃박스)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
@@ -181,6 +181,11 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   (롤백된 실행의 문자가 나가면 안 된다, 최소 한 번 발송 — ADR-0012). 설정하지 않은 채널은 꺼지고 그 Action 은
   미리보기에서 `blocked`(보낸 척 금지). 알림 문구는 `{이름}` 치환뿐(`str.format` 금지, LLM 이 쓰지 않는다).
   수신자 연락처는 API·감사·로그에 `mask_contact` 로만 낸다. Action 은 pk·제목·FK 속성을 바꾸지 못한다(게시 전 검사).
+- **채팅 Action 은 미리보기까지만**(TRD 17.3). 플래너 `kind: action` 의 제안은 `actions.params` 가 대조한다: 대상을
+  가리키는 말이 질문에 **그대로** 있거나 맥락 pk 여야 하고(실재하는 다른 객체도 지어낸 것), pk → 제목 **정확 일치**,
+  값 파라미터는 질문에 그대로(enum·bool 만 자료형 변환). 이 규칙을 느슨하게 하지 말 것 — 평가 불변식
+  `action_fabrications` = 0 이 기댄다. 미리보기 기록은 파이프라인이 아니라 `api/chat.py` 가 만든다(`origin=chat`).
+  Action 이 요약에 없으면 플래너 프롬프트에 Action 규칙도 없다(측정한 프롬프트 유지) — 요약에 싣는 조건을 바꾸면 재측정.
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

@@ -1384,6 +1384,37 @@ export interface components {
              */
             required: boolean;
         };
+        /**
+         * ActionPreviewData
+         * @description 채팅의 Action 제안(``actions.params``). ``run_id`` 가 있으면 미리보기(실행 기록)를 만들었고,
+         *     없으면 ``issues`` 를 보고 사용자가 대상·값을 골라 Action API 로 미리보기를 요청한다.
+         */
+        ActionPreviewData: {
+            /** Action Type */
+            action_type: string;
+            /** Candidates */
+            candidates: components["schemas"]["ProposalCandidateData"][];
+            /** Display Name */
+            display_name: string;
+            /** Issues */
+            issues: string[];
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Ready */
+            ready: boolean;
+            /** Run Id */
+            run_id: number | null;
+            /** Target Pk */
+            target_pk: string | null;
+            /** Target Title */
+            target_title: string | null;
+            /** Target Type */
+            target_type: string;
+            /** Text */
+            text: string;
+        };
         /** ActionRunOut */
         ActionRunOut: {
             /** Action Display Name */
@@ -1571,6 +1602,7 @@ export interface components {
          * @description 이벤트 이름 → 데이터. 한 응답에 이 필드들이 모두 오는 것이 아니다(순서는 모듈 설명).
          */
         ChatEvents: {
+            action_preview: components["schemas"]["ActionPreviewData"];
             answer: components["schemas"]["AnswerData"];
             /** Citations */
             citations: components["schemas"]["CitationData"][];
@@ -1890,6 +1922,26 @@ export interface components {
             /** Utterance Id */
             utterance_id: number;
         };
+        /**
+         * ExpectedAction
+         * @description Action 요청 문항의 기대 제안(TRD 13.2 파라미터 정확도). ``ready`` 가 거짓이면 미리보기를
+         *     만들면 안 되는 문항(없는 대상·질문에 없는 값)이다 — 만들면 지어내기다(불변식).
+         */
+        ExpectedAction: {
+            /** Action Type */
+            action_type: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ready
+             * @default true
+             */
+            ready: boolean;
+            /** Target Pk */
+            target_pk?: string | null;
+        };
         /** FieldOut */
         FieldOut: {
             /** Display Name */
@@ -2045,6 +2097,7 @@ export interface components {
             context?: {
                 [key: string]: string;
             }[];
+            expected_action?: components["schemas"]["ExpectedAction"] | null;
             /** Expected Failure */
             expected_failure?: string | null;
             /** Expected Grade */
@@ -2053,7 +2106,7 @@ export interface components {
              * Expected Status
              * @enum {string}
              */
-            expected_status: "ok" | "empty" | "failed" | "not_query";
+            expected_status: "ok" | "empty" | "failed" | "not_query" | "action_preview";
             /**
              * Fault
              * @default none
@@ -2088,6 +2141,7 @@ export interface components {
             context?: {
                 [key: string]: string;
             }[];
+            expected_action?: components["schemas"]["ExpectedAction"] | null;
             /** Expected Answer */
             expected_answer: string | null;
             /** Expected Failure */
@@ -2098,7 +2152,7 @@ export interface components {
              * Expected Status
              * @enum {string}
              */
-            expected_status: "ok" | "empty" | "failed" | "not_query";
+            expected_status: "ok" | "empty" | "failed" | "not_query" | "action_preview";
             /**
              * Fault
              * @default none
@@ -2140,12 +2194,13 @@ export interface components {
             context?: {
                 [key: string]: string;
             }[] | null;
+            expected_action?: components["schemas"]["ExpectedAction"] | null;
             /** Expected Failure */
             expected_failure?: string | null;
             /** Expected Grade */
             expected_grade?: (1 | 2 | 3) | null;
             /** Expected Status */
-            expected_status?: ("ok" | "empty" | "failed" | "not_query") | null;
+            expected_status?: ("ok" | "empty" | "failed" | "not_query" | "action_preview") | null;
             /** Fault */
             fault?: ("none" | "executor_error" | "graph_down" | "timeout") | null;
             /** Forbidden Values */
@@ -2323,6 +2378,7 @@ export interface components {
         };
         /** MessageMeta */
         MessageMeta: {
+            action?: components["schemas"]["ActionPreviewData"] | null;
             /** Citations */
             citations?: components["schemas"]["CitationData"][];
             /** Conditions */
@@ -2354,7 +2410,7 @@ export interface components {
              */
             role: "user" | "assistant";
             /** Status */
-            status: ("ok" | "empty" | "failed" | "not_query") | null;
+            status: ("ok" | "empty" | "failed" | "not_query" | "action_preview") | null;
         };
         /** NotificationList */
         NotificationList: {
@@ -2584,6 +2640,13 @@ export interface components {
             nullable: boolean;
             /** Pii Kind */
             pii_kind?: ("name" | "phone" | "email" | "rrn" | "address" | "account" | "other") | null;
+        };
+        /** ProposalCandidateData */
+        ProposalCandidateData: {
+            /** Pk */
+            pk: string;
+            /** Title */
+            title: string;
         };
         /** Providers */
         Providers: {

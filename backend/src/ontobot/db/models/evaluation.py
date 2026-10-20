@@ -73,6 +73,8 @@ class GoldenItem(IdMixin, Base):
     context: Mapped[list[dict[str, str]]] = mapped_column(
         JSONB, default=list, server_default=text("'[]'::jsonb")
     )
+    # Action 요청 문항의 기대 제안 {action_type, target_pk, params, ready}(Phase 11).
+    expected_action: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     note: Mapped[str | None] = mapped_column(Text)
     fault: Mapped[str] = mapped_column(String(32), default="none", server_default="none")
     source: Mapped[str] = mapped_column(String(16), default="manual", server_default="manual")

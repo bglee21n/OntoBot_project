@@ -2,6 +2,8 @@
 
 불변식은 값이 없으면(분모 0 — 예: 화면에 보인 답이 없다) 위반이 없는 것으로 본다. 가안 기준은
 값이 없으면 실패다 — 정답률을 잴 문항이 없다는 것은 게이트를 통과할 근거가 없다는 뜻이다.
+단 ``optional: true`` 인 기준은 그 종류의 문항이 없는 골든셋(예: Action 문항이 없다)에서 값이 없어도
+통과한다.
 """
 
 from __future__ import annotations
@@ -62,7 +64,7 @@ def evaluate(
                     continue
                 limit = float(rule[op])
                 if value is None:
-                    ok = kind == "invariant"
+                    ok = kind == "invariant" or bool(rule.get("optional"))
                 else:
                     ok = value >= limit if op == "min" else value <= limit
                 checks.append(Check(metric, kind, op, limit, value, ok))  # type: ignore[arg-type]

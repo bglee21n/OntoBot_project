@@ -3,6 +3,11 @@
 ``POST /chat`` 의 응답 본문은 스트림이다. 스트림을 흘리는 동안에는 요청 의존성(``Db``)의 세션
 수명에 기대지 않는다 — 응답이 끝나기 전에 그 세션이 닫힐 수 있다. 질문 기록은 스트림 전에 커밋하고,
 답·트레이스·맥락은 생성기 안에서 연 세션에 함께 커밋한다.
+
+Action 요청 말이 대조를 통과하면(``action_preview``·준비됨) 여기서 미리보기(실행 기록,
+``origin=chat``)를 같은 트랜잭션에 만든다. 요청 ID 는 질문 메시지에서 정한다 — 같은 질문을 두 번
+처리해도 기록은 하나다.
+승인·실행은 Action API 가 한다(TRD 17.1-5).
 """
 
 from __future__ import annotations
@@ -17,7 +22,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ontobot.actions import params as action_params
+from ontobot.actions import runner
 from ontobot.api.deps import CurrentUser, Db, User
 from ontobot.api.errors import ProblemError
 from ontobot.chat import context as chat_context
@@ -27,6 +35,7 @@ from ontobot.db.models.chat import Conversation, Message
 from ontobot.db.session import session_scope
 from ontobot.llm.config import load as load_llm_config
 from ontobot.llm.gateway import LLMGateway
+from ontobot.notify import config as notify_config
 from ontobot.ontology import registry
 from ontobot.security import rbac
 from ontobot.tracing import recorder
@@ -51,6 +60,7 @@ class ConversationOut(BaseModel):
 
 
 class MessageMeta(BaseModel):
+    action: stream.ActionPreviewData | None = None
     conditions: str | None = None
     graph_as_of: str | None = None
     citations: list[stream.CitationData] = Field(default_factory=list)
@@ -62,7 +72,7 @@ class MessageOut(BaseModel):
     id: int
     role: Literal["user", "assistant"]
     content: str
-    status: Literal["ok", "empty", "failed", "not_query"] | None
+    status: Literal["ok", "empty", "failed", "not_query", "action_preview"] | None
     grade: int | None
     meta: MessageMeta | None
     created_at: datetime
@@ -76,8 +86,34 @@ async def _owned(db: Db, user: CurrentUser, conversation_id: int) -> Conversatio
     return conv
 
 
+async def _request_action(
+    db: AsyncSession, user: CurrentUser, res: pipeline.PipelineResult, question_id: int
+) -> None:
+    """대조를 통과한 제안 → 미리보기 기록. 거기서 막히면(권한·대상 사라짐) 확인 사항으로 돌린다."""
+    a = res.action
+    if a is None or not a["ready"]:
+        return
+    try:
+        run = await runner.preview(
+            db,
+            runner.Actor(user.id, user.roles),
+            action=a["action_type"],
+            target_pk=a["target_pk"],
+            params=a["params"],
+            request_id=f"chat-{question_id}",
+            cfg=notify_config.load(get_settings().notify_config_path),
+            origin="chat",
+        )
+    except runner.ActionError as e:
+        a["ready"] = False
+        a["issues"] = [*a["issues"], str(e), *e.errors]
+        res.answer = templates.action_incomplete(a["display_name"])
+        return
+    a["run_id"] = run.id
+
+
 async def _answer(
-    request: Request, user: CurrentUser, conversation_id: int, question: str
+    request: Request, user: CurrentUser, conversation_id: int, question_id: int, question: str
 ) -> AsyncIterator[str]:
     settings = get_settings()
     events: asyncio.Queue[str | None] = asyncio.Queue()
@@ -97,6 +133,11 @@ async def _answer(
                     else []
                 )
                 llm = LLMGateway(load_llm_config(settings.llm_config_path))
+                actions = (
+                    action_params.requestable(schema.document, readable, user.roles)
+                    if schema is not None
+                    else frozenset()
+                )
                 res = await pipeline.run(
                     db,
                     llm,
@@ -107,7 +148,9 @@ async def _answer(
                     context=ctx,
                     graph_driver=getattr(request.app.state, "graph", None),
                     emit=emit,
+                    actions=actions,
                 )
+                await _request_action(db, user, res, question_id)
                 msg = Message(
                     conversation_id=conversation_id,
                     role="assistant",
@@ -184,10 +227,13 @@ async def chat(body: ChatRequest, request: Request, db: Db, user: User) -> Strea
         conv = Conversation(user_id=user.id, title=body.question.strip()[:TITLE_CHARS])
         db.add(conv)
         await db.flush()
-    db.add(Message(conversation_id=conv.id, role="user", content=body.question))
+    asked = Message(conversation_id=conv.id, role="user", content=body.question)
+    db.add(asked)
+    await db.flush()
+    conv_id, asked_id = conv.id, asked.id
     await db.commit()
     return StreamingResponse(
-        _answer(request, user, conv.id, body.question),
+        _answer(request, user, conv_id, asked_id, body.question),
         media_type="text/event-stream",
         # 프록시가 모아 보내지 않게 한다(첫 stage 가 바로 보여야 한다).
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

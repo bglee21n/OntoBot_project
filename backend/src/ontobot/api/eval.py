@@ -19,6 +19,7 @@ from ontobot.api.deps import CurrentUser, Db, SettingsDep, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
 from ontobot.evaluation import golden, runner
+from ontobot.evaluation.golden import ExpectedAction
 from ontobot.jobs import handlers, queue
 from ontobot.llm.config import load as load_llm_config
 from ontobot.security import audit
@@ -28,7 +29,7 @@ router = APIRouter(tags=["eval"])
 
 Builder = Annotated[CurrentUser, Depends(require_role(ROLE_BOT_BUILDER, ROLE_MODELER))]
 
-Status = Literal["ok", "empty", "failed", "not_query"]
+Status = golden.Status
 Fault = Literal["none", "executor_error", "graph_down", "timeout"]
 
 
@@ -63,6 +64,7 @@ class ItemFields(BaseModel):
     context: list[dict[str, str]] = Field(default_factory=list)
     test_role: str | None = Field(default=None, max_length=64)
     fault: Fault = "none"
+    expected_action: ExpectedAction | None = None
     note: str | None = None
 
 
@@ -85,6 +87,7 @@ class ItemPatch(BaseModel):
     context: list[dict[str, str]] | None = None
     test_role: str | None = Field(default=None, max_length=64)
     fault: Fault | None = None
+    expected_action: ExpectedAction | None = None
     note: str | None = None
 
 
@@ -165,6 +168,9 @@ def _item(i: GoldenItem) -> ItemOut:
         context=list(i.context or []),
         test_role=i.test_role,
         fault=i.fault,  # type: ignore[arg-type]
+        expected_action=(
+            ExpectedAction.model_validate(i.expected_action) if i.expected_action else None
+        ),
         note=i.note,
     )
 

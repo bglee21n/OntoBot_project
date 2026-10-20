@@ -9,6 +9,24 @@ from ontobot.chat import stream, templates
 from ontobot.chat.pipeline import PipelineResult
 
 IDS = {"conversation_id": 1, "message_id": 2, "trace_id": 3}
+ACTION = {
+    "action_type": "adjust_risk_grade",
+    "display_name": "위험등급 조정",
+    "target_type": "Facility",
+    "target_pk": "F-1",
+    "target_title": "시설",
+    "params": {"risk_grade": 4},
+    "issues": [],
+    "candidates": [],
+    "ready": True,
+    "run_id": 7,
+}
+
+
+def _action(**over: object) -> PipelineResult:
+    return PipelineResult(
+        "action_preview", templates.action_proposed("위험등급 조정"), action={**ACTION, **over}
+    )
 
 
 def _names(res: PipelineResult) -> list[str]:
@@ -28,6 +46,7 @@ def _names(res: PipelineResult) -> list[str]:
             PipelineResult("failed", templates.FAILED["timeout"], failure_reason="timeout"),
             ["error", "done"],
         ),
+        (_action(), ["action_preview", "done"]),
     ],
 )
 def test_event_order(res: PipelineResult, names: list[str]) -> None:
@@ -63,6 +82,20 @@ def test_payload_shapes() -> None:
     assert events["done"] == IDS
 
 
+def test_action_preview_is_not_an_answer() -> None:
+    # Action 응답은 등급이 없다 — 조회 답(answer·grade)으로 나가면 화면이 근거 등급을 그린다.
+    events = dict(stream.result_events(_action(), **IDS))
+    assert "answer" not in events and "grade" not in events
+    assert events["action_preview"] == {
+        **ACTION,
+        "text": templates.action_proposed("위험등급 조정"),
+    }
+    incomplete = _action(ready=False, run_id=None, target_pk=None, issues=["대상이 없습니다"])
+    data = dict(stream.result_events(incomplete, **IDS))["action_preview"]
+    assert data["ready"] is False and data["run_id"] is None and data["issues"]
+    assert stream.message_meta(incomplete)["action"] == data
+
+
 def test_encoding_is_one_data_line() -> None:
     chunk = stream.encode("answer", {"text": "첫 줄\n둘째 줄"})
     lines = chunk.split("\n")
@@ -84,6 +117,8 @@ def test_payloads_match_the_documented_models() -> None:
         PipelineResult("empty", "없음", grade=1),
         PipelineResult("not_query", templates.NOT_QUERY),
         PipelineResult("failed", templates.FAILED["timeout"], failure_reason="timeout"),
+        _action(),
+        _action(ready=False, run_id=None, candidates=[{"pk": "F-2", "title": "다른 시설"}]),
     ]
     for res in results:
         for event, data in stream.result_events(res, **IDS):

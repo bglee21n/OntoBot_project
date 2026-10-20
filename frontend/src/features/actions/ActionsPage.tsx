@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useId, useMemo, useState } from "react";
 
 import { api } from "../../api/client";
 import type { ActionRunOut, ActionTypeView, NotificationList } from "../../api/types";
@@ -43,13 +43,23 @@ export function ActionsPage() {
   );
 }
 
-function RequestPanel() {
+/** 채팅의 Action 제안이 대조를 통과하지 못했을 때 폼을 채워 둘 값(서버가 확인한 것만). */
+export interface RequestInitial {
+  action: string;
+  pk: string;
+  params: Record<string, string>;
+  candidates: { pk: string; title: string }[];
+}
+
+export function RequestPanel({ initial, title = t.request }: { initial?: RequestInitial; title?: string }) {
   const qc = useQueryClient();
   const types = useQuery({ queryKey: ["action-types"], queryFn: () => api.get<ActionTypeView[]>("/action-types") });
   const requestable = (types.data ?? []).filter((a) => a.can_request);
-  const [name, setName] = useState("");
-  const [pk, setPk] = useState("");
-  const [params, setParams] = useState<Record<string, string>>({});
+  const [name, setName] = useState(initial?.action ?? "");
+  const [pk, setPk] = useState(initial?.pk ?? "");
+  const [params, setParams] = useState<Record<string, string>>(initial?.params ?? {});
+  const candidates = initial?.candidates ?? [];
+  const listId = useId();
   // 같은 입력을 다시 보내면 같은 요청 ID — 서버가 한 번만 받는다. 입력이 바뀌면 새 ID.
   const [requestId, setRequestId] = useState(newRequestId);
   const action = requestable.find((a) => a.api_name === name);
@@ -73,7 +83,7 @@ function RequestPanel() {
 
   return (
     <div className="card stack">
-      <strong>{t.request}</strong>
+      <strong>{title}</strong>
       {types.isError && <ErrorBox error={types.error} />}
       {types.data && requestable.length === 0 && <p className="muted">{t.noTypes}</p>}
       {requestable.length > 0 && (
@@ -105,8 +115,18 @@ function RequestPanel() {
                 setPk(e.target.value);
                 touch();
               }}
+              list={candidates.length > 0 ? listId : undefined}
               required
             />
+            {candidates.length > 0 && (
+              <datalist id={listId}>
+                {candidates.map((c) => (
+                  <option key={c.pk} value={c.pk}>
+                    {c.title}
+                  </option>
+                ))}
+              </datalist>
+            )}
           </label>
           {(action?.parameters ?? []).map((p) => (
             <label key={p.api_name}>
@@ -164,7 +184,7 @@ function RunList({ scope }: { scope: Scope }) {
   );
 }
 
-function RunCard({ run, open = false }: { run: ActionRunOut; open?: boolean }) {
+export function RunCard({ run, open = false }: { run: ActionRunOut; open?: boolean }) {
   const qc = useQueryClient();
   const [reason, setReason] = useState("");
   const refresh = async () => {
