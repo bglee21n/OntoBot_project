@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -23,6 +24,7 @@ from ontobot.db.models.security import AppUser, AuditLog, Role, TypePermission, 
 from ontobot.ontology.models import IDENT_TYPE_RE
 from ontobot.security import audit
 from ontobot.security.auth import hash_password, revoke_user_sessions
+from ontobot.security.pii import mask_contact
 from ontobot.security.rbac import KNOWN_ROLES, ROLE_ADMIN
 
 
@@ -42,6 +44,9 @@ class UserView:
     auth: str  # local / oidc
     roles: list[str]
     created_at: datetime
+    # Action 알림 연락처 — 화면에는 마스킹해서만 낸다(PII).
+    email: str | None = None
+    phone: str | None = None
 
 
 async def _roles_of(db: AsyncSession, user_id: int) -> list[str]:
@@ -63,7 +68,41 @@ async def _view(db: AsyncSession, u: AppUser) -> UserView:
         auth="oidc" if u.oidc_sub else "local",
         roles=await _roles_of(db, u.id),
         created_at=u.created_at,
+        email=mask_contact(u.email) if u.email else None,
+        phone=mask_contact(u.phone) if u.phone else None,
     )
+
+
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+PHONE_RE = re.compile(r"^\+?[0-9][0-9-]{6,19}$")
+
+
+async def set_contacts(
+    db: AsyncSession, *, actor_id: int, user_id: int, email: str | None, phone: str | None
+) -> UserView:
+    """Action 알림(메일·SMS)을 받을 연락처. 비우면 지운다. 감사에는 마스킹한 값만 남는다."""
+    user = await db.get(AppUser, user_id)
+    if user is None:
+        raise AdminError("사용자를 찾을 수 없습니다", code="user_not_found", status=404)
+    email = (email or "").strip() or None
+    phone = (phone or "").strip() or None
+    if email is not None and not EMAIL_RE.match(email):
+        raise AdminError("메일 주소 형식이 아닙니다", code="invalid_contact", status=422)
+    if phone is not None and not PHONE_RE.match(phone):
+        raise AdminError("전화번호 형식이 아닙니다(숫자와 -)", code="invalid_contact", status=422)
+    user.email, user.phone = email, phone
+    audit.record(
+        db,
+        audit.USER_CONTACTS_CHANGED,
+        actor_id=actor_id,
+        target=f"app_user:{user_id}",
+        payload={
+            "email": mask_contact(email) if email else None,
+            "phone": mask_contact(phone) if phone else None,
+        },
+    )
+    await db.flush()
+    return await _view(db, user)
 
 
 async def list_users(db: AsyncSession) -> list[UserView]:

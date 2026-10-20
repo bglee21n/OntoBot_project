@@ -329,3 +329,48 @@ async def publish_session(session_id: int, db: Db, user: Modeler) -> PublishOut:
         added=done.added,
         reused=done.reused,
     )
+
+
+# ---------------------------------------------------------------- Action 후보(v1, PRD 5.3)
+
+
+class ActionCandidateOut(BaseModel):
+    """확정한 Action 후보 — 모델러가 온톨로지 편집기에서 Action 정의를 시작할 때 쓴다."""
+
+    element_id: int
+    session_id: int
+    session_title: str | None
+    name: str
+    description: str | None
+    quotes: list[str]  # 근거 발언(마스킹 저장본)
+
+
+@router.get("/action-candidates", response_model=list[ActionCandidateOut])
+async def action_candidates(db: Db, _: Modeler) -> list[ActionCandidateOut]:
+    """검토에서 확정·수정된 Action 후보.
+
+    게시 여부와 무관하다 — 후보는 워크숍 게시 때 온톨로지에 들어가지 않는다(TRD 12절).
+    """
+    rows = await db.execute(
+        select(DraftElement, InterviewSession.title)
+        .join(InterviewSession, InterviewSession.id == DraftElement.session_id)
+        .where(
+            DraftElement.kind == "action_candidate",
+            DraftElement.status.in_(["confirmed", "edited"]),
+        )
+        .order_by(DraftElement.id.desc())
+        .limit(200)
+    )
+    return [
+        ActionCandidateOut(
+            element_id=e.id,
+            session_id=e.session_id,
+            session_title=title,
+            name=str(e.payload.get("name") or ""),
+            description=e.payload.get("description"),
+            quotes=[
+                str(q.get("quote")) for q in e.evidence if q.get("ok", True) and q.get("quote")
+            ],
+        )
+        for e, title in rows.all()
+    ]

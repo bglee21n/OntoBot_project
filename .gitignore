@@ -27,3 +27,6 @@ deploy/offline/out/
 .vscode/
 *.swp
 *.tsbuildinfo
+
+# 개발 로그·가짜 발송 게이트웨이 출력(config/notify.dev.yaml)
+logs/

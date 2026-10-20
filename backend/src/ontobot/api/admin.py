@@ -38,6 +38,15 @@ class UserOut(BaseModel):
     auth: Literal["local", "oidc"]
     roles: list[str]
     created_at: datetime
+    email: str | None  # 마스킹
+    phone: str | None  # 마스킹
+
+
+class ContactsIn(BaseModel):
+    """Action 알림 연락처. 비우면 지운다."""
+
+    email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=32)
 
 
 class UserCreate(BaseModel):
@@ -121,6 +130,17 @@ async def update_user(user_id: int, body: UserPatch, db: Db, me: Admin) -> UserO
         await _call(
             admin.update_user(
                 db, actor_id=me.id, user_id=user_id, status=body.status, roles=body.roles
+            )
+        )
+    )
+
+
+@router.put("/admin/users/{user_id}/contacts", response_model=UserOut)
+async def set_contacts(user_id: int, body: ContactsIn, db: Db, me: Admin) -> UserOut:
+    return _user(
+        await _call(
+            admin.set_contacts(
+                db, actor_id=me.id, user_id=user_id, email=body.email, phone=body.phone
             )
         )
     )

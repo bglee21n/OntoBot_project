@@ -1,6 +1,775 @@
 {
   "components": {
     "schemas": {
+      "ActionApproval": {
+        "additionalProperties": false,
+        "description": "누가 승인하는가. ``roles`` 가 비면 요청자가 미리보기를 보고 스스로 실행한다.",
+        "properties": {
+          "allow_self": {
+            "default": false,
+            "title": "Allow Self",
+            "type": "boolean"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          }
+        },
+        "title": "ActionApproval",
+        "type": "object"
+      },
+      "ActionCandidateOut": {
+        "description": "확정한 Action 후보 — 모델러가 온톨로지 편집기에서 Action 정의를 시작할 때 쓴다.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "element_id": {
+            "title": "Element Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "quotes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Quotes",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          },
+          "session_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Title"
+          }
+        },
+        "required": [
+          "element_id",
+          "session_id",
+          "session_title",
+          "name",
+          "description",
+          "quotes"
+        ],
+        "title": "ActionCandidateOut",
+        "type": "object"
+      },
+      "ActionChange": {
+        "additionalProperties": false,
+        "description": "대상 객체의 속성 하나를 파라미터 값 또는 상수로 바꾼다(편집 레이어에 쓴다).",
+        "properties": {
+          "param": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Param"
+          },
+          "property": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Property",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "property"
+        ],
+        "title": "ActionChange",
+        "type": "object"
+      },
+      "ActionCondition": {
+        "additionalProperties": false,
+        "description": "사전 조건 — 대상 객체의 **보이는 값**(편집 레이어 포함)에 건다. 모두 만족해야 실행한다.",
+        "properties": {
+          "op": {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "in",
+              "is_null",
+              "not_null"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "property": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Property",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "property",
+          "op"
+        ],
+        "title": "ActionCondition",
+        "type": "object"
+      },
+      "ActionNotify": {
+        "additionalProperties": false,
+        "description": "부수효과(TRD 17.1-4). 수신자는 역할의 사용자 연락처 또는 대상 객체의 연락처 속성이다.\n\n``app`` 은 역할에만 보낸다(앱 안 알림). 문구는 템플릿 + 값 치환이다 — LLM 이 쓰지 않는다.",
+        "properties": {
+          "channel": {
+            "enum": [
+              "app",
+              "email",
+              "sms"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "template": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Template",
+            "type": "string"
+          },
+          "to_property": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Property"
+          },
+          "to_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "To Roles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel",
+          "template"
+        ],
+        "title": "ActionNotify",
+        "type": "object"
+      },
+      "ActionParamDef": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "data_type": {
+            "enum": [
+              "string",
+              "int",
+              "decimal",
+              "bool",
+              "date",
+              "datetime",
+              "enum"
+            ],
+            "title": "Data Type",
+            "type": "string"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "enum_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum Values"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "data_type"
+        ],
+        "title": "ActionParamDef",
+        "type": "object"
+      },
+      "ActionRunOut": {
+        "properties": {
+          "action_display_name": {
+            "title": "Action Display Name",
+            "type": "string"
+          },
+          "action_type": {
+            "title": "Action Type",
+            "type": "string"
+          },
+          "can_approve": {
+            "title": "Can Approve",
+            "type": "boolean"
+          },
+          "can_reject": {
+            "title": "Can Reject",
+            "type": "boolean"
+          },
+          "can_rollback": {
+            "title": "Can Rollback",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "deliveries": {
+            "items": {
+              "$ref": "#/components/schemas/DeliveryOut"
+            },
+            "title": "Deliveries",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PreviewOut"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "rolled_back_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rolled Back At"
+          },
+          "status": {
+            "enum": [
+              "previewed",
+              "blocked",
+              "rejected",
+              "executed",
+              "failed",
+              "rolled_back"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_pk": {
+            "title": "Target Pk",
+            "type": "string"
+          },
+          "target_type": {
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "request_id",
+          "action_type",
+          "action_display_name",
+          "target_type",
+          "target_pk",
+          "params",
+          "status",
+          "origin",
+          "preview",
+          "requested_by",
+          "decided_by",
+          "decided_at",
+          "reason",
+          "executed_at",
+          "rolled_back_at",
+          "error",
+          "created_at",
+          "can_approve",
+          "can_reject",
+          "can_rollback",
+          "deliveries"
+        ],
+        "title": "ActionRunOut",
+        "type": "object"
+      },
+      "ActionTypeDef": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ActionApproval"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ActionChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "compensation": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compensation"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "notify": {
+            "items": {
+              "$ref": "#/components/schemas/ActionNotify"
+            },
+            "title": "Notify",
+            "type": "array"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ActionParamDef"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "preconditions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionCondition"
+            },
+            "title": "Preconditions",
+            "type": "array"
+          },
+          "requester_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requester Roles",
+            "type": "array"
+          },
+          "target_type": {
+            "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$",
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "target_type",
+          "approval"
+        ],
+        "title": "ActionTypeDef",
+        "type": "object"
+      },
+      "ActionTypeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ActionApproval"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ActionChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "compensation": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compensation"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "notify": {
+            "items": {
+              "$ref": "#/components/schemas/ActionNotify"
+            },
+            "title": "Notify",
+            "type": "array"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ActionParamDef"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "preconditions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionCondition"
+            },
+            "title": "Preconditions",
+            "type": "array"
+          },
+          "requester_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requester Roles",
+            "type": "array"
+          },
+          "target_type": {
+            "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$",
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "target_type",
+          "approval",
+          "id"
+        ],
+        "title": "ActionTypeOut",
+        "type": "object"
+      },
+      "ActionTypeView": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "approval": {
+            "$ref": "#/components/schemas/ActionApproval"
+          },
+          "can_request": {
+            "title": "Can Request",
+            "type": "boolean"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ActionChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "compensation": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compensation"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "notify": {
+            "items": {
+              "$ref": "#/components/schemas/ActionNotify"
+            },
+            "title": "Notify",
+            "type": "array"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ActionParamDef"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "preconditions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionCondition"
+            },
+            "title": "Preconditions",
+            "type": "array"
+          },
+          "requester_roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requester Roles",
+            "type": "array"
+          },
+          "target_display_name": {
+            "title": "Target Display Name",
+            "type": "string"
+          },
+          "target_type": {
+            "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$",
+            "title": "Target Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "target_type",
+          "approval",
+          "target_display_name",
+          "can_request"
+        ],
+        "title": "ActionTypeView",
+        "type": "object"
+      },
       "AnswerData": {
         "properties": {
           "estimated_sentences": {
@@ -106,7 +875,8 @@
             "enum": [
               "object_type",
               "property",
-              "link_type"
+              "link_type",
+              "action_type"
             ],
             "title": "Element",
             "type": "string"
@@ -354,6 +1124,37 @@
         "title": "ConflictOut",
         "type": "object"
       },
+      "ContactsIn": {
+        "description": "Action 알림 연락처. 비우면 지운다.",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "title": "ContactsIn",
+        "type": "object"
+      },
       "ConversationOut": {
         "properties": {
           "id": {
@@ -400,6 +1201,78 @@
           }
         },
         "title": "CreateVersion",
+        "type": "object"
+      },
+      "DeliveryOut": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "channel": {
+            "enum": [
+              "email",
+              "sms"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "kind": {
+            "enum": [
+              "notify",
+              "compensation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "recipient": {
+            "title": "Recipient",
+            "type": "string"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "sent",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "kind",
+          "recipient",
+          "status",
+          "attempts",
+          "sent_at",
+          "error"
+        ],
+        "title": "DeliveryOut",
         "type": "object"
       },
       "DoneData": {
@@ -2531,6 +3404,85 @@
         "title": "MessageOut",
         "type": "object"
       },
+      "NotificationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unread",
+          "items"
+        ],
+        "title": "NotificationList",
+        "type": "object"
+      },
+      "NotificationOut": {
+        "properties": {
+          "action_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Run Id"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "notify",
+              "compensation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "body",
+          "action_run_id",
+          "created_at",
+          "read_at"
+        ],
+        "title": "NotificationOut",
+        "type": "object"
+      },
       "ObjectCard": {
         "properties": {
           "fields": {
@@ -2763,6 +3715,217 @@
           "readable_types"
         ],
         "title": "PermissionsIn",
+        "type": "object"
+      },
+      "PreviewChange": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "string"
+          },
+          "before": {
+            "title": "Before",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "property": {
+            "title": "Property",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property",
+          "display_name",
+          "before",
+          "after"
+        ],
+        "title": "PreviewChange",
+        "type": "object"
+      },
+      "PreviewCondition": {
+        "properties": {
+          "actual": {
+            "title": "Actual",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "expected": {
+            "title": "Expected",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "property": {
+            "title": "Property",
+            "type": "string"
+          }
+        },
+        "required": [
+          "property",
+          "display_name",
+          "op",
+          "expected",
+          "actual",
+          "ok"
+        ],
+        "title": "PreviewCondition",
+        "type": "object"
+      },
+      "PreviewNotify": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "app",
+              "email",
+              "sms"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "irreversible": {
+            "title": "Irreversible",
+            "type": "boolean"
+          },
+          "recipients": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recipients",
+            "type": "array"
+          }
+        },
+        "required": [
+          "channel",
+          "count",
+          "recipients",
+          "body",
+          "irreversible"
+        ],
+        "title": "PreviewNotify",
+        "type": "object"
+      },
+      "PreviewOut": {
+        "description": "승인자가 보는 그대로(``actions.runner._preview_json``).",
+        "properties": {
+          "blocked": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocked",
+            "type": "array"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewCondition"
+            },
+            "title": "Conditions",
+            "type": "array"
+          },
+          "notify": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewNotify"
+            },
+            "title": "Notify",
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/PreviewTarget"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "target",
+          "conditions",
+          "changes",
+          "notify",
+          "blocked",
+          "warnings"
+        ],
+        "title": "PreviewOut",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "properties": {
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "request_id": {
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "target_pk": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Target Pk",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_pk",
+          "request_id"
+        ],
+        "title": "PreviewRequest",
+        "type": "object"
+      },
+      "PreviewTarget": {
+        "properties": {
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "pk",
+          "title"
+        ],
+        "title": "PreviewTarget",
         "type": "object"
       },
       "PropertyDef": {
@@ -3047,6 +4210,24 @@
           "llm"
         ],
         "title": "ReadinessOut",
+        "type": "object"
+      },
+      "RejectRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "RejectRequest",
         "type": "object"
       },
       "RoleOut": {
@@ -4035,9 +5216,31 @@
             "title": "Display Name",
             "type": "string"
           },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
           },
           "roles": {
             "items": {
@@ -4073,7 +5276,9 @@
           "status",
           "auth",
           "roles",
-          "created_at"
+          "created_at",
+          "email",
+          "phone"
         ],
         "title": "UserOut",
         "type": "object"
@@ -4208,6 +5413,13 @@
       },
       "VersionDetail": {
         "properties": {
+          "action_types": {
+            "items": {
+              "$ref": "#/components/schemas/ActionTypeOut"
+            },
+            "title": "Action Types",
+            "type": "array"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -4284,6 +5496,7 @@
           "published_at",
           "object_types",
           "link_types",
+          "action_types",
           "issues"
         ],
         "title": "VersionDetail",
@@ -4356,6 +5569,354 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/action-runs": {
+      "get": {
+        "description": "``mine`` 내가 요청한 것, ``to_decide`` 내가 승인할 대기 건, ``all`` 읽을 수 있는 전부.",
+        "operationId": "list_runs_api_v1_action_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "mine",
+              "enum": [
+                "mine",
+                "to_decide",
+                "all"
+              ],
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "previewed",
+                    "blocked",
+                    "rejected",
+                    "executed",
+                    "failed",
+                    "rolled_back"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActionRunOut"
+                  },
+                  "title": "Response List Runs Api V1 Action Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_v1_action_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-runs/{run_id}/approve": {
+      "post": {
+        "description": "승인 = 실행. 실행 직전 재검증에 실패하면 ``failed`` 기록이 돌아온다(200).",
+        "operationId": "approve_run_api_v1_action_runs__run_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Run",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-runs/{run_id}/reject": {
+      "post": {
+        "operationId": "reject_run_api_v1_action_runs__run_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Run",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-runs/{run_id}/rollback": {
+      "post": {
+        "description": "편집을 해제하고, 안 나간 발송은 취소, 나간 발송에는 정정 문구를 보낸다.",
+        "operationId": "rollback_run_api_v1_action_runs__run_id__rollback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rollback Run",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-types": {
+      "get": {
+        "description": "지금 게시본의 Action 중 대상 타입을 읽을 수 있는 것.",
+        "operationId": "list_action_types_api_v1_action_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActionTypeView"
+                  },
+                  "title": "Response List Action Types Api V1 Action Types Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Action Types",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/action-types/{name}/preview": {
+      "post": {
+        "description": "미리보기 — 실행하지 않는다. 바뀔 값·사전 조건·발송 요약을 기록으로 남긴다.",
+        "operationId": "preview_action_api_v1_action_types__name__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Action",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
     "/api/v1/admin/object-types": {
       "get": {
         "description": "권한 표의 열 — 게시된 버전의 타입. 게시본이 없으면 빈 목록.",
@@ -4570,6 +6131,58 @@
           }
         },
         "summary": "Update User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/contacts": {
+      "put": {
+        "operationId": "set_contacts_api_v1_admin_users__user_id__contacts_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Contacts",
         "tags": [
           "admin"
         ]
@@ -5723,6 +7336,42 @@
         ]
       }
     },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Notifications",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
+    "/api/v1/notifications/read": {
+      "post": {
+        "description": "내 알림을 모두 읽음으로.",
+        "operationId": "mark_read_api_v1_notifications_read_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Mark Read",
+        "tags": [
+          "actions"
+        ]
+      }
+    },
     "/api/v1/object-edits/{edit_id}": {
       "delete": {
         "description": "편집을 해제한다 — 보이는 값이 원천 값으로 돌아간다(PRD 5.3).",
@@ -5911,6 +7560,161 @@
           }
         },
         "summary": "Get Version",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/action-types": {
+      "post": {
+        "operationId": "create_action_type_api_v1_ontology_versions__version_id__action_types_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionTypeDef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionTypeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Action Type",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/action-types/{action_id}": {
+      "delete": {
+        "operationId": "delete_action_type_api_v1_ontology_versions__version_id__action_types__action_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Action Type",
+        "tags": [
+          "ontology"
+        ]
+      },
+      "put": {
+        "operationId": "replace_action_type_api_v1_ontology_versions__version_id__action_types__action_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionTypeDef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionTypeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Action Type",
         "tags": [
           "ontology"
         ]
@@ -7060,6 +8864,32 @@
         "summary": "Trace",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/workshop/action-candidates": {
+      "get": {
+        "description": "검토에서 확정·수정된 Action 후보.\n\n게시 여부와 무관하다 — 후보는 워크숍 게시 때 온톨로지에 들어가지 않는다(TRD 12절).",
+        "operationId": "action_candidates_api_v1_workshop_action_candidates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActionCandidateOut"
+                  },
+                  "title": "Response Action Candidates Api V1 Workshop Action Candidates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Action Candidates",
+        "tags": [
+          "workshop"
         ]
       }
     },

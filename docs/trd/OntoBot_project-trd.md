@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.13                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.14                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -665,7 +665,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 1 | 편집 레이어와 조회 | 활성 편집은 근거 카드뿐 아니라 **조회 조건에도** 보인다. `objects.reader` 의 `resolve`·`run_query`·`existing_values` 가 `object` 에 활성 `object_edit` 를 덮은 같은 파생 행을 읽는다 |
 | 2 | Action·Function 정의 위치 | `OntologyDocument` 에 `action_types`·`functions` 를 더한다. draft 에서 편집·게시, 게시본 불변, 버전 비교·영향 분석 대상 |
 | 3 | Action 변경 대상 | 일반 속성만. pk·FK(링크 원천)·**제목** 속성은 게시 전 검사가 거부한다(링크 변경 Action 은 v1.5). 제목은 Neo4j 노드와 참조 값 대조(FK 이름 → `traverse` 재작성)에 쓰여, 편집하면 그래프와 어긋난다(v0.13 추가) |
-| 4 | ★ Action 부수효과 | 앱 안 알림 + **메일(사내 SMTP 릴레이) + SMS(사내 게이트웨이: HTTP JSON 또는 발송 테이블 INSERT)**. 실행 트랜잭션에서 `notification_outbox` 에 쓰고 커밋 뒤 워커가 보낸다(재시도, `(action_run, 채널, 수신자)` 중복 방지). 롤백은 정정 발송. 수신자 = 역할의 사용자 연락처(`app_user.email`·`phone`) 또는 대상 객체의 `pii_kind` phone/email 속성, 실행당 상한. 연락처는 로그·감사에서 마스킹. 발송 문구는 템플릿 + 바인드(LLM 이 쓰지 않는다). **실행 중 외부 호출 금지 규칙의 예외는 외부 LLM 공급자와 운영자가 설정한 메일·SMS 게이트웨이뿐이다.** `/readyz` 는 게이트웨이를 부르지 않는다 |
+| 4 | ★ Action 부수효과 | 앱 안 알림 + **메일(사내 SMTP 릴레이) + SMS(사내 게이트웨이: HTTP JSON 또는 발송 테이블 INSERT)**. 실행 트랜잭션에서 `notification_delivery`(발송 아웃박스)에 쓰고 커밋 뒤 워커가 보낸다(재시도, `(action_run, 채널, 수신자)` 중복 방지). 롤백은 정정 발송. 수신자 = 역할의 사용자 연락처(`app_user.email`·`phone`) 또는 대상 객체의 `pii_kind` phone/email 속성, 실행당 상한. 연락처는 로그·감사에서 마스킹. 발송 문구는 템플릿 + 바인드(LLM 이 쓰지 않는다). **실행 중 외부 호출 금지 규칙의 예외는 외부 LLM 공급자와 운영자가 설정한 메일·SMS 게이트웨이뿐이다.** `/readyz` 는 게이트웨이를 부르지 않는다 |
 | 5 | Action 파라미터 검증 | 객체 참조는 그 타입에 실재하는 pk·제목과 정확 일치, 값은 질문 원문에 그대로 있거나 enum·자료형 변환 통과. 어긋나면 실행 전에 막고 오류를 한꺼번에 붙여 1회 재계획, 그래도 안 되면 사용자가 고른다 |
 | 6 | 멱등성 | `action_run.request_id`(클라이언트 UUID) 유일 인덱스. 재전송은 기존 실행을 돌려준다(발송도 한 번) |
 | 7 | Function 형태 | 선언형 식 트리(QueryPlan 조각·집계·산술·비교·조건). 사용자 코드는 받지 않는다. 값은 전부 바인드, 호출자 권한으로 조회 |
@@ -676,6 +676,22 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 12 | 문서 인용 | `[[d:<doc_id>/<chunk_no>]]` — 값이 청크 원문에 그대로 있는지 정확 일치. 유사도는 검색에만 쓰고 근거 판정에는 쓰지 않는다 |
 | 13 | ★ 워크숍 음성 입력 | **폐쇄망에서는 비활성화.** `ONTOBOT_CLOSED_NETWORK=false` 이고 `ONTOBOT_VOICE_INPUT=true` 일 때만 켜진다(화면은 `GET /config/features` 로 받는다). 브라우저 음성 인식이라 음성이 브라우저 공급자 서버로 감을 화면에 알린다. 인식 결과는 텍스트 발언과 같이 마스킹 저장. 오프라인 STT 어댑터는 v1.5 |
 | 14 | 공개 REST API | API 키(해시 저장)·스코프(`query`·`objects:read`·`actions:request`)·키마다 서비스 계정(역할). 권한 판정은 `security/rbac.py` 하나 |
+
+### 17.2 Action 실행 (v0.14, Phase 10 구현 — ADR-0012)
+
+| 표 | 주요 컬럼 |
+| --- | --- |
+| `action_type` | `version_id`, `api_name`, `display_name`, `definition`(jsonb — `ActionTypeDef` 의 나머지) — 버전과 함께 게시, 게시본 불변 |
+| `action_run` | `request_id`(유일), `action_type`, `ontology_version_id`, `target_type`·`target_pk`, `params`(저장 표현), `status`(previewed/blocked/rejected/executed/failed/rolled_back), `origin`(ui/chat/api), `preview`(jsonb — 승인자가 보는 그대로), `requested_by`, `decided_by`·`decided_at`, `reason`, `executed_at`, `rolled_back_by`·`_at`, `error` |
+| `notification` | `user_id`, `action_run_id`, `kind`(notify/compensation), `body`, `read_at` — 앱 안 알림 |
+| `notification_delivery` | `action_run_id`, `channel`(email/sms), `kind`(notify/compensation), `recipient`(원값), `subject`, `body`, `status`(pending/sent/failed/cancelled), `attempts`, `next_attempt_at`, `sent_at`, `error` — 유일 `(실행, 채널, 수신자, 종류)` |
+| `app_user` | `email`·`phone` 추가(PII — 응답·감사는 마스킹) |
+
+- **정의**(`ActionTypeDef`): 대상 타입, 요청 역할(비면 대상을 읽는 누구나), 파라미터(자료형·enum·필수), 사전 조건(대상의 **보이는 값**에 거는 고정 연산자), 바꿀 속성(파라미터 또는 상수), 알림(`app`/`email`/`sms`, 받는 역할 또는 대상의 연락처 속성, 템플릿), 승인(역할·`allow_self`), 정정 문구(메일·SMS 가 있으면 필수). 게시 전 검사가 pk·제목·FK 변경, 파라미터↔속성 자료형(enum 값 포함), 선택 파라미터 → 비울 수 없는 속성, 연락처 속성의 `pii_kind`, 모르는 자리표시자를 막는다.
+- **흐름**: 미리보기(실행 안 함 — 파라미터 변환 오류는 한꺼번에 422, 사전 조건·채널 미설정·수신자 상한은 `blocked`) → 승인 = 실행(같은 트랜잭션에서 게시 버전 일치·대상·사전 조건 재검증 → 편집 레이어 `apply_edit(action_run_id)` → 앱 알림 → 발송 아웃박스 → `notify_deliver` 작업) → 롤백(이 실행의 활성 편집 해제, 대기 발송 취소, 나간·실패한 발송과 앱 알림 수신자에게 정정 문구). 재검증 실패는 `failed` 기록이다(예외로 되돌리지 않는다). 같은 `request_id` 는 처음 기록을 돌려준다(다른 사용자면 409).
+- **권한**(`security/rbac.py`): 요청 = 대상 타입 읽기 + 요청 역할. 승인·거부 = 승인 역할(본인은 `allow_self` 일 때만). 미리보기 단계는 요청자가 거둘 수 있다. 롤백 = 승인 역할 또는 관리자. 읽을 수 없는 타입의 Action·기록은 404.
+- **발송**(`notify/`): 설정 `config/notify.yaml`(`ONTOBOT_NOTIFY_CONFIG_PATH`, 설치본은 `shared\notify.yaml`). 채널 어댑터 `smtp`·`sms_http`·`sms_table`·`fake`(개발). 설정하지 않은 채널은 꺼진다. 워커가 기한이 된 행을 집어(임대 5분) 트랜잭션 밖에서 보내고, 실패는 `retry_seconds × 시도` 뒤 재시도, `max_attempts` 를 넘으면 `failed` — 최소 한 번 발송. 주기 발행이 재시도 기한이 된 발송을 다시 넣는다. 문구는 `{이름}` 치환뿐(LLM 이 쓰지 않는다).
+- **API**: `GET /action-types`(읽을 수 있는 대상의 게시 Action) · `POST /action-types/{name}/preview` · `GET /action-runs?scope=mine|to_decide|all` · `GET /action-runs/{id}` · `POST /action-runs/{id}/approve|reject|rollback` · `GET /notifications` · `POST /notifications/read` · 온톨로지 `POST·PUT·DELETE /ontology/versions/{id}/action-types[/{aid}]` · `PUT /admin/users/{id}/contacts` · `GET /workshop/action-candidates`(확정한 Action 후보 — 정의를 시작할 때). 감사 이벤트 `action.previewed·executed·rejected·failed·rolled_back`, `security.user_contacts_changed`.
 
 ## 18. PRD 추적 매트릭스 (P0)
 
@@ -742,6 +758,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 0007 | Docker 미사용, Windows Server 네이티브 | 서비스 등록·업그레이드·롤백을 설치 스크립트가 맡는다. Linux 운영이 필요해지면 systemd 설치 스크립트를 추가한다 |
 | 0008 | 인터뷰 워크숍 면담자·추출기 | 다음 질문은 상태기계, LLM 은 평가·되묻기·추출만. gemma4:e4b(대본 7/8, p50 2.1초). 프롬프트·추출 스키마를 바꾸거나 실제 인터뷰 기록이 생기면 다시 잰다 |
 | 0009 | 평가 게이트 | 운영 파이프라인 인프로세스 + 실행기 주입 장애, PR 은 녹화 응답(놓침 = 실패), 실제 모델 게이트는 모델·프롬프트 변경 때 로컬에서 녹화와 함께. 가안 수치는 PRD 7절이 정해지면 고친다 |
+| 0012 | Action 실행·메일·SMS 발송 | 승인 = 실행(한 트랜잭션 재검증, 실패는 `failed` 기록), 발송은 아웃박스를 커밋 뒤 워커가 최소 한 번, 채널 미설정 = 미리보기에서 막힘. 게이트웨이가 요청 ID 중복 제거를 지원하면 "한 번" 발송으로 |
 
 ## 22. 개정 이력
 
@@ -752,6 +769,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.14 | 2026-10-20 | Phase 10 구현 반영(ADR-0012) — 17.2 Action 실행: `action_type`·`action_run`·`notification`·`notification_delivery` 표, `app_user` 연락처, 정의 모양과 게시 전 검사, 미리보기 → 승인 = 실행(재검증) → 롤백(정정 발송) 흐름, 권한 판정, 발송 아웃박스(최소 한 번·재시도·채널 꺼짐 = 막힘), API·감사 이벤트. 17.1-4 의 아웃박스 표 이름을 `notification_delivery` 로 정정 |
 | v0.13 | 2026-10-20 | Phase 9 구현 반영 — 편집 레이어 덮어 읽기(reader 파생 행, 조회 조건·집계·참조 대조 모두), 충돌 판정 규칙·편집당 살아 있는 충돌 하나, 재편집·해제 규칙, 값 계보, 객체·충돌·편집 해제 API, 감사 이벤트 2종, Action 변경 금지에 제목 속성 추가(17.1-3) |
 | v0.12 | 2026-10-20 | v1 착수 결정(17.1) — 편집 레이어는 조회 조건에도 적용, Action·Function 은 온톨로지 문서에, Action 부수효과는 앱 알림·메일·SMS(사내 게이트웨이, 아웃박스 발송, 사용자 결정), 파라미터 검증·멱등성, 선언형 Function, 속성·행 권한, 감사 해시 체인, 임베딩·문서 인용, 폐쇄망 설정과 음성 입력 비활성화(사용자 결정), 공개 API 키. 2절 가정 표에 Action 부수효과·폐쇄망 여부 추가 |
 | v0.11 | 2026-10-20 | Phase 8 구현 반영(ADR-0010·0011) — `/readyz` 판정 규칙(`ok`/`degraded`/`unavailable`, 외부 LLM 은 호출하지 않음), 설치본 프론트 서빙(`ONTOBOT_FRONTEND_DIST`), DB 연결 풀 설정(동시 채팅 상한), 오프라인 번들 구성·WinSW 서비스·릴리스 폴더 + `current` 정션 업그레이드·롤백(롤백 DB 는 업그레이드 직전 `pg_dump` 복원, 내림 마이그레이션 미사용), 부하 측정 결과 |

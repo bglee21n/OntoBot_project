@@ -77,8 +77,8 @@ class ObjectEdit(IdMixin, Base):
     value: Mapped[Any] = mapped_column(JSONB)
     # 편집 당시의 원천 값(없으면 NULL) — 이후 동기화 값과 비교해 충돌을 판정한다.
     base_source_value: Mapped[Any] = mapped_column(JSONB(none_as_null=True), nullable=True)
-    # 편집을 만든 Action 실행(Phase 10 에서 action_run FK 를 건다).
-    action_run_id: Mapped[int | None] = mapped_column(BigInteger)
+    # 편집을 만든 Action 실행.
+    action_run_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("action_run.id"))
     edited_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
     edited_at: Mapped[datetime] = mapped_column(tz())
     cleared_at: Mapped[datetime | None] = mapped_column(tz())

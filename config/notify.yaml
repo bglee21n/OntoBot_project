@@ -1,0 +1,37 @@
+# Action 알림의 메일·SMS 게이트웨이(TRD 17.1-4). 운영자가 사내 게이트웨이를 설정한다.
+#
+# - 채널을 비워 두면 꺼진다. 그 채널로 보내는 Action 은 미리보기에서 막힌다(보낸 척하지 않는다).
+#   앱 안 알림은 설정 없이 언제나 된다.
+# - 비밀값은 이 파일에 적지 않는다 — 환경변수 이름(*_env)이나 시크릿 참조(secret_ref: env:PREFIX)만 적는다.
+# - 사내 게이트웨이 주소만 적는다. 외부 인터넷 발송 서비스를 적지 말 것(폐쇄망 전제, CLAUDE.md).
+# - 설치본은 shared\notify.yaml 을 쓴다(ONTOBOT_NOTIFY_CONFIG_PATH, install.ps1 이 견본을 복사).
+
+max_recipients: 50   # 실행 한 번에 채널별 수신자 상한
+max_attempts: 5      # 발송 재시도 상한(넘으면 failed — 실행 기록에 보인다)
+retry_seconds: 60    # 재시도 간격 = 이 값 × 시도 횟수
+
+channels: {}
+# 예시:
+# channels:
+#   email:
+#     adapter: smtp
+#     host: mail.corp.local
+#     port: 25
+#     starttls: false
+#     sender: ontobot@corp.local
+#     username_env: ONTOBOT_SMTP_USER       # 인증이 없으면 지운다
+#     password_env: ONTOBOT_SMTP_PASSWORD
+#   sms:
+#     adapter: sms_http                      # POST url, JSON {"to", "text", "sender"}
+#     url: http://sms-gw.corp.local/api/send
+#     sender: "0212345678"
+#     token_env: ONTOBOT_SMS_TOKEN           # Authorization: Bearer <값>
+#   # 또는 발송 테이블에 한 행 INSERT(UMS 류)
+#   sms:
+#     adapter: sms_table
+#     secret_ref: env:ONTOBOT_SMSDB           # ONTOBOT_SMSDB_HOST·_PORT·_DB·_USER·_PASSWORD
+#     table: ums.sms_queue
+#     to_column: dest_no
+#     text_column: msg_body
+#     sender_column: send_no
+#     sender: "0212345678"

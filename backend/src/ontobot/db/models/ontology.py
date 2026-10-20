@@ -1,4 +1,4 @@
-"""온톨로지 — 버전·객체 타입·속성·링크 타입(TRD 6.1)."""
+"""온톨로지 — 버전·객체 타입·속성·링크 타입(TRD 6.1)·Action 타입(17.1-2)."""
 
 from __future__ import annotations
 
@@ -52,6 +52,9 @@ class OntologyVersion(IdMixin, Base):
     )
     link_types: Mapped[list[LinkType]] = relationship(
         back_populates="version", cascade="all, delete-orphan", order_by="LinkType.id"
+    )
+    action_types: Mapped[list[ActionType]] = relationship(
+        back_populates="version", cascade="all, delete-orphan", order_by="ActionType.id"
     )
 
 
@@ -118,3 +121,22 @@ class LinkType(IdMixin, Base):
     source: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
     version: Mapped[OntologyVersion] = relationship(back_populates="link_types")
+
+
+class ActionType(IdMixin, Base):
+    """Action 정의(PRD 5.3). 버전에 묶여 함께 게시되고 게시본은 불변이다(TRD 17.1-2).
+
+    정의 본문은 ``ontology.models.ActionTypeDef`` 를 그대로 담는다(이름·표시 이름 밖의 전부).
+    """
+
+    __tablename__ = "action_type"
+    __table_args__ = (Index("uq_action_type_version_api", "version_id", "api_name", unique=True),)
+
+    version_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("ontology_version.id", ondelete="CASCADE")
+    )
+    api_name: Mapped[str] = mapped_column(String(64))
+    display_name: Mapped[str] = mapped_column(String(128))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+    version: Mapped[OntologyVersion] = relationship(back_populates="action_types")

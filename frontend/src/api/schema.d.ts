@@ -4,6 +4,140 @@
  */
 
 export interface paths {
+    "/api/v1/action-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Runs
+         * @description ``mine`` 내가 요청한 것, ``to_decide`` 내가 승인할 대기 건, ``all`` 읽을 수 있는 전부.
+         */
+        get: operations["list_runs_api_v1_action_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_v1_action_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-runs/{run_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Run
+         * @description 승인 = 실행. 실행 직전 재검증에 실패하면 ``failed`` 기록이 돌아온다(200).
+         */
+        post: operations["approve_run_api_v1_action_runs__run_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-runs/{run_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Run */
+        post: operations["reject_run_api_v1_action_runs__run_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-runs/{run_id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rollback Run
+         * @description 편집을 해제하고, 안 나간 발송은 취소, 나간 발송에는 정정 문구를 보낸다.
+         */
+        post: operations["rollback_run_api_v1_action_runs__run_id__rollback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Action Types
+         * @description 지금 게시본의 Action 중 대상 타입을 읽을 수 있는 것.
+         */
+        get: operations["list_action_types_api_v1_action_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/action-types/{name}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Action
+         * @description 미리보기 — 실행하지 않는다. 바뀔 값·사전 조건·발송 요약을 기록으로 남긴다.
+         */
+        post: operations["preview_action_api_v1_action_types__name__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/object-types": {
         parameters: {
             query?: never;
@@ -91,6 +225,23 @@ export interface paths {
         head?: never;
         /** Update User */
         patch: operations["update_user_api_v1_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Contacts */
+        put: operations["set_contacts_api_v1_admin_users__user_id__contacts_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/audit-logs": {
@@ -493,6 +644,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Notifications */
+        get: operations["list_notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Read
+         * @description 내 알림을 모두 읽음으로.
+         */
+        post: operations["mark_read_api_v1_notifications_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/object-edits/{edit_id}": {
         parameters: {
             query?: never;
@@ -560,6 +748,41 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ontology/versions/{version_id}/action-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Action Type */
+        post: operations["create_action_type_api_v1_ontology_versions__version_id__action_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ontology/versions/{version_id}/action-types/{action_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Action Type */
+        put: operations["replace_action_type_api_v1_ontology_versions__version_id__action_types__action_id__put"];
+        post?: never;
+        /** Delete Action Type */
+        delete: operations["delete_action_type_api_v1_ontology_versions__version_id__action_types__action_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -885,6 +1108,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workshop/action-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Action Candidates
+         * @description 검토에서 확정·수정된 Action 후보.
+         *
+         *     게시 여부와 무관하다 — 후보는 워크숍 게시 때 온톨로지에 들어가지 않는다(TRD 12절).
+         */
+        get: operations["action_candidates_api_v1_workshop_action_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workshop/elements/{element_id}": {
         parameters: {
             query?: never;
@@ -1043,6 +1288,234 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActionApproval
+         * @description 누가 승인하는가. ``roles`` 가 비면 요청자가 미리보기를 보고 스스로 실행한다.
+         */
+        ActionApproval: {
+            /**
+             * Allow Self
+             * @default false
+             */
+            allow_self: boolean;
+            /** Roles */
+            roles?: string[];
+        };
+        /**
+         * ActionCandidateOut
+         * @description 확정한 Action 후보 — 모델러가 온톨로지 편집기에서 Action 정의를 시작할 때 쓴다.
+         */
+        ActionCandidateOut: {
+            /** Description */
+            description: string | null;
+            /** Element Id */
+            element_id: number;
+            /** Name */
+            name: string;
+            /** Quotes */
+            quotes: string[];
+            /** Session Id */
+            session_id: number;
+            /** Session Title */
+            session_title: string | null;
+        };
+        /**
+         * ActionChange
+         * @description 대상 객체의 속성 하나를 파라미터 값 또는 상수로 바꾼다(편집 레이어에 쓴다).
+         */
+        ActionChange: {
+            /** Param */
+            param?: string | null;
+            /** Property */
+            property: string;
+            /** Value */
+            value?: string | number | boolean | null;
+        };
+        /**
+         * ActionCondition
+         * @description 사전 조건 — 대상 객체의 **보이는 값**(편집 레이어 포함)에 건다. 모두 만족해야 실행한다.
+         */
+        ActionCondition: {
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "is_null" | "not_null";
+            /** Property */
+            property: string;
+            /** Value */
+            value?: string | number | boolean | (string | number | boolean | null)[] | null;
+        };
+        /**
+         * ActionNotify
+         * @description 부수효과(TRD 17.1-4). 수신자는 역할의 사용자 연락처 또는 대상 객체의 연락처 속성이다.
+         *
+         *     ``app`` 은 역할에만 보낸다(앱 안 알림). 문구는 템플릿 + 값 치환이다 — LLM 이 쓰지 않는다.
+         */
+        ActionNotify: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "app" | "email" | "sms";
+            /** Template */
+            template: string;
+            /** To Property */
+            to_property?: string | null;
+            /** To Roles */
+            to_roles?: string[];
+        };
+        /** ActionParamDef */
+        ActionParamDef: {
+            /** Api Name */
+            api_name: string;
+            /**
+             * Data Type
+             * @enum {string}
+             */
+            data_type: "string" | "int" | "decimal" | "bool" | "date" | "datetime" | "enum";
+            /** Display Name */
+            display_name: string;
+            /** Enum Values */
+            enum_values?: string[] | null;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+        };
+        /** ActionRunOut */
+        ActionRunOut: {
+            /** Action Display Name */
+            action_display_name: string;
+            /** Action Type */
+            action_type: string;
+            /** Can Approve */
+            can_approve: boolean;
+            /** Can Reject */
+            can_reject: boolean;
+            /** Can Rollback */
+            can_rollback: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Deliveries */
+            deliveries: components["schemas"]["DeliveryOut"][];
+            /** Error */
+            error: string | null;
+            /** Executed At */
+            executed_at: string | null;
+            /** Id */
+            id: number;
+            /** Origin */
+            origin: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            preview: components["schemas"]["PreviewOut"];
+            /** Reason */
+            reason: string | null;
+            /** Request Id */
+            request_id: string;
+            /** Requested By */
+            requested_by: string | null;
+            /** Rolled Back At */
+            rolled_back_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "previewed" | "blocked" | "rejected" | "executed" | "failed" | "rolled_back";
+            /** Target Pk */
+            target_pk: string;
+            /** Target Type */
+            target_type: string;
+        };
+        /** ActionTypeDef */
+        ActionTypeDef: {
+            /** Api Name */
+            api_name: string;
+            approval: components["schemas"]["ActionApproval"];
+            /** Changes */
+            changes?: components["schemas"]["ActionChange"][];
+            /** Compensation */
+            compensation?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Notify */
+            notify?: components["schemas"]["ActionNotify"][];
+            /** Parameters */
+            parameters?: components["schemas"]["ActionParamDef"][];
+            /** Preconditions */
+            preconditions?: components["schemas"]["ActionCondition"][];
+            /** Requester Roles */
+            requester_roles?: string[];
+            /** Target Type */
+            target_type: string;
+        };
+        /** ActionTypeOut */
+        ActionTypeOut: {
+            /** Api Name */
+            api_name: string;
+            approval: components["schemas"]["ActionApproval"];
+            /** Changes */
+            changes?: components["schemas"]["ActionChange"][];
+            /** Compensation */
+            compensation?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: number;
+            /** Notify */
+            notify?: components["schemas"]["ActionNotify"][];
+            /** Parameters */
+            parameters?: components["schemas"]["ActionParamDef"][];
+            /** Preconditions */
+            preconditions?: components["schemas"]["ActionCondition"][];
+            /** Requester Roles */
+            requester_roles?: string[];
+            /** Target Type */
+            target_type: string;
+        };
+        /** ActionTypeView */
+        ActionTypeView: {
+            /** Api Name */
+            api_name: string;
+            approval: components["schemas"]["ActionApproval"];
+            /** Can Request */
+            can_request: boolean;
+            /** Changes */
+            changes?: components["schemas"]["ActionChange"][];
+            /** Compensation */
+            compensation?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Notify */
+            notify?: components["schemas"]["ActionNotify"][];
+            /** Parameters */
+            parameters?: components["schemas"]["ActionParamDef"][];
+            /** Preconditions */
+            preconditions?: components["schemas"]["ActionCondition"][];
+            /** Requester Roles */
+            requester_roles?: string[];
+            /** Target Display Name */
+            target_display_name: string;
+            /** Target Type */
+            target_type: string;
+        };
         /** AnswerData */
         AnswerData: {
             /** Estimated Sentences */
@@ -1084,7 +1557,7 @@ export interface components {
              * Element
              * @enum {string}
              */
-            element: "object_type" | "property" | "link_type";
+            element: "object_type" | "property" | "link_type" | "action_type";
             /**
              * Kind
              * @enum {string}
@@ -1161,6 +1634,16 @@ export interface components {
              */
             status: "open" | "acknowledged";
         };
+        /**
+         * ContactsIn
+         * @description Action 알림 연락처. 비우면 지운다.
+         */
+        ContactsIn: {
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
         /** ConversationOut */
         ConversationOut: {
             /** Id */
@@ -1177,6 +1660,32 @@ export interface components {
         CreateVersion: {
             /** Parent Id */
             parent_id?: number | null;
+        };
+        /** DeliveryOut */
+        DeliveryOut: {
+            /** Attempts */
+            attempts: number;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "email" | "sms";
+            /** Error */
+            error: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "notify" | "compensation";
+            /** Recipient */
+            recipient: string;
+            /** Sent At */
+            sent_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "sent" | "failed" | "cancelled";
         };
         /** DoneData */
         DoneData: {
@@ -1847,6 +2356,34 @@ export interface components {
             /** Status */
             status: ("ok" | "empty" | "failed" | "not_query") | null;
         };
+        /** NotificationList */
+        NotificationList: {
+            /** Items */
+            items: components["schemas"]["NotificationOut"][];
+            /** Unread */
+            unread: number;
+        };
+        /** NotificationOut */
+        NotificationOut: {
+            /** Action Run Id */
+            action_run_id: number | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "notify" | "compensation";
+            /** Read At */
+            read_at: string | null;
+        };
         /** ObjectCard */
         ObjectCard: {
             /** Fields */
@@ -1910,6 +2447,85 @@ export interface components {
         PermissionsIn: {
             /** Readable Types */
             readable_types: string[];
+        };
+        /** PreviewChange */
+        PreviewChange: {
+            /** After */
+            after: string;
+            /** Before */
+            before: string;
+            /** Display Name */
+            display_name: string;
+            /** Property */
+            property: string;
+        };
+        /** PreviewCondition */
+        PreviewCondition: {
+            /** Actual */
+            actual: string;
+            /** Display Name */
+            display_name: string;
+            /** Expected */
+            expected: string;
+            /** Ok */
+            ok: boolean;
+            /** Op */
+            op: string;
+            /** Property */
+            property: string;
+        };
+        /** PreviewNotify */
+        PreviewNotify: {
+            /** Body */
+            body: string;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "app" | "email" | "sms";
+            /** Count */
+            count: number;
+            /** Irreversible */
+            irreversible: boolean;
+            /** Recipients */
+            recipients: string[];
+        };
+        /**
+         * PreviewOut
+         * @description 승인자가 보는 그대로(``actions.runner._preview_json``).
+         */
+        PreviewOut: {
+            /** Blocked */
+            blocked: string[];
+            /** Changes */
+            changes: components["schemas"]["PreviewChange"][];
+            /** Conditions */
+            conditions: components["schemas"]["PreviewCondition"][];
+            /** Notify */
+            notify: components["schemas"]["PreviewNotify"][];
+            target: components["schemas"]["PreviewTarget"];
+            /** Warnings */
+            warnings: string[];
+        };
+        /** PreviewRequest */
+        PreviewRequest: {
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+            /** Request Id */
+            request_id: string;
+            /** Target Pk */
+            target_pk: string;
+        };
+        /** PreviewTarget */
+        PreviewTarget: {
+            /** Pk */
+            pk: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
         };
         /** PropertyDef */
         PropertyDef: {
@@ -2001,6 +2617,11 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "degraded" | "unavailable";
+        };
+        /** RejectRequest */
+        RejectRequest: {
+            /** Reason */
+            reason?: string | null;
         };
         /** RoleOut */
         RoleOut: {
@@ -2312,8 +2933,12 @@ export interface components {
             created_at: string;
             /** Display Name */
             display_name: string;
+            /** Email */
+            email: string | null;
             /** Id */
             id: number;
+            /** Phone */
+            phone: string | null;
             /** Roles */
             roles: string[];
             /**
@@ -2370,6 +2995,8 @@ export interface components {
         };
         /** VersionDetail */
         VersionDetail: {
+            /** Action Types */
+            action_types: components["schemas"]["ActionTypeOut"][];
             /**
              * Created At
              * Format: date-time
@@ -2425,6 +3052,222 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_runs_api_v1_action_runs_get: {
+        parameters: {
+            query?: {
+                scope?: "mine" | "to_decide" | "all";
+                status?: ("previewed" | "blocked" | "rejected" | "executed" | "failed" | "rolled_back") | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_action_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_run_api_v1_action_runs__run_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_run_api_v1_action_runs__run_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rollback_run_api_v1_action_runs__run_id__rollback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_action_types_api_v1_action_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionTypeView"][];
+                };
+            };
+        };
+    };
+    preview_action_api_v1_action_types__name__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     object_types_api_v1_admin_object_types_get: {
         parameters: {
             query?: never;
@@ -2565,6 +3408,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UserPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_contacts_api_v1_admin_users__user_id__contacts_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactsIn"];
             };
         };
         responses: {
@@ -3406,6 +4284,44 @@ export interface operations {
             };
         };
     };
+    list_notifications_api_v1_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+        };
+    };
+    mark_read_api_v1_notifications_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     clear_edit_api_v1_object_edits__edit_id__delete: {
         parameters: {
             query?: never;
@@ -3539,6 +4455,107 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VersionDetail"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_action_type_api_v1_ontology_versions__version_id__action_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionTypeDef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionTypeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_action_type_api_v1_ontology_versions__version_id__action_types__action_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionTypeDef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionTypeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_action_type_api_v1_ontology_versions__version_id__action_types__action_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4292,6 +5309,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    action_candidates_api_v1_workshop_action_candidates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionCandidateOut"][];
                 };
             };
         };

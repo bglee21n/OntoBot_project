@@ -47,6 +47,15 @@ def mask_text(text: str, values: Iterable[str] = ()) -> str:
     return text
 
 
+def mask_contact(value: str) -> str:
+    """연락처를 알아볼 만큼만 남긴다 — 메일은 첫 글자와 도메인, 전화는 끝 네 자리."""
+    if "@" in value:
+        local, _, domain = value.partition("@")
+        return f"{local[:1]}{MASK}@{domain}"
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return f"{MASK}-{digits[-4:]}" if len(digits) >= 4 else MASK
+
+
 class Tokenizer:
     """요청 하나 동안만 사는 가역 토큰 대응표. 같은 값은 같은 토큰이 된다."""
 

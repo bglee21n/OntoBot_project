@@ -69,6 +69,7 @@ function UsersPanel() {
             <th>{t.auth}</th>
             <th>{t.roles}</th>
             <th>{t.status}</th>
+            <th>{t.contacts}</th>
           </tr>
         </thead>
         <tbody>
@@ -135,7 +136,51 @@ function UserRow({ u, allRoles, self }: { u: UserOut; allRoles: RoleOut[]; self:
           </button>
         )}
       </td>
+      <td>
+        <ContactsCell u={u} />
+      </td>
     </tr>
+  );
+}
+
+/** Action 알림(메일·SMS) 연락처. 목록에는 마스킹한 값만 온다 — 고칠 때는 새로 적는다. */
+function ContactsCell({ u }: { u: UserOut }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const save = useMutation({
+    mutationFn: () => api.put<UserOut>(`/admin/users/${u.id}/contacts`, { email: email || null, phone: phone || null }),
+    onSuccess: () => {
+      setEditing(false);
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+  });
+  if (!editing) {
+    return (
+      <span>
+        <span className="muted">{[u.email, u.phone].filter(Boolean).join(" · ") || "—"}</span>{" "}
+        <button type="button" className="link" onClick={() => setEditing(true)}>
+          {t.editContacts}
+        </button>
+      </span>
+    );
+  }
+  return (
+    <div className="stack">
+      <p className="muted">{t.contactsHint}</p>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.email} />
+      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.phone} />
+      <div className="row">
+        <button type="button" onClick={() => save.mutate()} disabled={save.isPending}>
+          {ko.ontology.save}
+        </button>
+        <button type="button" className="link" onClick={() => setEditing(false)}>
+          {ko.ontology.cancel}
+        </button>
+      </div>
+      {save.isError && <ErrorBox error={save.error} />}
+    </div>
   );
 }
 

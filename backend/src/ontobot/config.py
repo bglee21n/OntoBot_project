@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # LLM 역할별 공급자·모델 설정 파일(TRD 10절).
     llm_config_path: Path = _REPO_ROOT / "config" / "llm.yaml"
 
+    # Action 알림의 메일·SMS 게이트웨이 설정(TRD 17.1-4). 파일이 없으면 메일·SMS 채널이 꺼진다.
+    notify_config_path: Path = _REPO_ROOT / "config" / "notify.yaml"
+
     # 등급 ②(일부 근거)를 허용할지. 끄면 ②를 ③으로 처리한다(TRD 2절 4번, 8.2-6).
     grade2_enabled: bool = True
 
@@ -105,6 +108,12 @@ class Settings(BaseSettings):
         # env.example 의 빈 값(``ONTOBOT_LOG_DIR=``)은 "없음"이다.
         # 그대로 두면 Path("") 가 현재 폴더가 된다.
         return None if v == "" else v
+
+    @field_validator("notify_config_path", mode="after")
+    @classmethod
+    def _repo_relative(cls, v: Path) -> Path:
+        # .env 의 상대 경로(config/notify.dev.yaml)는 작업 폴더가 아니라 저장소 루트 기준이다.
+        return v if v.is_absolute() else _REPO_ROOT / v
 
     @property
     def oidc_enabled(self) -> bool:

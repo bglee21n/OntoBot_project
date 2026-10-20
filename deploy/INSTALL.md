@@ -92,6 +92,7 @@ C:\OntoBot\current\backend\.venv\Scripts\python.exe C:\OntoBot\current\scripts\l
 | LLM 역할·모델 | `C:\OntoBot\current\config\llm.yaml` — 모델을 바꾸면 평가 게이트(TRD 13절)를 다시 통과시킨다 |
 | 로그 | `C:\OntoBot\logs\api.log`·`worker.log`(JSON 한 줄, 크기 회전), 서비스 표준 출력은 `logs\service\` |
 | 준비 확인 | `GET /readyz` — `ok` / `degraded`(Neo4j 만 안 됨: 탐색 질의만 실패) / `unavailable`(503: PG·LLM). 재시작 판단에는 `/healthz` 만 쓴다 |
+| 메일·SMS 발송(Action 알림) | `C:\OntoBot\shared\notify.yaml`(처음 설치 때 견본 복사, 채널 꺼짐). 사내 SMTP 릴레이·SMS 게이트웨이(HTTP 또는 발송 테이블)를 적는다 — 비밀값은 `*_env`·`secret_ref` 로 `.env` 를 가리킨다. 바꾸면 `Restart-Service ontobot-api, ontobot-worker`. 채널이 비면 그 채널을 쓰는 Action 은 미리보기에서 막힌다. 수신자 연락처는 관리 화면 '사용자'에서 입력. 발송은 워커가 커밋 뒤에 보내며 실패는 재시도 후 Action 화면에 '실패'로 보인다(ADR-0012). MVP 설치본을 업그레이드했다면 `.env` 에 `ONTOBOT_NOTIFY_CONFIG_PATH` 를 직접 넣고 견본을 복사한다 |
 | 매일 작업 | 워커가 그래프 대사(`graph_reconcile`)와 보존 기간 정리(`retention_purge`)를 하루 한 번 발행한다. 결과는 화면 '작업' 목록 |
 | HTTPS | 앞단 역방향 프록시(IIS ARR 등)에서 종료하고 `ONTOBOT_COOKIE_SECURE=true`, `ONTOBOT_ALLOWED_ORIGINS` 에 `https://…` |
 | 서비스 계정 | MVP 는 LocalSystem(ADR-0010). 가상 계정으로 낮추는 것은 운영 강화 항목 |

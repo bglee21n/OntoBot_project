@@ -7,11 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.13) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.14) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
-설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보) 완료 — 다음은 Phase 10(Action). 설치 정본은
+설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS) 완료 — 다음은 Phase 11
+(채팅에서 Action). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md).
 
 ## 운영 전제
@@ -94,6 +95,8 @@ backend/src/ontobot/
   jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
   evaluation/ golden(팩 ↔ DB)·runner(파이프라인 인프로세스)·faults(실행기 주입)·metrics·gate(+gate.yaml)·replay(카세트)
   workshop/   topics(주제 상태기계, 순수)·interviewer·extractor·evidence(순수)·elements(payload 검증)·sessions(턴)·review·publish
+  actions/    rules(파라미터·사전 조건·바뀔 값·템플릿, 순수) · runner(미리보기 → 승인 = 실행 → 거부 → 롤백)
+  notify/     config(notify.yaml, 채널 꺼짐이 기본) · channels(SMTP·SMS 게이트웨이 — 네트워크는 여기만) · delivery(아웃박스)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -173,6 +176,11 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   객체 값을 읽는 SQL 은 `FROM object` 가 아니라 reader 의 파생 행(`_OBJECTS`)에서 읽어야 한다 — 카드는 편집 값인데
   필터·집계가 원천 값이면 결과가 조용히 틀린다. P3 시나리오도 여기서 덮는다. 동기화는 `object_edit` 를 건드리지 않고
   `on_source_change` 훅(`objects.edits.record_source_changes`)이 충돌만 남긴다. 편집은 Action(Phase 10)만 만든다.
+- **Action: 승인 = 실행, 한 트랜잭션에서 재검증**(게시 버전·대상·사전 조건). 재검증 실패는 예외가 아니라 `failed`
+  기록이다. 메일·SMS 는 **트랜잭션 안에서 보내지 않는다** — `notification_delivery` 에 넣고 커밋 뒤 워커가 보낸다
+  (롤백된 실행의 문자가 나가면 안 된다, 최소 한 번 발송 — ADR-0012). 설정하지 않은 채널은 꺼지고 그 Action 은
+  미리보기에서 `blocked`(보낸 척 금지). 알림 문구는 `{이름}` 치환뿐(`str.format` 금지, LLM 이 쓰지 않는다).
+  수신자 연락처는 API·감사·로그에 `mask_contact` 로만 낸다. Action 은 pk·제목·FK 속성을 바꾸지 못한다(게시 전 검사).
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

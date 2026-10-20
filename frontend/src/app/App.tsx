@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { ActionsPage } from "../features/actions/ActionsPage";
 import { AdminPage } from "../features/admin/AdminPage";
 import { ChatPage } from "../features/chat/ChatPage";
 import { EvalPage } from "../features/eval/EvalPage";
@@ -28,6 +29,7 @@ export function App() {
         <Route path="/ontology" element={<VersionsPage />} />
         <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
         <Route path="/sources" element={<SourcesPage />} />
+        <Route path="/actions" element={<ActionsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/workshop" element={<WorkshopPage />} />
         <Route path="/eval" element={<EvalPage />} />

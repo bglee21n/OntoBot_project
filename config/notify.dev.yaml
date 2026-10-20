@@ -1,0 +1,15 @@
+# 개발 PC 용 — 메일·SMS 를 실제로 보내지 않고 logs/notify/<채널>.jsonl 에 한 줄씩 남긴다.
+# 쓰려면 .env 에 ONTOBOT_NOTIFY_CONFIG_PATH=config/notify.dev.yaml (저장소 루트 기준이 아니면 절대 경로).
+# 미리보기는 "개발용 가짜 게이트웨이" 경고를 보인다. 운영에 쓰지 말 것.
+
+max_recipients: 50
+max_attempts: 5
+retry_seconds: 60
+
+channels:
+  email:
+    adapter: fake
+    dir: logs/notify
+  sms:
+    adapter: fake
+    dir: logs/notify

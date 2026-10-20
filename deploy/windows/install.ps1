@@ -167,12 +167,22 @@ function Initialize-EnvFile {
         ONTOBOT_FRONTEND_BASE_URL     = ""
         ONTOBOT_FRONTEND_DIST         = (Join-Path $Current "frontend\dist")
         ONTOBOT_LOG_DIR               = (Join-Path $Root "logs")
+        # 메일·SMS 게이트웨이 설정은 사이트마다 다르므로 릴리스 밖(shared)에 둔다(TRD 17.1-4).
+        ONTOBOT_NOTIFY_CONFIG_PATH    = (Join-Path $Shared "notify.yaml")
     }
     foreach ($k in $values.Keys) { $lines = Set-EnvLine $lines $k $values[$k] }
     Write-Utf8 $EnvFile (($lines -join "`r`n") + "`r`n")
     # 비밀값 파일 — 관리자·SYSTEM 만 읽는다.
     & icacls $EnvFile /inheritance:r /grant:r "*S-1-5-32-544:F" "*S-1-5-18:F" | Out-Null
     Write-Warning "HTTPS 앞단(역방향 프록시)을 두면 ONTOBOT_COOKIE_SECURE=true 와 ALLOWED_ORIGINS 를 고치세요(INSTALL.md 5절)"
+}
+
+function Initialize-NotifyConfig {
+    # 처음 설치할 때만 견본을 복사한다(모든 채널이 꺼진 상태). 운영자가 사내 게이트웨이를 채운다.
+    $target = Join-Path $Shared "notify.yaml"
+    if (Test-Path $target) { return }
+    Copy-Item (Join-Path $Bundle "app\config\notify.yaml") $target
+    Note "메일·SMS 발송 설정 견본: $target (채널이 꺼져 있습니다 — INSTALL.md 5절)"
 }
 
 # ---------------------------------------------------------------- 선행 구성 요소
@@ -435,6 +445,7 @@ function Invoke-Install {
     Test-Manifest
     New-Item -ItemType Directory -Force $Root, (Join-Path $Root "logs") | Out-Null
     Initialize-EnvFile
+    Initialize-NotifyConfig
     if (-not $SkipPrerequisites) {
         Install-Postgres
         Initialize-Database

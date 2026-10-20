@@ -13,11 +13,18 @@ from sqlalchemy import select
 
 from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
-from ontobot.db.models.ontology import LinkType, ObjectType, OntologyVersion, PropertyType
+from ontobot.db.models.ontology import (
+    ActionType,
+    LinkType,
+    ObjectType,
+    OntologyVersion,
+    PropertyType,
+)
 from ontobot.jobs import handlers, queue
 from ontobot.ontology import diff as diff_mod
 from ontobot.ontology import importer, registry, versioning
 from ontobot.ontology.models import (
+    ActionTypeDef,
     LinkSource,
     LinkTypeDef,
     ObjectTypeDef,
@@ -58,6 +65,10 @@ class LinkTypeOut(LinkTypeDef):
     id: int
 
 
+class ActionTypeOut(ActionTypeDef):
+    id: int
+
+
 class VersionSummary(BaseModel):
     id: int
     version_no: int
@@ -70,13 +81,14 @@ class VersionSummary(BaseModel):
 class VersionDetail(VersionSummary):
     object_types: list[ObjectTypeOut]
     link_types: list[LinkTypeOut]
+    action_types: list[ActionTypeOut]
     # 게시 전 검사 — draft 를 조각조각 편집하는 동안 무엇이 남았는지 보여 준다.
     issues: list[IssueOut]
 
 
 class ChangeOut(BaseModel):
     kind: Literal["added", "removed", "changed"]
-    element: Literal["object_type", "property", "link_type"]
+    element: Literal["object_type", "property", "link_type", "action_type"]
     path: str
     before: dict[str, Any] | None
     after: dict[str, Any] | None
@@ -121,12 +133,17 @@ def _link_out(lt: LinkType) -> LinkTypeOut:
     )
 
 
+def _action_out(a: ActionType) -> ActionTypeOut:
+    return ActionTypeOut(id=a.id, **versioning.action_def(a).model_dump())
+
+
 def _detail(v: OntologyVersion) -> VersionDetail:
     issues = check_document(versioning.to_document(v))
     return VersionDetail(
         **_summary(v).model_dump(),
         object_types=[_type_out(t) for t in v.object_types],
         link_types=[_link_out(lt) for lt in v.link_types],
+        action_types=[_action_out(a) for a in v.action_types],
         issues=[IssueOut(path=i.path, message=i.message) for i in issues],
     )
 
@@ -366,3 +383,32 @@ async def replace_link_type(
 async def delete_link_type(version_id: int, link_id: int, db: Db, user: Modeler) -> None:
     with _domain_errors():
         await versioning.delete_link_type(db, version_id, link_id, actor_id=user.id)
+
+
+# ---------------------------------------------------------------- Action 타입(PRD 5.3, TRD 17.1-2)
+
+
+@router.post("/versions/{version_id}/action-types", response_model=ActionTypeOut, status_code=201)
+async def create_action_type(
+    version_id: int, body: ActionTypeDef, db: Db, user: Modeler
+) -> ActionTypeOut:
+    with _domain_errors():
+        row = await versioning.add_action_type(db, version_id, body, actor_id=user.id)
+    return _action_out(row)
+
+
+@router.put("/versions/{version_id}/action-types/{action_id}", response_model=ActionTypeOut)
+async def replace_action_type(
+    version_id: int, action_id: int, body: ActionTypeDef, db: Db, user: Modeler
+) -> ActionTypeOut:
+    with _domain_errors():
+        row = await versioning.replace_action_type(
+            db, version_id, action_id, body, actor_id=user.id
+        )
+    return _action_out(row)
+
+
+@router.delete("/versions/{version_id}/action-types/{action_id}", status_code=204)
+async def delete_action_type(version_id: int, action_id: int, db: Db, user: Modeler) -> None:
+    with _domain_errors():
+        await versioning.delete_action_type(db, version_id, action_id, actor_id=user.id)

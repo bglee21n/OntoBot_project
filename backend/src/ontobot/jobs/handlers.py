@@ -11,6 +11,8 @@ from ontobot.evaluation import runner
 from ontobot.graph import client as graph
 from ontobot.graph.reconcile import rebuild, reconcile
 from ontobot.llm.config import load as load_llm_config
+from ontobot.notify import config as notify_config
+from ontobot.notify import delivery
 from ontobot.objects.indexes import ensure_property_index
 from ontobot.ontology import registry
 from ontobot.sync.runner import run_mapping
@@ -24,6 +26,7 @@ GRAPH_RECONCILE = "graph_reconcile"
 PROPERTY_INDEX = "create_property_index"
 RETENTION = "retention_purge"
 EVAL_RUN = "eval_run"
+NOTIFY = "notify_deliver"  # actions.runner.NOTIFY_JOB 와 같은 이름
 
 
 class JobFailed(Exception):
@@ -121,6 +124,15 @@ async def eval_run(payload: dict[str, Any]) -> dict[str, Any]:
     return {"run_id": run.id, "gate_passed": run.gate_passed}
 
 
+async def notify_deliver(_: dict[str, Any]) -> dict[str, Any]:
+    """메일·SMS 발송 아웃박스(TRD 17.1-4).
+
+    실패는 행마다 재시도 상태로 남는다 — 작업 자체는 성공이다.
+    """
+    cfg = notify_config.load(get_settings().notify_config_path)
+    return await delivery.deliver_due(cfg)
+
+
 HANDLERS: dict[str, Handler] = {
     SYNC: sync_mapping,
     GRAPH_REBUILD: graph_rebuild,
@@ -128,4 +140,5 @@ HANDLERS: dict[str, Handler] = {
     PROPERTY_INDEX: create_property_index,
     RETENTION: retention_purge,
     EVAL_RUN: eval_run,
+    NOTIFY: notify_deliver,
 }

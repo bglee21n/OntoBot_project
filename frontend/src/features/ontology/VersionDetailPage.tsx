@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { ObjectTypeOut, PropertyDef, PropertyOut, VersionDetail } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { ActionTypesSection } from "./ActionTypes";
 import { LinkTypeForm, ObjectTypeForm, PropertyForm } from "./forms";
 import { useDiff, useVersion, useVersionMutation, useVersions, V } from "./queries";
 
@@ -115,6 +116,8 @@ function VersionEditor({ v }: { v: VersionDetail }) {
           {addLink.isError && <ErrorBox error={addLink.error} />}
         </details>
       )}
+
+      <ActionTypesSection v={v} editable={editable} />
     </section>
   );
 }

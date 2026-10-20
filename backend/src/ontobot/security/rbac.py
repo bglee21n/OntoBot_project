@@ -58,3 +58,33 @@ async def readable_types_for_role(db: AsyncSession, role: str) -> frozenset[str]
         .where(Role.name == role, TypePermission.can_read.is_(True))
     )
     return frozenset(rows)
+
+
+# ---------------------------------------------------------------- Action(PRD 5.3, TRD 17.1)
+#
+# 데이터 읽기 권한(대상 타입)은 호출부가 readable_types 로 따로 확인한다 — 둘 다 통과해야 한다.
+
+
+def can_request_action(roles: Iterable[str], requester_roles: Iterable[str]) -> bool:
+    """요청 역할이 정해져 있지 않으면 누구나(대상 타입을 읽을 수 있으면) 요청한다."""
+    wanted = list(requester_roles)
+    return not wanted or has_role(roles, *wanted)
+
+
+def can_decide_action(
+    roles: Iterable[str], approval_roles: Iterable[str], *, allow_self: bool, is_requester: bool
+) -> bool:
+    """승인·거부할 수 있는가. 요청자 본인은 ``allow_self`` 일 때만, 남은 승인 역할이 있어야 한다."""
+    if is_requester:
+        return allow_self
+    return has_role(roles, *approval_roles)
+
+
+def can_withdraw_action(*, is_requester: bool) -> bool:
+    """미리보기 단계의 요청은 요청자 본인이 거둘 수 있다."""
+    return is_requester
+
+
+def can_rollback_action(roles: Iterable[str], approval_roles: Iterable[str]) -> bool:
+    """롤백은 승인 역할 또는 관리자. 요청자가 혼자 실행한 Action(allow_self)도 관리자는 되돌린다."""
+    return has_role(roles, *approval_roles, ROLE_ADMIN)

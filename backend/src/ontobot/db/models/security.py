@@ -22,6 +22,9 @@ class AppUser(IdMixin, Base):
     password_hash: Mapped[str | None] = mapped_column(String(255))
     display_name: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(16), default="active", server_default="active")
+    # Action 알림(메일·SMS) 연락처 — PII. 화면·로그·감사에서는 마스킹한다.
+    email: Mapped[str | None] = mapped_column(String(255))
+    phone: Mapped[str | None] = mapped_column(String(32))
 
 
 class Role(IdMixin, Base):

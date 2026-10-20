@@ -12,8 +12,15 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ontobot.db.models.ontology import LinkType, ObjectType, OntologyVersion, PropertyType
+from ontobot.db.models.ontology import (
+    ActionType,
+    LinkType,
+    ObjectType,
+    OntologyVersion,
+    PropertyType,
+)
 from ontobot.ontology.models import (
+    ActionTypeDef,
     Issue,
     LinkSource,
     LinkTypeDef,
@@ -71,6 +78,7 @@ async def get_version(db: AsyncSession, version_id: int) -> OntologyVersion:
         .options(
             selectinload(OntologyVersion.object_types).selectinload(ObjectType.properties),
             selectinload(OntologyVersion.link_types),
+            selectinload(OntologyVersion.action_types),
         )
         .execution_options(populate_existing=True)
     )
@@ -108,6 +116,21 @@ def to_document(version: OntologyVersion) -> OntologyDocument:
             )
             for lt in version.link_types
         ],
+        action_types=[action_def(a) for a in version.action_types],
+    )
+
+
+def action_def(a: ActionType) -> ActionTypeDef:
+    return ActionTypeDef.model_validate(
+        {"api_name": a.api_name, "display_name": a.display_name, **a.definition}
+    )
+
+
+def _action_type_row(a: ActionTypeDef) -> ActionType:
+    return ActionType(
+        api_name=a.api_name,
+        display_name=a.display_name,
+        definition=a.model_dump(mode="json", exclude={"api_name", "display_name"}),
     )
 
 
@@ -146,6 +169,7 @@ async def create_draft(
         created_by=actor_id,
         object_types=[_object_type_row(t) for t in doc.object_types],
         link_types=[_link_type_row(lt) for lt in doc.link_types],
+        action_types=[_action_type_row(a) for a in doc.action_types],
     )
     db.add(version)
     await db.flush()
@@ -171,6 +195,7 @@ async def replace_document(
     before = {t.api_name for t in version.object_types}
     version.object_types.clear()
     version.link_types.clear()
+    version.action_types.clear()
     await db.flush()
     _write_document(version, doc)
     await db.flush()
@@ -190,6 +215,8 @@ def _write_document(version: OntologyVersion, doc: OntologyDocument) -> None:
         version.object_types.append(_object_type_row(t))
     for lt in doc.link_types:
         version.link_types.append(_link_type_row(lt))
+    for a in doc.action_types:
+        version.action_types.append(_action_type_row(a))
 
 
 def _object_type_row(t: ObjectTypeDef) -> ObjectType:
@@ -379,6 +406,48 @@ async def delete_link_type(
     version.link_types.remove(row)
     await db.flush()
     _edited(db, actor_id, version_id, "link_type.delete", row.api_name)
+
+
+async def add_action_type(
+    db: AsyncSession, version_id: int, a: ActionTypeDef, *, actor_id: int
+) -> ActionType:
+    version = await _draft(db, version_id)
+    if any(x.api_name == a.api_name for x in version.action_types):
+        raise ElementConflict(a.api_name)
+    row = _action_type_row(a)
+    version.action_types.append(row)
+    await db.flush()
+    _edited(db, actor_id, version_id, "action_type.create", a.api_name)
+    return row
+
+
+async def replace_action_type(
+    db: AsyncSession, version_id: int, action_id: int, a: ActionTypeDef, *, actor_id: int
+) -> ActionType:
+    version = await _draft(db, version_id)
+    row = next((x for x in version.action_types if x.id == action_id), None)
+    if row is None:
+        raise ElementNotFound(f"action_type:{action_id}")
+    if row.api_name != a.api_name:
+        raise ElementConflict("Action api_name 은 바꿀 수 없습니다")
+    new = _action_type_row(a)
+    row.display_name = new.display_name
+    row.definition = new.definition
+    await db.flush()
+    _edited(db, actor_id, version_id, "action_type.update", a.api_name)
+    return row
+
+
+async def delete_action_type(
+    db: AsyncSession, version_id: int, action_id: int, *, actor_id: int
+) -> None:
+    version = await _draft(db, version_id)
+    row = next((x for x in version.action_types if x.id == action_id), None)
+    if row is None:
+        raise ElementNotFound(f"action_type:{action_id}")
+    version.action_types.remove(row)
+    await db.flush()
+    _edited(db, actor_id, version_id, "action_type.delete", row.api_name)
 
 
 # ---------------------------------------------------------------- 게시
