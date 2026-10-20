@@ -23,6 +23,7 @@ from ontobot.api import graph as graph_api
 from ontobot.api import objects as objects_api
 from ontobot.api import ontology as ontology_api
 from ontobot.api import sources as sources_api
+from ontobot.api import workshop as workshop_api
 from ontobot.config import get_settings
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.jobs.handlers import graph_driver
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_api.router, prefix=API_PREFIX)
     app.include_router(objects_api.router, prefix=API_PREFIX)
     app.include_router(admin_api.router, prefix=API_PREFIX)
+    app.include_router(workshop_api.router, prefix=API_PREFIX)
     return app
 
 

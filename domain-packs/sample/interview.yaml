@@ -1,0 +1,53 @@
+# 샘플 도메인 팩 인터뷰 대본(Phase 6 측정, scripts/spike_workshop.py). 합성 답변이다.
+#
+# topic: 그 답이 속한 주제(workshop/topics.py 의 key)
+# expect_verdict: 면담자 평가 기대값(sufficient / vague)
+# expect: 종류별로 뽑혀야 할 최소 개수 · 이름 조각(api_name 에 들어 있어야 하는 영문 조각, 대소문자 무시)
+# expect_types: 속성 표시 이름 → 기대 자료형(자료형 판단 감시)
+# expect_answer_contains: 골든 질의 기대 답변에 들어 있어야 할 값
+answers:
+  - id: a01
+    topic: role
+    text: 그냥 이것저것 해요.
+    expect_verdict: vague
+  - id: a02
+    topic: role
+    text: 저는 지역본부에서 변전소와 전주 같은 전력 시설의 안전 관리를 맡고 있습니다.
+    expect_verdict: sufficient
+  - id: a03
+    topic: workflow
+    text: 매주 시설 목록을 보고 위험등급이 높은 시설부터 점검 일정을 잡습니다. 시설은 각 운영 조직이 소유하고, 시설마다 속한 지역이 있어요.
+    expect_verdict: sufficient
+    expect:
+      object_type: {min: 2, names: [facility, organization]}
+      link_type: {min: 1}
+  - id: a04
+    topic: decisions
+    text: 위험등급이 4 이상이면 바로 현장 점검을 요청하고, 점검 결과가 나쁘면 사용 중지를 결정합니다.
+    expect_verdict: sufficient
+    expect:
+      action_candidate: {min: 1}
+  - id: a05
+    topic: data
+    text: 시설마다 시설 코드, 이름, 유형, 위험등급, 설비 용량, 마지막 점검일을 봅니다. 유형은 변전소, 전주, 배전함 중 하나예요.
+    expect_verdict: sufficient
+    expect:
+      property: {min: 4, names: [grade]}
+    expect_types:
+      위험등급: [int, decimal, enum]
+      마지막 점검일: [date, datetime]
+  - id: a06
+    topic: data
+    text: 여러 가지 봐요.
+    expect_verdict: vague
+  - id: a07
+    topic: exceptions
+    text: 태풍 경보가 뜨면 그 지역 시설을 전부 긴급 점검합니다.
+    expect_verdict: sufficient
+  - id: a08
+    topic: queries
+    text: 위험등급이 3 이상인 시설은 몇 개야? 이건 보통 18개 정도 나와요. 그리고 변전소 목록도 자주 봐요.
+    expect_verdict: sufficient
+    expect:
+      golden_query: {min: 2}
+    expect_answer_contains: ["18"]

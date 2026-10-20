@@ -90,3 +90,24 @@ a.button { display: block; text-align: center; padding: 0.5rem; border-radius: 4
 .object-card dt { color: var(--muted); font-size: 0.85em; }
 .object-card dd { margin: 0; }
 @media (max-width: 900px) { .chat { grid-template-columns: 1fr; } }
+
+/* 인터뷰 워크숍 */
+.workshop { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.bubble-agent { align-self: flex-start; background: var(--card); border: 1px solid var(--line); padding: 0.5rem 0.8rem; border-radius: 10px 10px 10px 2px; max-width: 80%; white-space: pre-wrap; }
+.bubble-user .seq { opacity: 0.7; font-size: 0.8em; }
+.topics { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; padding: 0; margin: 0; }
+.topic { border: 1px solid var(--line); border-radius: 999px; padding: 0.1rem 0.7rem; font-size: 0.85em; background: var(--card); }
+.topic-asking { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.topic-done { border-color: var(--ok); color: var(--ok); }
+.topic-incomplete { border-color: var(--warn); color: var(--warn); }
+.element { display: flex; flex-direction: column; gap: 0.4rem; }
+.element p { margin: 0; }
+.element-rejected { opacity: 0.6; }
+.evidence { margin: 0; padding-left: 1.1rem; font-size: 0.9em; }
+.evidence-bad { color: var(--warn); }
+textarea.plain { font-family: inherit; }
+.badge.el-confirmed, .badge.el-edited, .badge.ws-published { background: #ecfdf5; border-color: var(--ok); color: var(--ok); }
+.badge.el-proposed, .badge.ws-open { background: #eff6ff; border-color: var(--accent); color: var(--accent); }
+.badge.el-rejected { background: #f3f4f6; color: var(--muted); }
+.badge.ws-submitted { background: #fffbeb; border-color: var(--warn); color: var(--warn); }
+@media (max-width: 900px) { .workshop { grid-template-columns: 1fr; } }

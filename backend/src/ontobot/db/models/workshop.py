@@ -16,8 +16,13 @@ class InterviewSession(IdMixin, Base):
     __table_args__ = (CheckConstraint("status IN ('open','submitted','published')", name="status"),)
 
     interviewee_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    title: Mapped[str | None] = mapped_column(String(200))
     topic_state: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     status: Mapped[str] = mapped_column(String(16), default="open", server_default="open")
+    # 게시(workshop.publish)로 만든 draft 버전. 게시 전에는 비어 있다.
+    published_version_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("ontology_version.id")
+    )
 
 
 class InterviewUtterance(IdMixin, Base):

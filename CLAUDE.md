@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.8) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md) · [ADR](docs/adr/).
-구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: Phase 5 완료(PII 가역 토큰화·외부
-LLM 어댑터·관리 API·감사·보존 기간·JSON 로그), 다음은 Phase 6(인터뷰 워크숍)·7(평가 게이트).
+구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다(현재 v0.9). 현재 진행: Phase 6 완료(인터뷰
+워크숍 — 주제 상태기계·추출·근거 확인·검토·draft 게시), 다음은 Phase 7(평가 게이트)·8(안정화·오프라인 번들).
 
 ## 운영 전제
 
@@ -49,6 +49,7 @@ cd backend && uv run pytest tests/integration/test_sync_graph.py -q -m integrati
 
 그 밖: `scripts/seed_domain_pack.py --pack sample`(샘플 온톨로지 게시 + 시드 객체),
 `scripts/spike_plan.py --models <모델…>`(골든 문항으로 모델 측정, 결과는 `docs/adr/data/`),
+`scripts/spike_workshop.py --models <모델…>`(인터뷰 대본 `domain-packs/sample/interview.yaml` 으로 면담자·추출기 측정),
 `scripts/graph_rebuild.py [--check]`(Neo4j 재구축/대사), 사용자 생성
 `cd backend && uv run python -m ontobot.security.cli create-user --username … --display-name … --role modeler`.
 
@@ -74,6 +75,7 @@ backend/src/ontobot/
   llm/        gateway(역할 → 공급자·모델) · structured(스키마 검증·1회 재시도) · adapters/(SDK·HTTP 는 여기만)
   security/   auth(로컬 계정 argon2 + 서버 세션)·oidc(Code + PKCE)·rbac(권한 판정의 유일한 자리)·audit·pii·secrets
   jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
+  workshop/   topics(주제 상태기계, 순수)·interviewer·extractor·evidence(순수)·elements(payload 검증)·sessions(턴)·review·publish
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -128,6 +130,11 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - **PII 값은 `LLMGateway.protect` 로 알린다.** 외부 공급자(`external: true`)면 게이트웨이가 가역 토큰으로 바꿔 보내고
   되돌린다(호출부는 원값만 본다, 근거 대조도 원값). 호출 기록·트레이스는 그 값과 패턴으로 마스킹된다. 새 LLM 호출
   경로를 만들면 그 요청의 PII 값을 `protect` 하는 것을 잊지 말 것. 어댑터는 SDK 없이 HTTP 로 부른다.
+- **워크숍: 다음 질문은 `workshop.topics` 가 고른다**(LLM 은 평가·되묻는 문장·추출만). 발언은 마스킹 저장하고
+  추출·근거 확인 모두 저장본을 본다(원문과 갈라지면 근거가 안 맞는다). 근거 확인은 정확 포함뿐, 요소 병합·게시
+  합치기도 이름 **정확 일치**뿐(유사도 금지). 골든 질의는 `queries` 주제에서만, 면담자 질문을 베낀 후보는
+  `extractor.keep` 이 버린다(quote 가 맞아 근거 확인으로는 못 잡는다 — ADR-0008). 추출 프롬프트·스키마를 바꾸면
+  `scripts/spike_workshop.py --models gemma4:e4b` 로 다시 잰다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - `objects.reader.resolve`/`run_query` 가 삭제 표시 제외와 **게시 버전에 선언된 속성만** 내보내기를 맡는다 —
   P1 편집 레이어·P3 시나리오가 여기서 덮일 자리다(`sync/runner.on_source_change` 훅도 P1 자리).

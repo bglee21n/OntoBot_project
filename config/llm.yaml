@@ -13,6 +13,7 @@ roles:
   # gemma4:e4b — 골든 12/12, p50 1.3초. 같은 정확도의 gpt-oss:20b 는 p50 14.2초였다.
   planner:     {provider: local, model: "gemma4:e4b", timeout_s: 60}
   answerer:    {provider: local, model: "gemma4:e4b", timeout_s: 90}
-  # 워크숍 역할(Phase 6)은 아직 재지 않았다 — 같은 모델로 두고 Phase 6 에서 다시 정한다.
+  # 워크숍 역할은 Phase 6 측정으로 정했다(docs/adr/0008-workshop-interview-extraction.md).
+  # gemma4:e4b — 대본 7/8, 평가 8/8, p50 2.1초. 같은 품질의 gemma4:12b 는 p50 20.5초였다.
   interviewer: {provider: local, model: "gemma4:e4b", timeout_s: 60}
   extractor:   {provider: local, model: "gemma4:e4b", timeout_s: 90}

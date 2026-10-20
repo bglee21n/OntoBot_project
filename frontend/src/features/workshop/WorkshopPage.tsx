@@ -1,0 +1,82 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { type FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+import { api } from "../../api/client";
+import type { SessionDetail, SessionSummary } from "../../api/types";
+import { ErrorBox } from "../../components/ErrorBox";
+import { ko } from "../../i18n/ko";
+
+const t = ko.workshop;
+
+export function WorkshopPage() {
+  const navigate = useNavigate();
+  const [title, setTitle] = useState("");
+  const sessions = useQuery({
+    queryKey: ["workshop", "sessions"],
+    queryFn: () => api.get<SessionSummary[]>("/workshop/sessions"),
+  });
+  const create = useMutation({
+    mutationFn: () =>
+      api.post<SessionDetail>("/workshop/sessions", {
+        title: title.trim() || null,
+      }),
+    onSuccess: (s) => navigate(`/workshop/${s.id}`),
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    create.mutate();
+  };
+
+  return (
+    <section className="stack">
+      <h1>{t.title}</h1>
+      <p className="muted">{t.intro}</p>
+      <form className="row" onSubmit={submit}>
+        <input
+          aria-label={t.sessionTitle}
+          placeholder={t.sessionTitle}
+          value={title}
+          maxLength={200}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <button type="submit" disabled={create.isPending}>
+          {t.newSession}
+        </button>
+      </form>
+      {create.isError && <ErrorBox error={create.error} />}
+      {sessions.isPending && <p>{ko.common.loading}</p>}
+      {sessions.isError && <ErrorBox error={sessions.error} />}
+      {sessions.data?.length === 0 && <p className="muted">{t.noSessions}</p>}
+      {sessions.data && sessions.data.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>{t.sessionTitle}</th>
+              <th>{ko.admin.status}</th>
+              <th>{t.createdAt}</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.data.map((s) => (
+              <tr key={s.id}>
+                <td>{s.id}</td>
+                <td>{s.title ?? "—"}</td>
+                <td>
+                  <span className={`badge ws-${s.status}`}>{t.status[s.status]}</span>
+                </td>
+                <td>{new Date(s.created_at).toLocaleString("ko-KR")}</td>
+                <td className="actions">
+                  <Link to={`/workshop/${s.id}`}>{t.open}</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}

@@ -719,6 +719,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workshop/elements/{element_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Review Element */
+        patch: operations["review_element_api_v1_workshop_elements__element_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_api_v1_workshop_sessions_get"];
+        put?: never;
+        /** Create Session */
+        post: operations["create_session_api_v1_workshop_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_workshop_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions/{session_id}/elements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Elements */
+        get: operations["list_elements_api_v1_workshop_sessions__session_id__elements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions/{session_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Session */
+        post: operations["publish_session_api_v1_workshop_sessions__session_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions/{session_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Session */
+        post: operations["submit_session_api_v1_workshop_sessions__session_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/sessions/{session_id}/utterances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Utterance */
+        post: operations["post_utterance_api_v1_workshop_sessions__session_id__utterances_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -860,6 +980,45 @@ export interface components {
             /** Trace Id */
             trace_id: number;
         };
+        /** ElementOut */
+        ElementOut: {
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceOut"][];
+            /** Evidence Ok */
+            evidence_ok: boolean;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "object_type" | "property" | "link_type" | "action_candidate" | "golden_query";
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Reviewed By */
+            reviewed_by: number | null;
+            /** Session Id */
+            session_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "proposed" | "confirmed" | "edited" | "rejected";
+        };
+        /** ElementReview */
+        ElementReview: {
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "confirmed" | "rejected";
+        };
         /** Enqueued */
         Enqueued: {
             /** Already Queued */
@@ -878,6 +1037,15 @@ export interface components {
              * @constant
              */
             status: "failed";
+        };
+        /** EvidenceOut */
+        EvidenceOut: {
+            /** Ok */
+            ok: boolean;
+            /** Quote */
+            quote: string;
+            /** Utterance Id */
+            utterance_id: number;
         };
         /** FieldOut */
         FieldOut: {
@@ -1267,6 +1435,21 @@ export interface components {
             /** Oidc */
             oidc: boolean;
         };
+        /** PublishOut */
+        PublishOut: {
+            /** Added */
+            added: {
+                [key: string]: string[];
+            };
+            /** Golden Items */
+            golden_items: number;
+            /** Golden Set Id */
+            golden_set_id: number | null;
+            /** Reused */
+            reused: string[];
+            /** Version Id */
+            version_id: number;
+        };
         /** RoleOut */
         RoleOut: {
             /** Description */
@@ -1277,6 +1460,61 @@ export interface components {
             name: string;
             /** Readable Types */
             readable_types: string[];
+        };
+        /** SessionCreate */
+        SessionCreate: {
+            /** Title */
+            title?: string | null;
+        };
+        /** SessionDetail */
+        SessionDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Topic */
+            current_topic: string | null;
+            /** Id */
+            id: number;
+            /** Interviewee Id */
+            interviewee_id: number;
+            /** Published Version Id */
+            published_version_id: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "submitted" | "published";
+            /** Title */
+            title: string | null;
+            /** Topics */
+            topics: components["schemas"]["TopicOut"][];
+            /** Utterances */
+            utterances: components["schemas"]["UtteranceOut"][];
+        };
+        /** SessionSummary */
+        SessionSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Topic */
+            current_topic: string | null;
+            /** Id */
+            id: number;
+            /** Interviewee Id */
+            interviewee_id: number;
+            /** Published Version Id */
+            published_version_id: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "submitted" | "published";
+            /** Title */
+            title: string | null;
         };
         /** SourceIn */
         SourceIn: {
@@ -1360,6 +1598,20 @@ export interface components {
             /** Server */
             server?: string | null;
         };
+        /** TopicOut */
+        TopicOut: {
+            /** Follow Ups */
+            follow_ups: number;
+            /** Key */
+            key: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "asking" | "done" | "incomplete";
+            /** Title */
+            title: string;
+        };
         /** TraceOut */
         TraceOut: {
             /**
@@ -1403,6 +1655,26 @@ export interface components {
             user_id: number | null;
             /** Verified Sentences */
             verified_sentences: number | null;
+        };
+        /** TurnOut */
+        TurnOut: {
+            /** Added */
+            added: components["schemas"]["ElementOut"][];
+            answer: components["schemas"]["UtteranceOut"];
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "follow_up" | "next" | "finish";
+            /** Finished */
+            finished: boolean;
+            question: components["schemas"]["UtteranceOut"];
+            /** Topic */
+            topic: string | null;
+            /** Updated */
+            updated: components["schemas"]["ElementOut"][];
+            /** Warnings */
+            warnings: string[];
         };
         /** TypeOut */
         TypeOut: {
@@ -1454,6 +1726,30 @@ export interface components {
             roles?: string[] | null;
             /** Status */
             status?: ("active" | "disabled") | null;
+        };
+        /** UtteranceIn */
+        UtteranceIn: {
+            /** Text */
+            text: string;
+        };
+        /** UtteranceOut */
+        UtteranceOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Seq */
+            seq: number;
+            /**
+             * Speaker
+             * @enum {string}
+             */
+            speaker: "agent" | "interviewee";
+            /** Text */
+            text: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -2985,6 +3281,253 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TraceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_element_api_v1_workshop_elements__element_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                element_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElementReview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_workshop_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionSummary"][];
+                };
+            };
+        };
+    };
+    create_session_api_v1_workshop_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_workshop_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_elements_api_v1_workshop_sessions__session_id__elements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_session_api_v1_workshop_sessions__session_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_session_api_v1_workshop_sessions__session_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_utterance_api_v1_workshop_sessions__session_id__utterances_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UtteranceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TurnOut"];
                 };
             };
             /** @description Validation Error */

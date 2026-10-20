@@ -5,6 +5,8 @@ import { ChatPage } from "../features/chat/ChatPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
 import { SourcesPage } from "../features/sources/SourcesPage";
+import { SessionPage } from "../features/workshop/SessionPage";
+import { WorkshopPage } from "../features/workshop/WorkshopPage";
 import { LoginPage, RequireAuth } from "./auth";
 import { Layout } from "./Layout";
 
@@ -26,6 +28,8 @@ export function App() {
         <Route path="/ontology/versions/:id" element={<VersionDetailPage />} />
         <Route path="/sources" element={<SourcesPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/workshop" element={<WorkshopPage />} />
+        <Route path="/workshop/:sessionId" element={<SessionPage />} />
       </Route>
     </Routes>
   );

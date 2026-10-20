@@ -37,6 +37,8 @@ class GoldenItem(IdMixin, Base):
     answerable: Mapped[bool] = mapped_column(Boolean, default=True)
     expected_status: Mapped[str] = mapped_column(String(32))
     expected_grade: Mapped[int | None] = mapped_column(Integer)
+    # 현업 담당자가 확정한 기대 답변(워크숍 골든 질의, TRD 12절). 채점은 required_values 로 한다.
+    expected_answer: Mapped[str | None] = mapped_column(Text)
     required_values: Mapped[list[str]] = mapped_column(JSONB, default=list)
     forbidden_values: Mapped[list[str]] = mapped_column(JSONB, default=list)
     fault: Mapped[str] = mapped_column(String(32), default="none", server_default="none")

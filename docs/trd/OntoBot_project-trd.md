@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.8                                     |
+| 문서      | 기술 요구사항 문서(TRD) v0.9                                     |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)만 |
@@ -199,10 +199,10 @@ Neo4j에 속성을 두지 않는 이유는 두 가지다. 권한·PII 판단을 
 | 테이블                    | 주요 컬럼                                                                                                                                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `golden_set`              | `name`, `domain_pack`, `ontology_version_id`                                                                                                                                                                                   |
-| `golden_item`             | `golden_set_id`(FK), `question`, `test_role`, `answerable`, `expected_status`, `expected_grade`, `required_values`(jsonb), `forbidden_values`(jsonb, 권한 침투용), `fault`(none/executor_error/graph_down/timeout), `source`(manual/workshop)       |
+| `golden_item`             | `golden_set_id`(FK), `question`, `test_role`, `answerable`, `expected_status`, `expected_grade`, `expected_answer`(워크숍), `required_values`(jsonb), `forbidden_values`(jsonb, 권한 침투용), `fault`(none/executor_error/graph_down/timeout), `source`(manual/workshop)       |
 | `eval_run`                | `golden_set_id`, `ontology_version_id`, `llm_config`(jsonb, 역할별 공급자·모델), `status`(running/succeeded/failed), `metrics`(jsonb, 13.2), `gate_passed`, `started_at`, `finished_at`                                         |
 | `eval_result`             | `run_id`, `item_id`, `status`, `failure_reason`, `grade`, `answer`, `citations`(jsonb), `verdict`(jsonb: 정답·권한 위반·실패 은폐 판정 근거)                                                                                   |
-| `interview_session`       | `interviewee_id`, `topic_state`, `status`(open/submitted/published)                                                                                                                                                            |
+| `interview_session`       | `interviewee_id`, `title`, `topic_state`, `status`(open/submitted/published), `published_version_id`                                                                                                                                                          |
 | `interview_utterance`     | `session_id`, `speaker`, `text`(마스킹 저장), `seq`                                                                                                                                                                            |
 | `draft_element`           | `session_id`, `kind`(object_type/property/link_type/action_candidate/golden_query), `payload`(jsonb), `evidence`(jsonb: `[{utterance_id, quote}]`), `evidence_ok`, `status`(proposed/confirmed/edited/rejected), `reviewed_by` |
 | `job`                     | `kind`, `payload`, `status`, `run_after`, `attempts`, `locked_by`, `locked_at`                                                                                                                                                 |
@@ -382,14 +382,19 @@ class LLMGateway:
 
 ## 12. 인터뷰 워크숍 기본형 (PRD 5.8)
 
-- **주제 상태기계**(`workshop.topics`): 역할 → 업무 흐름 → 의사결정 지점 → 사용 데이터 → 예외 상황. 주제마다 필요한 정보가 채워졌는지 보고 다음 질문을 고른다. 모호한 답은 되묻는다.
-- **추출**(`workshop.extractor`): 발언마다 요소 후보와 근거(`{utterance_id, quote}`)를 구조화 출력으로 받는다.
-- **근거 확인**(`workshop.evidence`): `quote`가 해당 발언에 **그대로 있는지**(NFC·공백 정규화 후 정확 포함) 확인한다. 없으면 `evidence_ok=false`로 표시하고, 검토 화면에서 수정 없이 확정할 수 없게 한다.
-- **검토**(`workshop.review`): 요소 목록(종류·이름·정의·근거 발언)에서 현업 담당자가 확정·수정·거절한다.
-- **게시**(`workshop.publish`): 모델러가 승인하면 확정된 요소로 새 `ontology_version`(draft)을 만든다. 이후 5.1의 게시 흐름을 그대로 탄다.
-- **골든 질의**: `kind=golden_query` 요소는 `{question, expected_answer, answerable}`을 가진다. 현업 담당자가 기대 답변을 확정한 것만 게시 때 `golden_item`(source=workshop)으로 복사한다. 인터뷰 에이전트의 질문 자체는 평가셋에 넣지 않는다.
+- **주제 상태기계**(`workshop.topics`): 역할 → 업무 흐름 → 의사결정 지점 → 사용 데이터 → 예외 상황 → **찾아보는 질문**(골든 질의 초안용, v0.9 추가). 주제마다 필요한 정보가 채워졌는지 보고 다음 질문을 고른다. 모호한 답은 되묻는다.
+  - 채워짐 = 면담자 평가(`workshop.interviewer`, 구조화 출력 `sufficient`/`vague`)가 `vague` 가 아님 **AND** 주제의 요구 요소가 세션에 있음(업무 흐름 → `object_type`, 사용 데이터 → `property`, 찾아보는 질문 → `golden_query`). 평가가 실패하면 요구 요소만 본다.
+  - 되묻기는 주제당 2회. 넘으면 그 주제를 `incomplete` 로 두고 넘어간다. 질문 문장은 템플릿이 정본이고, LLM 은 `vague` 일 때 되묻는 문장만 쓴다.
+- **추출**(`workshop.extractor`): 답 하나마다 요소 후보를 구조화 출력으로 받는다. 입력은 이번 답 하나이고, 모델은 `quote` 만 내며 근거의 `utterance_id` 는 서버가 붙인다. 이름 형식은 추출 때 강제하지 않고 확정 때 검사한다. 골든 질의 후보는 "찾아보는 질문" 주제에서만 받고, 면담자 질문과 서로 포함 관계인 후보는 버린다(에이전트 질문은 평가셋이 아니다 — ADR-0008 실측).
+- **같은 요소**: 같은 세션에서 종류와 이름(`api_name`, 속성은 `타입.api_name`, 질문은 문장)이 **정확히** 같으면 새 요소를 만들지 않고 근거만 덧붙인다. `evidence` 항목은 `{utterance_id, quote, ok}`, 요소의 `evidence_ok` 는 하나라도 통과하면 참.
+- **근거 확인**(`workshop.evidence`): `quote`가 해당 발언에 **그대로 있는지**(NFC·공백 정규화 후 정확 포함, 2자 이상) 확인한다. 없으면 `evidence_ok=false`로 표시하고, 검토 화면에서 수정 없이 확정할 수 없게 한다.
+- **턴 실패**: 공급자에 닿지 못하면 턴 전체가 실패한다(503, 답도 저장하지 않음 — 다시 보낸다). 모델이 스키마를 두 번 어기면 그 단계만 빠지고 응답의 `warnings`(`extraction_failed`·`assessment_failed`)로 밝힌다. 같은 세션의 답은 세션 행 잠금으로 줄을 세운다.
+- **검토**(`workshop.review`): 요소 목록(종류·이름·정의·근거 발언)에서 현업 담당자가 확정·수정·거절한다. 확정·수정 때 payload 를 종류별 모델(`workshop.elements`)로 엄격히 검사한다(식별자 형식은 6.1 과 같다). 골든 질의는 답할 수 있는 질문이면 기대 답변이 있어야 확정된다. 게시된 세션의 요소는 바꾸지 않는다. 제출은 검토 전(`proposed`) 요소가 없을 때만.
+- **게시**(`workshop.publish`): 모델러가 승인하면 확정 요소로 새 `ontology_version`(draft)을 만든다 — 현재 게시 버전을 부모로 복사한 뒤 더한다. 이름이 정확히 같은 타입은 같은 타입으로, 같은 이름의 속성·링크는 정의(자료형·enum 값 / 양 끝 타입)까지 같으면 이미 있는 것으로 넘어가고 다르면 게시를 막는다(409, 아무것도 만들지 않음). 새 타입의 키·제목 속성은 기본 이름(`id`·`name`)을 두고 draft 의 게시 전 검사가 알려 준다. FK 를 모르는 링크는 `join_mapping`(`{"origin": "workshop"}`)으로 둔다. 이후 5.1의 게시 흐름을 그대로 탄다.
+- **골든 질의**: `kind=golden_query` 요소는 `{question, expected_answer, answerable}`을 가진다. 현업 담당자가 확정한 것만 게시 때 `golden_set(name=workshop-session-{id})`의 `golden_item`(source=workshop)으로 복사한다. 기대 답변은 `golden_item.expected_answer` 에 두고, 채점용 `required_values` 는 비워 둔다(Phase 7). `expected_status` 는 가안으로 답할 수 있으면 `ok`, 아니면 `failed`. 인터뷰 에이전트의 질문 자체는 평가셋에 넣지 않는다.
 - **Action 후보**는 `draft_element`(kind=action_candidate)로 남겨 v1에서 Action Type 정의에 쓴다.
-- 발언은 마스킹해서 저장하고 보존 기간을 적용한다(9.2, 9.3).
+- 발언은 마스킹해서 저장하고(패턴 기반, 9.2) 이후 추출·평가·근거 확인 모두 저장본을 본다. 보존 기간을 적용한다(9.3).
+- 접근: 세션은 만든 현업 담당자 본인과 모델러만 본다(남의 세션은 404). 답은 본인만, 게시는 모델러만. 감사 이벤트 `workshop.session_started`·`element_reviewed`·`submitted`·`published`.
 
 ## 13. 평가 (PRD 5.6·7)
 
@@ -436,7 +441,7 @@ class LLMGateway:
 | 온톨로지 | `GET·POST /ontology/versions` · `GET /ontology/versions/{id}` · `POST·PATCH·DELETE /ontology/versions/{id}/object-types[/{tid}]` · 같은 형태의 `/properties`, `/link-types` · `POST /ontology/versions/{id}/import` · `GET /ontology/versions/{id}/export` · `GET /ontology/versions/{id}/diff?base=` · `POST /ontology/versions/{id}/publish` | 모델러              |
 | 동기화   | `CRUD /sources` · `POST /sources/{id}/test` · `CRUD /mappings` · `POST /mappings/{id}/sync` · `GET /sync-runs`                                                                                                                                                                                      | 모델러              |
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
-| 워크숍   | `POST /workshop/sessions` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
+| 워크숍   | `GET·POST /workshop/sessions` · `GET /workshop/sessions/{id}` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
 | 평가     | `CRUD /golden-sets` · `CRUD /golden-sets/{id}/items` · `POST /eval-runs` · `GET /eval-runs/{id}`                                                                                                                                                                                                    | 챗봇 빌더           |
 | 관리     | `GET·POST /admin/users` · `PATCH /admin/users/{id}`(상태·역할) · `GET /admin/roles` · `PUT /admin/roles/{id}/permissions` · `GET /admin/object-types` · `GET /audit-logs` · `GET /traces/{id}`                                                                                                  | 관리자              |
 
@@ -700,6 +705,7 @@ OntoBot_project/
 | 0005 | IdP                                | OIDC 기본. 사내가 LDAP/AD뿐이면 LDAP 어댑터 추가                                                                     |
 | 0006 | 답변 본문 비스트리밍(검증 후 전송) | 체감 지연이 문제 되면 "검증 중" 표시와 함께 스트리밍 후 교체 방식 검토                                               |
 | 0007 | Docker 미사용, Windows Server 네이티브 | 서비스 등록·업그레이드·롤백을 설치 스크립트가 맡는다. Linux 운영이 필요해지면 systemd 설치 스크립트를 추가한다 |
+| 0008 | 인터뷰 워크숍 면담자·추출기 | 다음 질문은 상태기계, LLM 은 평가·되묻기·추출만. gemma4:e4b(대본 7/8, p50 2.1초). 프롬프트·추출 스키마를 바꾸거나 실제 인터뷰 기록이 생기면 다시 잰다 |
 
 ## 22. 개정 이력
 
@@ -710,6 +716,7 @@ OntoBot_project/
 | v0.3 | 2026-10-19 | Docker 미사용 — Windows Server 네이티브 설치·서비스 등록, 오프라인 번들 구성 변경, 통합 테스트는 로컬 설치 DB의 테스트 전용 DB·인스턴스, CI도 Docker 없이(ADR-0007) |
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
+| v0.9 | 2026-10-20 | Phase 6 구현 반영(ADR-0008) — 주제에 "찾아보는 질문" 추가, 채워짐 판정·되묻기 상한, 추출 입력·근거 id 는 서버, 같은 요소 정확 일치 병합, 턴 실패 규칙, 골든 질의 거르기(주제·면담자 질문), 확정 검증, 게시 합치기 규칙(정확 일치·충돌은 게시 차단), `interview_session.title`·`published_version_id`, `golden_item.expected_answer`, 세션 조회 엔드포인트, 감사 이벤트 |
 | v0.8 | 2026-10-20 | Phase 5 구현 반영 — 외부 공급자 PII 가역 토큰화의 대상 값·규칙, 호출 기록 마스킹 저장, 어댑터 셋(SDK 없이 HTTP), 관리 API 형태와 규칙(자기 잠금 방지·세션 폐기·권한 집합 교체), 감사 이벤트 추가, 보존 기간 설정·작업(감사 로그 제외), JSON 로그·요청 ID |
 | v0.7 | 2026-10-20 | Phase 3·4 구현 반영 — `traverse` 의미(1홉 조건의 AND, 최대 3)와 실행 방식(PG pk 집합 → Neo4j EXISTS → PG), 링크 권한은 `forbidden`, `context_refs` 범위, FK 이름 → `traverse` 결정론적 재작성, 질문 숫자 반영 검사(`query.coverage`), 재계획 오류 일괄 전달, `message.meta`, `llm_calls` 본문 미저장(Phase 5 까지), SSE `done.conversation_id`·이벤트 순서·`ChatEvents`, 근거 카드 404(권한 없음 = 없음). 측정은 ADR-0004 Phase 4 보강 |
 | v0.6 | 2026-10-20 | Phase 2 구현 반영 — 동기화 병합 규칙(행 실패 = 실행 실패, 원천별 삭제 표시, 링크 삭제 순서, 자료형 있는 워터마크), `secret_ref` 형식, stub 노드, 투영 묶음·재시도, 재구축 절차. 세션은 `async with session_scope()` 로만 연다(열린 트랜잭션이 `CREATE INDEX CONCURRENTLY` 를 막은 실측) |

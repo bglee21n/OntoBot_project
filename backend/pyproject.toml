@@ -70,6 +70,9 @@ ignore = [
 "src/ontobot/chat/templates.py" = ["E501"]
 "src/ontobot/chat/answerer.py" = ["E501"]
 "src/ontobot/query/planner.py" = ["E501"]
+"src/ontobot/workshop/topics.py" = ["E501"]
+"src/ontobot/workshop/extractor.py" = ["E501"]
+"src/ontobot/workshop/interviewer.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

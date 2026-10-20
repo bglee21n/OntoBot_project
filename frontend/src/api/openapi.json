@@ -356,6 +356,107 @@
         "title": "DoneData",
         "type": "object"
       },
+      "ElementOut": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "evidence_ok": {
+            "title": "Evidence Ok",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "object_type",
+              "property",
+              "link_type",
+              "action_candidate",
+              "golden_query"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "proposed",
+              "confirmed",
+              "edited",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "session_id",
+          "kind",
+          "payload",
+          "evidence",
+          "evidence_ok",
+          "status",
+          "reviewed_by"
+        ],
+        "title": "ElementOut",
+        "type": "object"
+      },
+      "ElementReview": {
+        "properties": {
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "status": {
+            "enum": [
+              "confirmed",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ElementReview",
+        "type": "object"
+      },
       "Enqueued": {
         "properties": {
           "already_queued": {
@@ -403,6 +504,29 @@
           "message"
         ],
         "title": "ErrorData",
+        "type": "object"
+      },
+      "EvidenceOut": {
+        "properties": {
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "utterance_id": {
+            "title": "Utterance Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "utterance_id",
+          "quote",
+          "ok"
+        ],
+        "title": "EvidenceOut",
         "type": "object"
       },
       "FieldOut": {
@@ -1630,6 +1754,55 @@
         "title": "Providers",
         "type": "object"
       },
+      "PublishOut": {
+        "properties": {
+          "added": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Added",
+            "type": "object"
+          },
+          "golden_items": {
+            "title": "Golden Items",
+            "type": "integer"
+          },
+          "golden_set_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Id"
+          },
+          "reused": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reused",
+            "type": "array"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_id",
+          "golden_set_id",
+          "golden_items",
+          "added",
+          "reused"
+        ],
+        "title": "PublishOut",
+        "type": "object"
+      },
       "RoleOut": {
         "properties": {
           "description": {
@@ -1666,6 +1839,180 @@
           "readable_types"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "SessionCreate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "SessionCreate",
+        "type": "object"
+      },
+      "SessionDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Topic"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "interviewee_id": {
+            "title": "Interviewee Id",
+            "type": "integer"
+          },
+          "published_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Version Id"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "submitted",
+              "published"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicOut"
+            },
+            "title": "Topics",
+            "type": "array"
+          },
+          "utterances": {
+            "items": {
+              "$ref": "#/components/schemas/UtteranceOut"
+            },
+            "title": "Utterances",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "interviewee_id",
+          "status",
+          "current_topic",
+          "published_version_id",
+          "created_at",
+          "topics",
+          "utterances"
+        ],
+        "title": "SessionDetail",
+        "type": "object"
+      },
+      "SessionSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Topic"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "interviewee_id": {
+            "title": "Interviewee Id",
+            "type": "integer"
+          },
+          "published_version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Version Id"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "submitted",
+              "published"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "interviewee_id",
+          "status",
+          "current_topic",
+          "published_version_id",
+          "created_at"
+        ],
+        "title": "SessionSummary",
         "type": "object"
       },
       "SourceIn": {
@@ -1922,6 +2269,40 @@
         "title": "TestResult",
         "type": "object"
       },
+      "TopicOut": {
+        "properties": {
+          "follow_ups": {
+            "title": "Follow Ups",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "asking",
+              "done",
+              "incomplete"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "status",
+          "follow_ups"
+        ],
+        "title": "TopicOut",
+        "type": "object"
+      },
       "TraceOut": {
         "properties": {
           "created_at": {
@@ -2088,6 +2469,73 @@
         "title": "TraceOut",
         "type": "object"
       },
+      "TurnOut": {
+        "properties": {
+          "added": {
+            "items": {
+              "$ref": "#/components/schemas/ElementOut"
+            },
+            "title": "Added",
+            "type": "array"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/UtteranceOut"
+          },
+          "decision": {
+            "enum": [
+              "follow_up",
+              "next",
+              "finish"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "finished": {
+            "title": "Finished",
+            "type": "boolean"
+          },
+          "question": {
+            "$ref": "#/components/schemas/UtteranceOut"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic"
+          },
+          "updated": {
+            "items": {
+              "$ref": "#/components/schemas/ElementOut"
+            },
+            "title": "Updated",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answer",
+          "question",
+          "decision",
+          "topic",
+          "finished",
+          "added",
+          "updated",
+          "warnings"
+        ],
+        "title": "TurnOut",
+        "type": "object"
+      },
       "TypeOut": {
         "properties": {
           "api_name": {
@@ -2236,6 +2684,59 @@
           }
         },
         "title": "UserPatch",
+        "type": "object"
+      },
+      "UtteranceIn": {
+        "properties": {
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "UtteranceIn",
+        "type": "object"
+      },
+      "UtteranceOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "speaker": {
+            "enum": [
+              "agent",
+              "interviewee"
+            ],
+            "title": "Speaker",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "speaker",
+          "text",
+          "seq",
+          "created_at"
+        ],
+        "title": "UtteranceOut",
         "type": "object"
       },
       "ValidationError": {
@@ -4573,6 +5074,346 @@
         "summary": "Trace",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/workshop/elements/{element_id}": {
+      "patch": {
+        "operationId": "review_element_api_v1_workshop_elements__element_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "element_id",
+            "required": true,
+            "schema": {
+              "title": "Element Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ElementReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElementOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Element",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions": {
+      "get": {
+        "operationId": "list_sessions_api_v1_workshop_sessions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionSummary"
+                  },
+                  "title": "Response List Sessions Api V1 Workshop Sessions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Sessions",
+        "tags": [
+          "workshop"
+        ]
+      },
+      "post": {
+        "operationId": "create_session_api_v1_workshop_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions/{session_id}": {
+      "get": {
+        "operationId": "get_session_api_v1_workshop_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions/{session_id}/elements": {
+      "get": {
+        "operationId": "list_elements_api_v1_workshop_sessions__session_id__elements_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ElementOut"
+                  },
+                  "title": "Response List Elements Api V1 Workshop Sessions  Session Id  Elements Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Elements",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions/{session_id}/publish": {
+      "post": {
+        "operationId": "publish_session_api_v1_workshop_sessions__session_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Session",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions/{session_id}/submit": {
+      "post": {
+        "operationId": "submit_session_api_v1_workshop_sessions__session_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Session",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/sessions/{session_id}/utterances": {
+      "post": {
+        "operationId": "post_utterance_api_v1_workshop_sessions__session_id__utterances_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UtteranceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Utterance",
+        "tags": [
+          "workshop"
         ]
       }
     },

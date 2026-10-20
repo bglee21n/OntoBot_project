@@ -1,0 +1,385 @@
+{
+ "at": "2026-10-20T05:42:27.464536+00:00",
+ "models": {
+  "gemma4:e4b": {
+   "summary": {
+    "items": 8,
+    "expectations_met": 6,
+    "verdict_ok": 8,
+    "first_attempt_failures": 0,
+    "extract_errors": 0,
+    "evidence_ok_rate": 1.0,
+    "schema_valid_rate": 0.882,
+    "p50_turn_ms": 1574,
+    "max_turn_ms": 2706
+   },
+   "rows": [
+    {
+     "id": "a01",
+     "topic": "role",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "vague",
+     "verdict_ok": true,
+     "found": [],
+     "evidence_ok": 0,
+     "evidence_total": 0,
+     "schema_valid": 0,
+     "schema_total": 0,
+     "misses": [],
+     "extract_ms": 843,
+     "assess_ms": 594
+    },
+    {
+     "id": "a02",
+     "topic": "role",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Facility",
+        "display_name": "전력 시설",
+        "description": "안전 관리 대상 시설"
+       },
+       "quote": "변전소와 전주 같은 전력 시설"
+      }
+     ],
+     "evidence_ok": 1,
+     "evidence_total": 1,
+     "schema_valid": 1,
+     "schema_total": 1,
+     "misses": [],
+     "extract_ms": 722,
+     "assess_ms": 446
+    },
+    {
+     "id": "a03",
+     "topic": "workflow",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Facility",
+        "display_name": "시설",
+        "description": "관리 대상 시설"
+       },
+       "quote": "시설 목록을 보고"
+      },
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Organization",
+        "display_name": "운영 조직",
+        "description": "시설을 소유하는 조직"
+       },
+       "quote": "각 운영 조직이 소유하고"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "region",
+        "display_name": "지역",
+        "data_type": "string",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "시설마다 속한 지역이 있어요"
+      },
+      {
+       "kind": "link_type",
+       "payload": {
+        "api_name": "owned_by",
+        "display_name": "소유",
+        "from_type": "Facility",
+        "to_type": "Organization",
+        "cardinality": "many"
+       },
+       "quote": "시설은 각 운영 조직이 소유하고"
+      },
+      {
+       "kind": "action_candidate",
+       "payload": {
+        "name": "점검 일정 잡기",
+        "description": "위험등급이 높은 시설부터 순서대로 일정을 잡음"
+       },
+       "quote": "위험등급이 높은 시설부터 점검 일정을 잡습니다"
+      }
+     ],
+     "evidence_ok": 5,
+     "evidence_total": 5,
+     "schema_valid": 4,
+     "schema_total": 4,
+     "misses": [],
+     "extract_ms": 1664,
+     "assess_ms": 434
+    },
+    {
+     "id": "a04",
+     "topic": "decisions",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "risk_grade",
+        "display_name": "위험등급",
+        "description": null
+       },
+       "quote": "위험등급"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "risk_grade",
+        "api_name": "risk_grade",
+        "display_name": "위험등급",
+        "data_type": "int",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "위험등급이 4 이상이면"
+      },
+      {
+       "kind": "action_candidate",
+       "payload": {
+        "name": "현장 점검 요청",
+        "description": "위험등급이 4 이상일 때"
+       },
+       "quote": "바로 현장 점검을 요청하고"
+      },
+      {
+       "kind": "action_candidate",
+       "payload": {
+        "name": "사용 중지 결정",
+        "description": "점검 결과가 나쁠 때"
+       },
+       "quote": "사용 중지를 결정합니다"
+      }
+     ],
+     "evidence_ok": 4,
+     "evidence_total": 4,
+     "schema_valid": 0,
+     "schema_total": 2,
+     "misses": [],
+     "extract_ms": 1338,
+     "assess_ms": 448
+    },
+    {
+     "id": "a05",
+     "topic": "data",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Facility",
+        "display_name": "시설",
+        "description": "관리 대상 시설"
+       },
+       "quote": "시설"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "facility_code",
+        "display_name": "시설 코드",
+        "data_type": "string",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "시설 코드"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "name",
+        "display_name": "이름",
+        "data_type": "string",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "이름"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "type",
+        "display_name": "유형",
+        "data_type": "enum",
+        "enum_values": [
+         "변전소",
+         "전주",
+         "배전함"
+        ],
+        "description": null
+       },
+       "quote": "유형"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "risk_grade",
+        "display_name": "위험등급",
+        "data_type": "string",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "위험등급"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "capacity",
+        "display_name": "설비 용량",
+        "data_type": "string",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "설비 용량"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "last_inspection_date",
+        "display_name": "마지막 점검일",
+        "data_type": "date",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "마지막 점검일"
+      }
+     ],
+     "evidence_ok": 7,
+     "evidence_total": 7,
+     "schema_valid": 7,
+     "schema_total": 7,
+     "misses": [
+      "'위험등급' 자료형 string"
+     ],
+     "extract_ms": 2266,
+     "assess_ms": 440
+    },
+    {
+     "id": "a06",
+     "topic": "data",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "vague",
+     "verdict_ok": true,
+     "found": [],
+     "evidence_ok": 0,
+     "evidence_total": 0,
+     "schema_valid": 0,
+     "schema_total": 0,
+     "misses": [],
+     "extract_ms": 475,
+     "assess_ms": 581
+    },
+    {
+     "id": "a07",
+     "topic": "exceptions",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Facility",
+        "display_name": "시설",
+        "description": "관리 대상 시설"
+       },
+       "quote": "그 지역 시설"
+      },
+      {
+       "kind": "action_candidate",
+       "payload": {
+        "name": "긴급 점검",
+        "description": "태풍 경보 시"
+       },
+       "quote": "전부 긴급 점검합니다"
+      }
+     ],
+     "evidence_ok": 2,
+     "evidence_total": 2,
+     "schema_valid": 1,
+     "schema_total": 1,
+     "misses": [],
+     "extract_ms": 829,
+     "assess_ms": 427
+    },
+    {
+     "id": "a08",
+     "topic": "queries",
+     "first_attempt_failures": 0,
+     "extract_error": null,
+     "verdict": "sufficient",
+     "verdict_ok": true,
+     "found": [
+      {
+       "kind": "object_type",
+       "payload": {
+        "api_name": "Facility",
+        "display_name": "시설",
+        "description": "관리 대상 시설"
+       },
+       "quote": "시설"
+      },
+      {
+       "kind": "property",
+       "payload": {
+        "object_type": "Facility",
+        "api_name": "risk_grade",
+        "display_name": "위험등급",
+        "data_type": "int",
+        "enum_values": null,
+        "description": null
+       },
+       "quote": "위험등급이 3 이상"
+      },
+      {
+       "kind": "golden_query",
+       "payload": {
+        "question": "위험등급이 3 이상인 시설은 몇 개야?",
+        "expected_answer": "18개 정도",
+        "answerable": true
+       },
+       "quote": "위험등급이 3 이상인 시설은 몇 개야?"
+      }
+     ],
+     "evidence_ok": 3,
+     "evidence_total": 3,
+     "schema_valid": 2,
+     "schema_total": 2,
+     "misses": [
+      "golden_query: 1 < 2"
+     ],
+     "extract_ms": 1265,
+     "assess_ms": 446
+    }
+   ]
+  }
+ }
+}

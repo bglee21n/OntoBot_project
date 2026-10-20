@@ -32,6 +32,10 @@ SOURCE_CHANGED = "sync.source_changed"
 MAPPING_CHANGED = "sync.mapping_changed"
 SYNC_TRIGGERED = "sync.manual_run"
 GRAPH_REBUILD = "graph.rebuild"
+WORKSHOP_STARTED = "workshop.session_started"
+WORKSHOP_ELEMENT_REVIEWED = "workshop.element_reviewed"
+WORKSHOP_SUBMITTED = "workshop.submitted"
+WORKSHOP_PUBLISHED = "workshop.published"
 
 
 def record(
