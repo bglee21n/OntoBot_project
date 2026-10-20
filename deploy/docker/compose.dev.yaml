@@ -41,7 +41,7 @@ services:
       - "127.0.0.1:${ONTOBOT_DEV_NEO4J_PORT:-7687}:7687"
 
   ollama:
-    image: ${ONTOBOT_OLLAMA_IMAGE:-ollama/ollama:latest}
+    image: ${ONTOBOT_OLLAMA_IMAGE:-ollama/ollama:0.40.6}   # images.lock 과 같은 버전
     environment:
       OLLAMA_HOST: 0.0.0.0:11434
     volumes:
