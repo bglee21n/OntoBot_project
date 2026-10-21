@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.16                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.17                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -597,6 +597,8 @@ OntoBot_project/
 ├── domain-packs/
 │   └── sample/                     # ontology.yaml mappings.yaml golden.yaml seed/(CSV)
 ├── deployer/                       # 배포 콘솔(ADR-0014) — ontobot 을 import 하지 않는 별도 파이썬 프로젝트
+├── devconsole/                     # 개발 콘솔(ADR-0015) — 개발 PC 127.0.0.1 전용, 명령은 scripts/task.py 를 부른다
+├── opsjobs/                        # 배포·개발 콘솔 공유 작업 실행기(작업 기록·단계·로그)
 ├── deploy/
 │   ├── docker/                     # app·deployer Dockerfile · compose(운영·gpu·deployer·test·dev) · images.lock · ontobotctl · postgres-init · systemd
 │   ├── windows/                    # install-host.ps1(WSL2·Docker 호스트 준비, 최초 1회)
@@ -774,6 +776,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | 0007 | (대체됨 → 0013) Docker 미사용 | — |
 | 0013 | Docker(WSL2) 전환 | Windows Server 2022+ WSL2 + Docker Engine, 서명 이미지 번들, ontobotctl. 대상 OS 0단계 점검(WSL 오프라인·GPU·재부팅·포트)이 실패하면 Linux 서버 또는 Ollama 호스트 설치로 재검토 |
 | 0014 | 배포 콘솔 | 앱과 독립된 컨테이너(docker.sock — 관리자 대역·관리자 계정만), 서명 필수, 사전 점검 + 버전 재입력. 이중화·SSO 전용이 되면 재검토 |
+| 0015 | 개발 콘솔 | 개발 PC 127.0.0.1 전용(로그인 없음, Host·Origin·헤더 확인), 명령 정본은 task.py, 배포 콘솔과 실행기 공유. 여러 개발자가 한 빌드 서버를 함께 쓰면 재검토 |
 | 0008 | 인터뷰 워크숍 면담자·추출기 | 다음 질문은 상태기계, LLM 은 평가·되묻기·추출만. gemma4:e4b(대본 7/8, p50 2.1초). 프롬프트·추출 스키마를 바꾸거나 실제 인터뷰 기록이 생기면 다시 잰다 |
 | 0009 | 평가 게이트 | 운영 파이프라인 인프로세스 + 실행기 주입 장애, PR 은 녹화 응답(놓침 = 실패), 실제 모델 게이트는 모델·프롬프트 변경 때 로컬에서 녹화와 함께. 가안 수치는 PRD 7절이 정해지면 고친다 |
 | 0012 | Action 실행·메일·SMS 발송 | 승인 = 실행(한 트랜잭션 재검증, 실패는 `failed` 기록), 발송은 아웃박스를 커밋 뒤 워커가 최소 한 번, 채널 미설정 = 미리보기에서 막힘. 게이트웨이가 요청 ID 중복 제거를 지원하면 "한 번" 발송으로 |
@@ -788,6 +791,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.4 | 2026-10-20 | Phase 1 구현 반영 — `user_session`·`auth_request` 표, `app_user` 로컬 계정 컬럼, `/auth/providers`·`/auth/local/login`·버전 비교(`/diff`) 엔드포인트, 감사 로그 추가 전용은 DB 트리거로도 강제 |
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
+| v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
 | v0.15 | 2026-10-20 | Phase 11 구현 반영 — 17.3 채팅에서 Action: 플래너 `kind: action`·`ActionProposal`, 요청할 수 있는 Action 만 요약에, 대상·값 대조 규칙(질문·맥락에 그대로, pk → 제목 정확 일치, 후보), 재계획 뒤 확인 사항, 채팅 API 가 미리보기 기록(`origin=chat`). 7.3 상태 `action_preview`, 14.2 SSE `action_preview`, 13.1·13.2 지표 `action_param_accuracy`(가안·optional)·`action_fabrications`(불변식) |
 | v0.14 | 2026-10-20 | Phase 10 구현 반영(ADR-0012) — 17.2 Action 실행: `action_type`·`action_run`·`notification`·`notification_delivery` 표, `app_user` 연락처, 정의 모양과 게시 전 검사, 미리보기 → 승인 = 실행(재검증) → 롤백(정정 발송) 흐름, 권한 판정, 발송 아웃박스(최소 한 번·재시도·채널 꺼짐 = 막힘), API·감사 이벤트. 17.1-4 의 아웃박스 표 이름을 `notification_delivery` 로 정정 |
 | v0.13 | 2026-10-20 | Phase 9 구현 반영 — 편집 레이어 덮어 읽기(reader 파생 행, 조회 조건·집계·참조 대조 모두), 충돌 판정 규칙·편집당 살아 있는 충돌 하나, 재편집·해제 규칙, 값 계보, 객체·충돌·편집 해제 API, 감사 이벤트 2종, Action 변경 금지에 제목 속성 추가(17.1-3) |

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.15) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.17) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
@@ -46,6 +46,7 @@ uv run --project backend python scripts/task.py openapi       # API 를 바꾸�
 uv run --project backend python scripts/task.py dev-api       # :8000
 uv run --project backend python scripts/task.py dev-web       # :5173 (/api 를 :8000 으로 프록시)
 uv run --project backend python scripts/task.py worker        # 동기화·그래프 투영·주기 작업·평가 실행
+uv run --project backend python scripts/task.py devconsole    # 개발 콘솔 http://127.0.0.1:8200 (ADR-0015)
 # 평가(TRD 13절) — compose.test 의 평가 전용 DB(ontobot_eval)·테스트 Neo4j 를 task.py 가 가리킨다:
 uv run --project backend python scripts/task.py eval-prepare  # 마이그레이션·샘플 팩 시드(FK 링크)·그래프 재구축
 uv run --project backend python scripts/task.py eval          # 실제 모델 게이트
@@ -182,6 +183,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - `deploy/**/*.ps1` 은 **UTF-8 BOM** 으로 저장한다(PowerShell 5.1 은 BOM 없는 파일을 cp949 로 읽는다). 문자열에서
   변수 바로 뒤에 한글이 오면 `${n}개` 처럼 감싼다(`$n개` 는 변수 이름이 된다). 네이티브 명령 출력은 `| Out-Host`
   로 보낸다 — 함수 반환값에 섞인다.
+- **개발 콘솔(`devconsole/`, ADR-0015)은 명령을 갖지 않는다** — `task.py` 의 `TASKS` 를 읽어 부른다. 명령을 추가·변경하면
+  `task.py` 에(화면 설명·묶음은 `devconsole/.../catalog.py` 의 `TASK_INFO`). 127.0.0.1 바인드·Host·Origin·`X-Ontobot-Dev`
+  검사를 느슨하게 하지 말 것(로컬 콘솔을 다른 사이트가 부르는 길이 된다). 서명 개인키는 경로만 다루고 내용을 읽지 않는다.
+  작업 실행기는 배포 콘솔과 공유(`opsjobs/`) — 바꾸면 두 콘솔 테스트를 함께 돌린다. 화면 부품은 `frontend/src/components/ops/`.
 - 채팅 한 건은 답이 끝날 때까지 DB 연결을 쥔다. 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`)이 동시 채팅 상한이다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - `objects.reader` 가 삭제 표시 제외·**게시 버전에 선언된 속성만** 내보내기·**편집 레이어 덮어 읽기**를 맡는다.

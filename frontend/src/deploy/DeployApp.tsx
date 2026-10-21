@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { ErrorBox } from "../components/ErrorBox";
+import { JobTable, JobView as SharedJobView, type OpsJob, type OpsJobApi, when } from "../components/ops/Jobs";
 import { ko } from "../i18n/ko";
 import { type Bundle, deploy, type Job, type Status, uploadFile } from "./client";
 
 const t = ko.deploy;
 type Tab = "status" | "bundles" | "rollback" | "jobs";
-const when = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : "—");
 
 /** 배포 콘솔(ADR-0014) — 번들 올리기·사전 점검·업그레이드·롤백·백업. 절차는 서버의 ontobotctl 이 한다. */
 export function DeployApp() {
@@ -373,139 +373,35 @@ function RollbackPanel({ status, onJob }: { status: Status | undefined; onJob: (
   );
 }
 
-// ---------------------------------------------------------------- 작업 기록
+// ---------------------------------------------------------------- 작업 기록(공유 부품 — components/ops)
 
-function JobBadge({ job }: { job: Job }) {
-  const cls = job.status === "succeeded" ? "succeeded" : job.status === "running" ? "running" : "failed";
-  return <span className={`badge ${cls}`}>{t.jobStatus[job.status] ?? job.status}</span>;
+const jobApi: OpsJobApi = {
+  job: (id) => deploy.job(id),
+  log: (id, offset) => deploy.log(id, offset),
+  logUrl: (id) => `/api/jobs/${id}/log.txt`,
+};
+
+function kindLabel(j: OpsJob): string {
+  const bundle = typeof j.params.bundle === "string" ? ` ${j.params.bundle}` : "";
+  return `${t.kind[j.kind] ?? j.kind}${bundle}`;
 }
 
-function JobList({ onOpen }: { onOpen: (j: Job) => void }) {
+function JobList({ onOpen }: { onOpen: (j: OpsJob) => void }) {
   const jobs = useQuery({ queryKey: ["deploy", "jobs"], queryFn: deploy.jobs, refetchInterval: 5_000 });
   if (jobs.isError) {
     return <ErrorBox error={jobs.error} />;
   }
-  if (jobs.data?.length === 0) {
-    return <p className="muted">{t.noJobs}</p>;
-  }
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>{t.started}</th>
-          <th>{t.tabs.jobs}</th>
-          <th>{t.state}</th>
-          <th>{t.actor}</th>
-          <th />
-        </tr>
-      </thead>
-      <tbody>
-        {jobs.data?.map((j) => (
-          <tr key={j.id}>
-            <td>{when(j.started_at)}</td>
-            <td>
-              {t.kind[j.kind]} {typeof j.params.bundle === "string" && <code>{j.params.bundle}</code>}
-            </td>
-            <td>
-              <JobBadge job={j} />
-            </td>
-            <td>{j.actor}</td>
-            <td className="actions">
-              <button type="button" className="link" onClick={() => onOpen(j)}>
-                {ko.eval.open}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  return <JobTable jobs={jobs.data ?? []} kindLabel={kindLabel} onOpen={onOpen} />;
 }
 
 function JobView({ id, onBack }: { id: string; onBack: () => void }) {
-  const job = useQuery({
-    queryKey: ["deploy", "job", id],
-    queryFn: () => deploy.job(id),
-    refetchInterval: (q) => (q.state.data?.status === "running" ? 1_000 : false),
-  });
-  const [log, setLog] = useState("");
-  const offset = useRef(0);
-  const running = job.data?.status === "running";
-  const pre = useRef<HTMLPreElement>(null);
-
-  useEffect(() => {
-    let stop = false;
-    async function pull() {
-      for (;;) {
-        const chunk = await deploy.log(id, offset.current);
-        if (stop) {
-          return;
-        }
-        if (chunk.text) {
-          offset.current = chunk.next;
-          setLog((l) => l + chunk.text);
-        }
-        if (!chunk.text) {
-          break;
-        }
-      }
-    }
-    void pull();
-    const timer = running ? setInterval(() => void pull(), 1_000) : undefined;
-    return () => {
-      stop = true;
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
-  }, [id, running]);
-
-  useEffect(() => {
-    pre.current?.scrollTo({ top: pre.current.scrollHeight });
-  }, [log]);
-
-  if (job.isError) {
-    return <ErrorBox error={job.error} />;
-  }
-  const j = job.data;
   return (
-    <div className="stack">
-      <button type="button" className="link" onClick={onBack} style={{ alignSelf: "flex-start" }}>
-        {t.back}
-      </button>
-      {j && (
-        <div className="card stack">
-          <div className="row">
-            <strong>{t.kind[j.kind]}</strong>
-            {typeof j.params.bundle === "string" && <code>{j.params.bundle}</code>}
-            <JobBadge job={j} />
-            <span className="spacer" />
-            <span className="muted">
-              {t.actor} {j.actor} · {t.started} {when(j.started_at)} · {t.finished} {when(j.finished_at)}
-            </span>
-          </div>
-          {j.error && <div className="error">{j.error}</div>}
-          {j.status === "not_ready" && <div className="notice">{t.notReadyHint}</div>}
-          <div>
-            <strong>{t.steps}</strong>
-            <ol>
-              {j.steps.map((s, i) => (
-                <li key={i} className={i === j.steps.length - 1 && running ? "running-step" : ""}>
-                  {s}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      )}
-      <div className="row">
-        <strong>{t.log}</strong>
-        <span className="spacer" />
-        <a href={`/api/jobs/${id}/log.txt`}>{t.downloadLog}</a>
-      </div>
-      <pre ref={pre} className="log">
-        {log}
-      </pre>
-    </div>
+    <SharedJobView
+      id={id}
+      api={jobApi}
+      kindLabel={kindLabel}
+      onBack={onBack}
+      extra={(j) => j.status === "not_ready" && <div className="notice">{t.notReadyHint}</div>}
+    />
   );
 }

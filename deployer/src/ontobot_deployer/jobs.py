@@ -1,33 +1,29 @@
 """작업 — ontobotctl 을 자식 프로세스로 실행하고 출력·단계·결과를 남긴다(한 번에 하나).
 
-기록: ``$ONTOBOT_HOME/deployer/jobs/<id>/job.json`` + ``output.log``, 이력
-``history.jsonl``(추가만).
-단계는 ontobotctl 의 ``==> `` 줄, 결과는 마지막 JSON 줄(``--json``)이다. 콘솔이 작업 도중 다시
-시작되면
-그 작업은 ``unknown``(확인 필요)으로 남는다 — 실제로 어디까지 됐는지는 상태 화면(ontobotctl
-status)이 말한다.
+실행·기록은 공유 실행기 ``opsjobs`` 가 한다(개발 콘솔과 같다). 기록은
+``$ONTOBOT_HOME/deployer/jobs/<id>/``. 결과는 ontobotctl 의 마지막 JSON 줄(``--json``)이다.
 
 끝난 작업은 앱 감사 로그에도 남긴다(``ontobotctl audit`` → ``ontobot.security.cli audit-deploy``).
-DB 가
-안 되면 감사 기록은 실패해도 작업 결과는 그대로다(이력에는 남는다).
+DB 가 안 되면 감사 기록은 실패해도 작업 결과는 그대로다(이력에는 남는다).
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
-import secrets
-from collections.abc import Awaitable, Callable
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+import os
 from pathlib import Path
 from typing import Any, Literal
+
+from opsjobs import Busy, Job, JobStore, new_id, now, run_command, status_of
 
 from ontobot_deployer import bundles
 from ontobot_deployer.settings import Settings
 
+__all__ = ["AUDIT_EVENT", "Busy", "Job", "JobStore", "Jobs", "Kind"]
+
 Kind = Literal["import", "preflight", "upgrade", "rollback", "backup", "deployer_update"]
-Status = Literal["running", "succeeded", "failed", "not_ready", "unknown"]
+RECOVER_MESSAGE = "배포 콘솔이 작업 도중 다시 시작되었습니다 — 상태 화면에서 실제 상태를 확인하세요"
 AUDIT_EVENT: dict[str, str] = {
     "import": "deploy.bundle_imported",
     "upgrade": "deploy.upgrade",
@@ -35,93 +31,6 @@ AUDIT_EVENT: dict[str, str] = {
     "backup": "deploy.backup",
     "deployer_update": "deploy.deployer_update",
 }
-
-
-def now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
-
-
-@dataclass
-class Job:
-    id: str
-    kind: Kind
-    params: dict[str, Any]
-    actor_id: int
-    actor: str
-    status: Status = "running"
-    started_at: str = field(default_factory=now)
-    finished_at: str | None = None
-    steps: list[str] = field(default_factory=list)
-    result: dict[str, Any] | None = None
-    exit_code: int | None = None
-    error: str | None = None
-
-
-class Busy(Exception):
-    pass
-
-
-class JobStore:
-    def __init__(self, root: Path) -> None:
-        self.root = root
-
-    def dir(self, job_id: str) -> Path:
-        if not job_id.isalnum():
-            raise KeyError(job_id)
-        return self.root / "jobs" / job_id
-
-    def save(self, job: Job) -> None:
-        d = self.dir(job.id)
-        d.mkdir(parents=True, exist_ok=True)
-        tmp = d / "job.json.tmp"
-        tmp.write_text(json.dumps(asdict(job), ensure_ascii=False, indent=1), encoding="utf-8")
-        tmp.replace(d / "job.json")
-
-    def get(self, job_id: str) -> Job:
-        p = self.dir(job_id) / "job.json"
-        if not p.is_file():
-            raise KeyError(job_id)
-        return Job(**json.loads(p.read_text(encoding="utf-8")))
-
-    def list(self, limit: int = 50) -> list[Job]:
-        base = self.root / "jobs"
-        if not base.is_dir():
-            return []
-        dirs = sorted((d for d in base.iterdir() if (d / "job.json").is_file()), reverse=True)
-        return [self.get(d.name) for d in dirs[:limit]]
-
-    def log_path(self, job_id: str) -> Path:
-        return self.dir(job_id) / "output.log"
-
-    def read_log(self, job_id: str, offset: int) -> tuple[str, int]:
-        p = self.log_path(job_id)
-        if not p.is_file():
-            return "", 0
-        with p.open("rb") as f:
-            f.seek(max(0, offset))
-            data = f.read(256 * 1024)
-        return data.decode("utf-8", errors="replace"), max(0, offset) + len(data)
-
-    def append_history(self, job: Job) -> None:
-        line = json.dumps(
-            {k: v for k, v in asdict(job).items() if k != "steps"}, ensure_ascii=False
-        )
-        with (self.root / "history.jsonl").open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-
-    def recover(self) -> None:
-        """콘솔 재시작 — 돌던 작업은 끝을 모른다."""
-        for job in self.list(limit=1000):
-            if job.status == "running":
-                job.status, job.finished_at = "unknown", now()
-                job.error = (
-                    "배포 콘솔이 작업 도중 다시 시작되었습니다 — "
-                    "상태 화면에서 실제 상태를 확인하세요"
-                )
-                self.save(job)
-
-
-Runner = Callable[[list[str], Path], Awaitable[tuple[int, str]]]
 
 
 class Jobs:
@@ -170,8 +79,7 @@ class Jobs:
             raise Busy("다른 작업이 진행 중입니다")
         cmds = self.commands(kind, params)  # 매개변수 오류는 작업을 만들기 전에
         job = Job(
-            # 시각(마이크로초까지)이 앞이라 이름 순서 = 만든 순서다.
-            id=datetime.now(UTC).strftime("%Y%m%d%H%M%S%f") + secrets.token_hex(2),
+            id=new_id(),
             kind=kind,
             params={k: v for k, v in params.items() if k != "confirm"},
             actor_id=actor_id,
@@ -188,6 +96,7 @@ class Jobs:
         log = self.store.log_path(job.id)
         try:
             if job.kind == "import":
+                log.parent.mkdir(parents=True, exist_ok=True)
                 with log.open("a", encoding="utf-8") as f:
                     f.write("==> 번들 가져오기\n")
                 path = await asyncio.to_thread(self._import, params)
@@ -196,7 +105,9 @@ class Jobs:
                 cmds = [self._ctl("preflight", str(path))]
             code = 0
             for cmd in cmds:
-                code, last_json = await self._exec(job, cmd, log)
+                code, last_json = await run_command(
+                    cmd, log, job=job, store=self.store, env=self._env()
+                )
                 if last_json is not None:
                     job.result = last_json
                 if code != 0:
@@ -206,7 +117,7 @@ class Jobs:
                 pf.parent.mkdir(parents=True, exist_ok=True)
                 pf.write_text(json.dumps(job.result, ensure_ascii=False), encoding="utf-8")
             job.exit_code = code
-            job.status = "succeeded" if code == 0 else ("not_ready" if code == 2 else "failed")
+            job.status = status_of(code)
             if code != 0 and job.result and job.result.get("error"):
                 job.error = str(job.result["error"])
         except Exception as e:  # 작업 실패는 기록이다 — 콘솔은 계속 산다
@@ -228,36 +139,7 @@ class Jobs:
             raise bundles.BundleError("반입 폴더가 설정되지 않았습니다")
         return bundles.import_drop(self.s.drop_dir, params["drop"], self.s.bundles)
 
-    async def _exec(self, job: Job, cmd: list[str], log: Path) -> tuple[int, dict[str, Any] | None]:
-        last_json: dict[str, Any] | None = None
-        with log.open("ab") as out:
-            out.write(f"$ {' '.join(cmd)}\n".encode())
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-                env=self._env(),
-            )
-            if proc.stdout is None:  # PIPE 로 열었다
-                raise RuntimeError("출력을 읽을 수 없습니다")
-            async for raw in proc.stdout:
-                out.write(raw)
-                out.flush()
-                line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
-                if line.startswith("==> "):
-                    job.steps.append(line[4:])
-                    self.store.save(job)
-                elif line.startswith("{"):
-                    try:
-                        last_json = json.loads(line)
-                    except json.JSONDecodeError:
-                        pass
-            code = await proc.wait()
-        return code, last_json
-
     def _env(self) -> dict[str, str]:
-        import os
-
         return {**os.environ, "ONTOBOT_HOME": str(self.s.home)}
 
     async def _audit(self, job: Job, log: Path) -> None:
@@ -268,16 +150,8 @@ class Jobs:
             {"job": job.id, "status": job.status, "params": job.params, "result": job.result},
             ensure_ascii=False,
         )
-        cmd = [
-            self.s.ctl,
-            "audit",
-            "--event",
-            event,
-            "--actor-id",
-            str(job.actor_id),
-            "--payload",
-            payload,
-        ]
+        cmd = [self.s.ctl, "audit", "--event", event, "--actor-id", str(job.actor_id)]
+        cmd += ["--payload", payload]
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,

@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ontobot-devconsole"
+version = "0.1.0"
+description = "OntoBot 개발 콘솔 — 개발 PC 에서 소스·검사·평가·빌드·번들을 화면으로(ADR-0015)"
+requires-python = ">=3.12,<3.13"
+# 배포 대상이 아니다(번들·이미지에 넣지 않는다). 앱·배포 콘솔과 같은 고정 버전.
+dependencies = [
+    "fastapi==0.148.0",
+    "uvicorn[standard]==0.54.0",
+    "pydantic==2.14.1",
+    "opsjobs",
+]
+
+[tool.uv.sources]
+opsjobs = { path = "../opsjobs", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "httpx==0.28.1",
+    "ruff==0.17.1",
+    "mypy==2.4.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ontobot_devconsole"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+# 개발 도구 — 고정 인자 목록으로 git·uv·docker·gh 를 부른다(셸을 거치지 않는다).
+"src/**" = ["S603", "S607"]
+"tests/**" = ["S101", "S105", "S106", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+mypy_path = "src"
+ignore_missing_imports = true

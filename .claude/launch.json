@@ -4,14 +4,43 @@
     {
       "name": "api",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "--project", "backend", "uvicorn", "ontobot.main:app", "--port", "8000", "--app-dir", "backend/src"],
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "backend",
+        "uvicorn",
+        "ontobot.main:app",
+        "--port",
+        "8000",
+        "--app-dir",
+        "backend/src"
+      ],
       "port": 8000
     },
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "devconsole",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "devconsole",
+        "python",
+        "-m",
+        "ontobot_devconsole"
+      ],
+      "port": 8200,
+      "url": "http://127.0.0.1:8200"
     }
   ]
 }

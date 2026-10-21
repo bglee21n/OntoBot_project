@@ -58,6 +58,14 @@ uv run --project backend python scripts/graph_rebuild.py    # Neo4j 재구축 + 
 uv run --project backend python scripts/task.py openapi     # API 가 바뀌면 프론트 타입 재생성(계약 테스트가 확인)
 ```
 
+같은 작업을 화면으로 하려면 **개발 콘솔**([ADR-0015](docs/adr/0015-dev-console.md))을 띄운다 — 검사·테스트, 평가·카세트,
+번들 만들기·서명·반출, 개발 서버 켜기/끄기, git 커밋·브랜치·푸시, GitHub PR·CI(`gh` 필요)를 버튼으로 하고
+대시보드에서 "배포할 수 있는 상태인가"(dirty·OpenAPI·카세트 경고)를 본다. 이 PC 의 127.0.0.1 에서만 열린다.
+
+```bash
+uv run --project backend python scripts/task.py devconsole  # 화면 빌드 후 http://127.0.0.1:8200
+```
+
 ## 의존 규칙 (TRD 16.3)
 
 `import-linter`(패키지 단위)와 `backend/tests/unit/test_dependency_rules.py`(파일 단위)가 함께 막는다.

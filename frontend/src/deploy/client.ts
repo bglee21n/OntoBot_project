@@ -1,6 +1,7 @@
 // 배포 콘솔 API(ADR-0014). 앱 API 가 아니라서 OpenAPI 생성 타입이 없다 — 모양은 deployer/src/ontobot_deployer/api.py 가 정본.
 // 상태를 바꾸는 요청에는 X-Ontobot-Deploy 헤더를 붙인다(다른 사이트의 폼으로는 붙일 수 없다 — CSRF).
 import { ApiError } from "../api/client";
+import type { OpsJob } from "../components/ops/Jobs";
 
 export interface Me {
   id: number;
@@ -59,19 +60,8 @@ export interface Bundle {
 
 export type JobKind = "import" | "preflight" | "upgrade" | "rollback" | "backup" | "deployer_update";
 
-export interface Job {
-  id: string;
-  kind: JobKind;
-  params: Record<string, unknown>;
-  actor: string;
-  status: "running" | "succeeded" | "failed" | "not_ready" | "unknown";
-  started_at: string;
-  finished_at: string | null;
-  steps: string[];
-  result: Record<string, unknown> | null;
-  exit_code: number | null;
-  error: string | null;
-}
+/** 작업 기록(공유 모양 — components/ops). */
+export type Job = OpsJob & { kind: JobKind };
 
 export interface Backup {
   name: string;

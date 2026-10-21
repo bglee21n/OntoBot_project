@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "opsjobs"
+version = "0.1.0"
+description = "배포 콘솔·개발 콘솔이 함께 쓰는 작업 실행기 — 자식 프로세스·단계·로그·이력(ADR-0015)"
+requires-python = ">=3.12,<3.13"
+# 의존성 없음 — 두 콘솔 어느 쪽의 고정 버전에도 끼어들지 않는다.
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opsjobs"]

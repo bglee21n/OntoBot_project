@@ -19,6 +19,7 @@ dist/
 node_modules/
 frontend/dist/
 frontend/dist-deploy/
+frontend/dist-devconsole/
 
 # 오프라인 번들 산출물
 deploy/offline/out/
@@ -31,3 +32,6 @@ deploy/offline/out/
 
 # 개발 로그·가짜 발송 게이트웨이 출력(config/notify.dev.yaml)
 logs/
+
+# 개발 콘솔 기록(작업·서비스 로그, ADR-0015)
+.devconsole/

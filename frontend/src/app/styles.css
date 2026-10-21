@@ -127,3 +127,13 @@ dl.kv dt { color: var(--muted); }
 dl.kv dd { margin: 0; }
 pre.log { background: #0f172a; color: #e2e8f0; padding: 0.7rem; border-radius: 6px; max-height: 60vh; overflow: auto; white-space: pre-wrap; font-size: 0.85em; margin: 0; }
 .running-step { font-weight: 600; color: var(--accent); }
+.warn-text { color: var(--warn); }
+/* 개발 콘솔(ADR-0015) */
+pre.diff div { white-space: pre-wrap; }
+pre.diff .diff-add { color: #86efac; }
+pre.diff .diff-del { color: #fca5a5; }
+pre.diff .diff-hunk { color: #93c5fd; }
+tr.selected-row td { background: #eff6ff; }
+.topbar.wrap { flex-wrap: wrap; }
+.topbar.wrap nav { flex-wrap: wrap; gap: 0.4rem; }
+.topbar.wrap nav button, .topbar.wrap > strong { white-space: nowrap; }

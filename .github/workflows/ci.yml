@@ -38,6 +38,19 @@ jobs:
       - run: uv run pytest -q
       - run: bash -n ../deploy/docker/ontobotctl
 
+  # 개발 콘솔(ADR-0015) — 개발 PC 전용이라 이미지는 없고 검사·단위 테스트만. opsjobs 도 여기서 함께 본다.
+  devconsole:
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: devconsole}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: {version: "0.11.7"}
+      - run: uv sync --frozen --python 3.12
+      - run: uv run ruff check . ../opsjobs && uv run ruff format --check . ../opsjobs
+      - run: uv run mypy
+      - run: uv run pytest -q
+
   frontend:
     runs-on: ubuntu-latest
     defaults: {run: {working-directory: frontend}}
@@ -50,6 +63,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run build:deploy
+      - run: npm run build:devconsole
 
   # 통합 테스트·평가 재생은 운영과 같은 PostgreSQL(pgvector)·Neo4j 이미지를 compose 로 띄운다(ADR-0013).
   # 접속값·띄우기는 scripts/task.py 가 맡는다(로컬과 CI 가 갈라지지 않게).

@@ -14,7 +14,12 @@ dependencies = [
     "pydantic==2.14.1",
     "asyncpg==0.32.0",
     "argon2-cffi==25.1.0",
+    "opsjobs",
 ]
+
+# 공유 작업 실행기(저장소의 opsjobs/) — 배포 콘솔 이미지에도 같은 경로 배치로 들어간다.
+[tool.uv.sources]
+opsjobs = { path = "../opsjobs", editable = true }
 
 [dependency-groups]
 dev = [

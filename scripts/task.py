@@ -21,9 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 FRONTEND = ROOT / "frontend"
 DEPLOYER = ROOT / "deployer"
+DEVCONSOLE = ROOT / "devconsole"
 NPM = shutil.which("npm") or "npm"
 UV = ["uv", "run", "--project", str(BACKEND)]
 UVD = ["uv", "run", "--project", str(DEPLOYER)]
+UVC = ["uv", "run", "--project", str(DEVCONSOLE)]
 TEST_COMPOSE = ["docker", "compose", "-f", str(ROOT / "deploy" / "docker" / "compose.test.yaml")]
 DEV_COMPOSE = [
     "docker",
@@ -59,7 +61,12 @@ TEST_UP = (ROOT, [*TEST_COMPOSE, "up", "-d", "--wait"])
 Step = tuple[Path, list[str]] | tuple[Path, list[str], dict[str, str]]
 
 TASKS: dict[str, list[Step]] = {
-    "sync": [(BACKEND, ["uv", "sync"]), (DEPLOYER, ["uv", "sync"]), (FRONTEND, [NPM, "ci"])],
+    "sync": [
+        (BACKEND, ["uv", "sync"]),
+        (DEPLOYER, ["uv", "sync"]),
+        (DEVCONSOLE, ["uv", "sync"]),
+        (FRONTEND, [NPM, "ci"]),
+    ],
     "lint": [
         (BACKEND, [*UV, "ruff", "check", "."]),
         (ROOT, [*UV, "ruff", "check", "--config", "backend/pyproject.toml", "scripts"]),
@@ -69,12 +76,16 @@ TASKS: dict[str, list[Step]] = {
         (DEPLOYER, [*UVD, "ruff", "check", "."]),
         (DEPLOYER, [*UVD, "ruff", "format", "--check", "."]),
         (DEPLOYER, [*UVD, "mypy"]),
+        (DEVCONSOLE, [*UVC, "ruff", "check", ".", "../opsjobs"]),
+        (DEVCONSOLE, [*UVC, "ruff", "format", "--check", ".", "../opsjobs"]),
+        (DEVCONSOLE, [*UVC, "mypy"]),
         (FRONTEND, [NPM, "run", "lint"]),
         (FRONTEND, [NPM, "run", "typecheck"]),
     ],
     "test-unit": [
         (BACKEND, [*UV, "pytest", "tests/unit", "-q"]),
         (DEPLOYER, [*UVD, "pytest", "-q"]),
+        (DEVCONSOLE, [*UVC, "pytest", "-q"]),
     ],
     # 컨테이너가 이미 떠 있으면 그대로 쓴다. 다 쓴 뒤 지우려면 test-down.
     "test-int": [
@@ -133,6 +144,11 @@ TASKS: dict[str, list[Step]] = {
                 ".",
             ],
         ),
+    ],
+    # 개발 콘솔(ADR-0015) — 127.0.0.1:8200. 화면 빌드 후 띄운다.
+    "devconsole": [
+        (FRONTEND, [NPM, "run", "build:devconsole"]),
+        (ROOT, [*UVC, "python", "-m", "ontobot_devconsole"]),
     ],
     "dev-api": [(BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])],
     "dev-web": [(FRONTEND, [NPM, "run", "dev"])],

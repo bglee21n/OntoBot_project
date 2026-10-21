@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from ontobot_deployer import bundles
 from ontobot_deployer.auth import Admin, Auth, Locked, pg_lookup
-from ontobot_deployer.jobs import Busy, Job, Jobs, JobStore
+from ontobot_deployer.jobs import RECOVER_MESSAGE, Busy, Job, Jobs, JobStore
 from ontobot_deployer.settings import Settings
 
 COOKIE = "ontobot_deploy"
@@ -75,7 +75,7 @@ def create_app(
     )
     store = JobStore(s.data)
     s.data.mkdir(parents=True, exist_ok=True)
-    store.recover()
+    store.recover(RECOVER_MESSAGE)
     jobs = Jobs(s, store)
     uploads = bundles.Uploads(s.incoming, s.max_upload_mb)
     app = FastAPI(title="OntoBot 배포 콘솔", docs_url=None, redoc_url=None, openapi_url=None)

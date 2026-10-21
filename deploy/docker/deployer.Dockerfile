@@ -40,6 +40,8 @@ COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=dockercli /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 
 WORKDIR /srv/deployer
+# 공유 작업 실행기 — pyproject 의 경로 의존성(../opsjobs)과 같은 배치로 둔다.
+COPY opsjobs /srv/opsjobs
 COPY deployer/pyproject.toml deployer/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY deployer/src ./src

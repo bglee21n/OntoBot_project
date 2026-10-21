@@ -19,7 +19,7 @@ from argon2 import PasswordHasher
 from ontobot_deployer import bundles
 from ontobot_deployer.api import CSRF_HEADER, create_app
 from ontobot_deployer.auth import MAX_FAILURES, Auth, Locked, UserRecord
-from ontobot_deployer.jobs import Jobs, JobStore
+from ontobot_deployer.jobs import RECOVER_MESSAGE, Jobs, JobStore
 from ontobot_deployer.settings import Settings
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "ontobot_deployer"
@@ -232,7 +232,7 @@ def test_restart_marks_running_jobs_unknown(settings: Settings) -> None:
 
     store = JobStore(settings.data)
     store.save(Job(id="x1", kind="upgrade", params={}, actor_id=1, actor="admin"))
-    store.recover()
+    store.recover(RECOVER_MESSAGE)
     assert store.get("x1").status == "unknown"
 
 
