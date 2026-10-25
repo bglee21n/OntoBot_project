@@ -1,0 +1,47 @@
+[
+ {
+  "image": "t1-count",
+  "question": "위험등급이 3 이상인 시설은 몇 개야?",
+  "trace": "1"
+ },
+ {
+  "image": "t2-list",
+  "question": "변전소 목록 보여줘",
+  "trace": "150"
+ },
+ {
+  "image": "t3-traverse",
+  "question": "강남지사가 소유한 시설 목록 보여줘",
+  "trace": "20"
+ },
+ {
+  "image": "t4-followup",
+  "question": "그 중 위험등급이 4 이상인 것만",
+  "trace": "29"
+ },
+ {
+  "image": "t5-invalid",
+  "question": "시설 점검 담당자 이름 알려줘",
+  "trace": "33"
+ },
+ {
+  "image": "t6-estimate",
+  "question": "위험등급이 가장 높은 시설 5개 알려줘",
+  "trace": "9"
+ },
+ {
+  "image": "t7-action",
+  "question": "F-0004 시설의 위험등급을 3으로 바꿔줘",
+  "trace": "41"
+ },
+ {
+  "image": "t8-misread",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "trace": "6"
+ },
+ {
+  "image": "t9-grade3",
+  "question": "지역은 몇 개 등록돼 있어?",
+  "trace": "173"
+ }
+]

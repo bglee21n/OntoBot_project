@@ -41,6 +41,15 @@
       ],
       "port": 8200,
       "url": "http://127.0.0.1:8200"
+    },
+    {
+      "name": "manual-api",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set ONTOBOT_DB_HOST=127.0.0.1&& set ONTOBOT_DB_PORT=55432&& set ONTOBOT_DB_USER=ontobot&& set ONTOBOT_DB_PASSWORD=ontobot-test&& set ONTOBOT_DB_NAME=ontobot_manual&& set ONTOBOT_NEO4J_URI=bolt://127.0.0.1:57687&& set ONTOBOT_NEO4J_USER=neo4j&& set ONTOBOT_NEO4J_PASSWORD=ontobot-test-graph&& set PYTHONUTF8=1&& set ONTOBOT_NOTIFY_CONFIG_PATH=config/notify.dev.yaml&& set ONTOBOT_SRC_FAC_HOST=127.0.0.1&& set ONTOBOT_SRC_FAC_PORT=55432&& set ONTOBOT_SRC_FAC_DB=ontobot_manual_src&& set ONTOBOT_SRC_FAC_USER=ontobot&& set ONTOBOT_SRC_FAC_PASSWORD=ontobot-test&& uv run --project backend uvicorn ontobot.main:app --port 8000 --app-dir backend/src"
+      ],
+      "port": 8000
     }
   ]
 }

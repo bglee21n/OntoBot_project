@@ -1,0 +1,194 @@
+[
+ {
+  "phase": "before",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 1,
+  "conditions": "조회 조건: 시설 · 시설 유형 = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "before",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 2,
+  "conditions": "조회 조건: 시설 · 시설 유형 = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "before",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 3,
+  "conditions": "조회 조건: 시설 · 시설 유형 = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "before",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 1,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 2,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 3,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 1,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 2,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 3,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "before",
+  "question": "지역별 시설 수 알려줘",
+  "round": 1,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "before",
+  "question": "지역별 시설 수 알려줘",
+  "round": 2,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "before",
+  "question": "지역별 시설 수 알려줘",
+  "round": 3,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 1,
+  "conditions": "조회 조건: 시설 · 시설 유형(변전소·철탑·전주 중 하나) = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 2,
+  "conditions": "조회 조건: 시설 · 시설 유형(변전소·철탑·전주 중 하나) = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "위험등급이 5인 전주는 몇 개야?",
+  "round": 3,
+  "conditions": "조회 조건: 시설 · 시설 유형(변전소·철탑·전주 중 하나) = 전주 · 위험등급 = 5 · 건수",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 1,
+  "conditions": "조회 조건: 점검 기록 · 점검 ID(I-001 형식) = I-005 · 최대 20건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 2,
+  "conditions": "조회 조건: 점검 기록 · 점검 ID(I-001 형식) = I-005 · 최대 20건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "I-005 점검 기록 알려줘",
+  "round": 3,
+  "conditions": "조회 조건: 점검 기록 · 점검 ID(I-001 형식) = I-005 · 최대 20건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 1,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "after",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 2,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "after",
+  "question": "점검 대상 시설이 대구 변전소 07호인 점검 기록은?",
+  "round": 3,
+  "conditions": null,
+  "failure": "조회 실패 · 질문 해석 실패\n질문을 조회 조건으로 바꾸지 못했습니다. 대상과 조건을 더 구체적으로 다시 물어봐 주세요. (예: \"변전소 중 위험등급 4 이상인 시설 목록\")",
+  "badge": null
+ },
+ {
+  "phase": "after",
+  "question": "지역별 시설 수 알려줘",
+  "round": 1,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "지역별 시설 수 알려줘",
+  "round": 2,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ },
+ {
+  "phase": "after",
+  "question": "지역별 시설 수 알려줘",
+  "round": 3,
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "failure": null,
+  "badge": "① 근거 확인"
+ }
+]
