@@ -1,4 +1,5 @@
-"""사용자 매뉴얼 빌드 — docs/manual/user/*.md(번호 순)를 Word(.docx)와 PDF 로 묶는다.
+"""매뉴얼 빌드 — docs/manual/user/*.md(번호 순)를 Word(.docx)와 PDF 로 묶는다. ``--book ops`` 면 운영자 매뉴얼
+(docs/manual/ops/*.md).
 
     uv run --with python-docx --with markdown --with playwright python docs/manual/tools/build_manual.py
 
@@ -26,10 +27,18 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
 MANUAL = Path(__file__).resolve().parents[1]
-SRC = MANUAL / "user"
+BOOKS = {
+    "user": ("user", "사용자 매뉴얼", "실제 화면으로 따라 하는 온톨로지 기반 챗봇 사용법",
+             "일반 사용자 · 승인자 · 현업 전문가 · 모델러 · 챗봇 빌더 · 관리자"),
+    "ops": ("ops", "시스템 운영자 매뉴얼", "실제 설치본으로 따라 하는 설치·관리·배포·장애 대응",
+            "시스템 운영자 · OntoBot 관리자 · 배포 담당자"),
+}
+BOOK = sys.argv[sys.argv.index("--book") + 1] if "--book" in sys.argv else "user"
+_DIR, BOOK_NAME, SUBTITLE, AUDIENCE = BOOKS[BOOK]
+SRC = MANUAL / _DIR
 ROOT = MANUAL.parents[1]
 OUT = ROOT / "dist" / "manual"
-TITLE = "OntoBot 사용자 매뉴얼"
+TITLE = f"OntoBot {BOOK_NAME}"
 FONT = "맑은 고딕"
 MONO = "Consolas"
 PAGE_W = Cm(21.0)
@@ -163,15 +172,15 @@ def cover(doc: Document) -> None:
     set_font(r, 40, True, color=RGBColor(0x25, 0x63, 0xEB))
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("사용자 매뉴얼")
+    r = p.add_run(BOOK_NAME)
     set_font(r, 28, True)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run("실제 화면으로 따라 하는 온톨로지 기반 챗봇 사용법")
+    r = p.add_run(SUBTITLE)
     set_font(r, 14, color=RGBColor(0x4B, 0x55, 0x63))
     for _ in range(10):
         doc.add_paragraph()
-    for line in ("일반 사용자 · 승인자 · 현업 전문가 · 모델러 · 챗봇 빌더 · 관리자", f"{date.today():%Y. %m. %d.} 판"):
+    for line in (AUDIENCE, f"{date.today():%Y. %m. %d.} 판"):
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(line)
@@ -449,8 +458,8 @@ def build_html(paths: list[Path]) -> str:
     import markdown
 
     parts = [
-        f"<div class='cover'><h1>OntoBot</h1><div style='font-size:28pt;font-weight:bold'>사용자 매뉴얼</div>"
-        f"<p style='font-size:14pt;color:#4b5563'>실제 화면으로 따라 하는 온톨로지 기반 챗봇 사용법</p>"
+        f"<div class='cover'><h1>OntoBot</h1><div style='font-size:28pt;font-weight:bold'>{BOOK_NAME}</div>"
+        f"<p style='font-size:14pt;color:#4b5563'>{SUBTITLE}</p>"
         f"<p style='margin-top:80mm;color:#4b5563'>{date.today():%Y. %m. %d.} 판</p></div>"
     ]
     fig = 0
@@ -501,11 +510,12 @@ def main() -> None:
     cover(w.doc)
     for p in paths:
         parse(p.read_text(encoding="utf-8"), p.parent, w)
-    docx_path = OUT / "OntoBot-사용자-매뉴얼.docx"
+    stem = "OntoBot-" + BOOK_NAME.replace(" ", "-")
+    docx_path = OUT / f"{stem}.docx"
     w.save(docx_path)
     print(f"Word: {docx_path} (그림 {w.figure}장)")
     if "--no-pdf" not in sys.argv:
-        pdf_path = OUT / "OntoBot-사용자-매뉴얼.pdf"
+        pdf_path = OUT / f"{stem}.pdf"
         pages = build_pdf(build_html(paths), pdf_path)
         print(f"PDF : {pdf_path} ({pages}쪽)")
 

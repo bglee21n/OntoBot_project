@@ -65,9 +65,9 @@ _MARK_JS = """
 
 
 class Shooter:
-    def __init__(self, browser: Browser, chapter: str) -> None:
+    def __init__(self, browser: Browser, chapter: str, root: Path | None = None) -> None:
         self.browser = browser
-        self.dir = IMAGES / chapter
+        self.dir = (root or IMAGES) / chapter
         self.dir.mkdir(parents=True, exist_ok=True)
         self.count = 0
         self.dialogs: list[str] = []

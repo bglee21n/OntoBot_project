@@ -1,6 +1,7 @@
-"""37장 「찾아보기」 — 낱말마다 그 낱말이 나오는 장을 원본에서 찾아 표로 쓴다.
+"""「찾아보기」 — 낱말마다 그 낱말이 나오는 장을 원본에서 찾아 표로 쓴다.
 
-    python docs/manual/tools/index_md.py
+    python docs/manual/tools/index_md.py              # 사용자 매뉴얼 37장
+    python docs/manual/tools/index_md.py --book ops   # 운영자 매뉴얼 45장
 
 낱말 목록(TERMS)은 사람이 고른다. 장 번호는 파일 이름의 앞 두 자리(00 은 「들어가며」).
 부록 표(25 질문 예시, 36 낱말 풀이, 37 자신)는 찾지 않는다 — 거의 모든 낱말이 나와 쓸모가 없다.
@@ -9,9 +10,11 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
-USER = Path(__file__).resolve().parents[1] / "user"
+MANUAL = Path(__file__).resolve().parents[1]
+USER = MANUAL / "user"
 OUT = USER / "37-index.md"
 SKIP = {"25", "36", "37"}
 
@@ -27,19 +30,44 @@ TERMS = [
 ]
 
 
+# 운영자 매뉴얼(ops) — 부록(43 양식, 44 용어집, 45 자신)과 41 문구 사전은 찾지 않는다.
+OPS_TERMS = [
+    "감사 로그", "객체 타입", "게시", "그래프 투영", "근거 카드", "다시 사용", "대사", "데이터 소스", "동기화", "등급",
+    "로그 내려받기", "롤백", "마이그레이션", "막힘", "매핑", "미리보기", "반영", "반입 폴더", "발송", "배포 콘솔",
+    "배포 콘솔 갱신", "백업", "번들", "보존 기간", "사전 점검", "서명", "세션", "승인하고 실행", "시크릿 참조",
+    "알림 연락처", "알림함", "앞머리", "업그레이드", "역할별 읽기 권한", "워커", "원천", "읽기 전용", "작업 기록",
+    "재구축", "재부팅", "전체 기록", "접속 시험", "정정", "정지", "준비 상태", "증분", "지금 동기화", "지금 백업",
+    "질문 해석 실패", "트레이스", "편집 충돌", "편집 해제", "현황", "확인 질문",
+    "admin", "api", "app.env", "compose", "deployer", "Exited (0)", "GPU", "healthz", "migrate", "Neo4j", "nano",
+    "notify.yaml", "ollama", "ontobotctl", "PostgreSQL", "readyz", "RESTORE", "SHA256SUMS", "SSO", "state.env",
+    "UTC", "worker", "WSL",
+]
+BOOKS = {
+    "user": (USER, OUT, SKIP, TERMS, "37장", [
+        "낱말이 많이 나오는 장을 다섯 곳까지 적었습니다(장 번호 순). 뜻은 「36장 낱말 풀이」, 화면 문구는 「28장 화면 문구",
+        "사전」을 보세요.",
+    ]),
+    "ops": (MANUAL / "ops", MANUAL / "ops" / "45-index.md", {"41", "43", "44", "45"}, OPS_TERMS, "45장", [
+        "낱말이 많이 나오는 장을 다섯 곳까지 적었습니다(장 번호 순). 뜻은 「44장 용어집」을 보세요.",
+    ]),
+}
+
+
 def chapter_no(p: Path) -> str:
     return p.name[:2]
 
 
 def main() -> None:
-    files = sorted(p for p in USER.glob("*.md") if re.match(r"^\d\d", p.name) and p.name[:2] not in SKIP)
+    book = sys.argv[sys.argv.index("--book") + 1] if "--book" in sys.argv else "user"
+    src, out, skip, terms, no_title, intro = BOOKS[book]
+    files = sorted(p for p in src.glob("*.md") if re.match(r"^\d\d", p.name) and p.name[:2] not in skip)
     titles = {
         chapter_no(p): re.sub(r"^\d+장\s*", "", p.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip())
         for p in files
     }
     texts = {chapter_no(p): p.read_text(encoding="utf-8") for p in files}
     rows = []
-    for term in sorted(TERMS, key=lambda t: (not re.match(r"[가-힣]", t), t)):
+    for term in sorted(terms, key=lambda t: (not re.match(r"[가-힣]", t), t)):
         hits = []
         for no, text in texts.items():
             n = text.count(term)
@@ -49,10 +77,9 @@ def main() -> None:
         top = sorted(no for _, no in sorted(hits, reverse=True)[:5])
         rows.append((term, ", ".join("들어가며" if no == "00" else f"{int(no)}장" for no in top) or "—"))
     lines = [
-        "# 37장 찾아보기",
+        f"# {no_title} 찾아보기",
         "",
-        "낱말이 많이 나오는 장을 다섯 곳까지 적었습니다(장 번호 순). 뜻은 「36장 낱말 풀이」, 화면 문구는 「28장 화면 문구",
-        "사전」을 보세요.",
+        *intro,
         "",
         "| 낱말 | 나오는 장 |",
         "| --- | --- |",
@@ -65,8 +92,8 @@ def main() -> None:
         *[f"| {'들어가며' if no == '00' else f'{int(no)}장'} | {t} |" for no, t in sorted(titles.items())],
         "",
     ]
-    OUT.write_text("\n".join(lines), encoding="utf-8")
-    print("→", OUT, len(rows), "낱말")
+    out.write_text("\n".join(lines), encoding="utf-8")
+    print("→", out, len(rows), "낱말")
 
 
 if __name__ == "__main__":
