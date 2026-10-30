@@ -80,6 +80,8 @@ class PipelineResult:
     plan_attempts: list[dict[str, Any]] = field(default_factory=list)
     sql: str | None = None
     cypher: str | None = None
+    # 실행이 돌려준 행 수(객체 행 또는 집계 행). 실행 전에 끝났거나 실패면 None — 트레이스 화면용.
+    row_count: int | None = None
     # 투영 지연이 임계값을 넘었을 때만: 관계 정보가 반영된 시각(TRD 5.5, 14.2 conditions).
     graph_as_of: str | None = None
     # 이 답으로 바꿀 대화 맥락. None 이면 맥락을 그대로 둔다.
@@ -418,6 +420,7 @@ async def run(
         with timer.stage("querying"):
             ex = await executor(db, graph_driver, vp)
         res.sql, res.cypher = ex.sql or None, ex.cypher
+        res.row_count = None if ex.status == "failed" else len(ex.rows)
         if vp.hops and ex.failure_reason != "graph_unavailable":
             lagged = await lag(db)
             if lagged["projection_lag_seconds"] > LAG_WARN_SECONDS and lagged["oldest_pending_at"]:
@@ -506,6 +509,7 @@ async def _run_function(
     with timer.stage("querying"):
         ex = await fn_runner.run(db, graph_driver, vf, executor)
     res.sql, res.cypher = ex.sql or None, ex.cypher
+    res.row_count = None if ex.status == "failed" else len(ex.rows)
     if any(b.plan.hops for b in vf.queries) and ex.failure_reason != "graph_unavailable":
         lagged = await lag(db)
         if lagged["projection_lag_seconds"] > LAG_WARN_SECONDS and lagged["oldest_pending_at"]:

@@ -75,6 +75,7 @@ class Trace(IdMixin, Base):
     status: Mapped[str | None] = mapped_column(String(16))
     failure_reason: Mapped[str | None] = mapped_column(String(32))
     grade: Mapped[int | None] = mapped_column(Integer)
+    row_count: Mapped[int | None] = mapped_column(Integer)
     fact_sentences: Mapped[int | None] = mapped_column(Integer)
     verified_sentences: Mapped[int | None] = mapped_column(Integer)
     removed_citations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)

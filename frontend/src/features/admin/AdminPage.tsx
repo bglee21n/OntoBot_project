@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../../api/client";
 import type {
@@ -11,7 +12,6 @@ import type {
   RoleOut,
   SystemOut,
   TargetOut,
-  TraceOut,
   V1MetricsOut,
   UserCreate,
   UserOut,
@@ -20,6 +20,7 @@ import type {
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { TraceDetail } from "../traces/TracesPage";
 import { GroupsPanel } from "./GroupsPanel";
 
 const t = ko.admin;
@@ -605,12 +606,6 @@ function AuditPanel() {
 function TracePanel() {
   const [input, setInput] = useState("");
   const [id, setId] = useState<number | null>(null);
-  const trace = useQuery({
-    queryKey: ["admin", "trace", id],
-    queryFn: () => api.get<TraceOut>(`/traces/${id}`),
-    enabled: id !== null,
-    refetchOnWindowFocus: false,
-  });
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const n = Number(input);
@@ -618,7 +613,9 @@ function TracePanel() {
   };
   return (
     <div className="stack">
-      <p className="muted">{t.traceNote}</p>
+      <p className="muted">
+        {t.traceNote} <Link to="/traces">{t.traceScreen}</Link>
+      </p>
       <form className="row" onSubmit={submit}>
         <label>
           {t.traceId}
@@ -626,47 +623,7 @@ function TracePanel() {
         </label>
         <button type="submit">{t.open}</button>
       </form>
-      {trace.isError && <ErrorBox error={trace.error} />}
-      {trace.data && <TraceView tr={trace.data} />}
-    </div>
-  );
-}
-
-function TraceView({ tr }: { tr: TraceOut }) {
-  return (
-    <div className="card stack">
-      <div className="row">
-        <strong>#{tr.id}</strong>
-        <span className={`badge ${tr.status === "failed" ? "failed" : "succeeded"}`}>
-          {tr.status}
-          {tr.failure_reason ? ` · ${tr.failure_reason}` : ""}
-          {tr.grade ? ` · ${tr.grade}` : ""}
-        </span>
-        <span className="muted">{new Date(tr.created_at).toLocaleString()}</span>
-      </div>
-      <details open>
-        <summary>{t.plan}</summary>
-        <pre>{JSON.stringify(tr.plan, null, 2)}</pre>
-      </details>
-      {tr.sql_masked && <pre>{tr.sql_masked}</pre>}
-      {tr.cypher_masked && <pre>{tr.cypher_masked}</pre>}
-      <div>
-        {t.latency}: <code>{JSON.stringify(tr.stage_latency_ms)}</code>
-      </div>
-      {tr.removed_citations.length > 0 && (
-        <details>
-          <summary>
-            {t.removed} ({tr.removed_citations.length})
-          </summary>
-          <pre>{JSON.stringify(tr.removed_citations, null, 2)}</pre>
-        </details>
-      )}
-      <details>
-        <summary>
-          {t.llmCalls} ({tr.llm_calls.length})
-        </summary>
-        <pre>{JSON.stringify(tr.llm_calls, null, 2)}</pre>
-      </details>
+      {id !== null && <TraceDetail key={id} id={id} />}
     </div>
   );
 }

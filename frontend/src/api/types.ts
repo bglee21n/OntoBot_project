@@ -34,6 +34,7 @@ export type ChatEvents = S["ChatEvents"];
 export type ConversationOut = S["ConversationOut"];
 export type MessageOut = S["MessageOut"];
 export type FeedbackOut = S["FeedbackOut"];
+export type TraceSummaryOut = S["TraceSummaryOut"];
 export type SearchHitOut = S["SearchHitOut"];
 export type NeighborsOut = S["NeighborsOut"];
 export type ExplorerLimitsOut = S["ExplorerLimitsOut"];

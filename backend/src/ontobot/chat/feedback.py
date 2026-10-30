@@ -11,10 +11,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
+from ontobot.chat import history
 from ontobot.db.models.chat import Conversation, Feedback, Message
 from ontobot.security import audit
 from ontobot.security.pii import mask_text
@@ -90,20 +90,8 @@ class FeedbackView:
 async def listing(
     db: AsyncSession, *, status: FeedbackStatus | None, rating: Rating | None
 ) -> list[FeedbackView]:
-    asked = aliased(Message)
-    # 답 바로 앞의 사용자 메시지가 그 답의 질문이다(채팅 API 가 질문 → 답 순서로 넣는다).
-    question_id = (
-        select(func.max(asked.id))
-        .where(
-            asked.conversation_id == Message.conversation_id,
-            asked.role == "user",
-            asked.id < Message.id,
-        )
-        .correlate(Message)
-        .scalar_subquery()
-    )
     q = (
-        select(Feedback, Message, question_id.label("question_id"))
+        select(Feedback, Message)
         .join(Message, Message.id == Feedback.message_id)
         .order_by(Feedback.id.desc())
         .limit(LIST_LIMIT)
@@ -113,16 +101,7 @@ async def listing(
     if rating is not None:
         q = q.where(Feedback.rating == rating)
     rows = (await db.execute(q)).all()
-    qids = [r.question_id for r in rows if r.question_id is not None]
-    questions = (
-        dict(
-            (
-                await db.execute(select(Message.id, Message.content).where(Message.id.in_(qids)))
-            ).all()
-        )
-        if qids
-        else {}
-    )
+    questions = await history.questions_for(db, [msg.id for _, msg in rows])
     return [
         FeedbackView(
             id=fb.id,
@@ -131,7 +110,7 @@ async def listing(
             comment=fb.comment,
             status=fb.status,
             golden_item_id=fb.golden_item_id,
-            question=questions.get(qid) if qid is not None else None,
+            question=questions.get(msg.id),
             answer=msg.content,
             answer_status=msg.status,
             grade=msg.grade,
@@ -139,7 +118,7 @@ async def listing(
             trace_id=msg.trace_id,
             created_at=fb.created_at,
         )
-        for fb, msg, qid in rows
+        for fb, msg in rows
     ]
 
 

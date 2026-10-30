@@ -51,6 +51,7 @@ async def record(
         status=result.status,
         failure_reason=result.failure_reason,
         grade=result.grade,
+        row_count=result.row_count,
         fact_sentences=result.fact_sentences,
         verified_sentences=result.verified_sentences,
         removed_citations=result.removed_citations,

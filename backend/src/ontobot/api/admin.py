@@ -23,6 +23,7 @@ from ontobot.explorer import limits as explorer_limits
 from ontobot.ontology import registry
 from ontobot.security import admin, audit, audit_chain
 from ontobot.security.rbac import ROLE_ADMIN
+from ontobot.tracing import views as trace_views
 
 router = APIRouter(tags=["admin"])
 Admin = Annotated[CurrentUser, Depends(require_role(ROLE_ADMIN))]
@@ -139,6 +140,9 @@ class TraceOut(BaseModel):
     status: str | None
     failure_reason: str | None
     grade: int | None
+    # 질문(패턴 마스킹)·실행 행 수 — Phase 15 트레이스 화면. 행 수는 0017 이전 트레이스에 없다.
+    question: str | None = None
+    row_count: int | None
     plan: dict[str, Any] | None
     sql_masked: str | None
     cypher_masked: str | None
@@ -147,6 +151,21 @@ class TraceOut(BaseModel):
     removed_citations: list[dict[str, Any]]
     stage_latency_ms: dict[str, int]
     llm_calls: list[dict[str, Any]]
+
+
+class TraceSummaryOut(BaseModel):
+    id: int
+    created_at: datetime
+    user_name: str | None
+    question: str | None
+    status: str | None
+    failure_reason: str | None
+    grade: int | None
+    row_count: int | None
+    fact_sentences: int | None
+    verified_sentences: int | None
+    removed_citations: int
+    total_ms: int
 
 
 def _user(v: admin.UserView) -> UserOut:
@@ -457,11 +476,36 @@ async def audit_logs(
     return [AuditLogOut.model_validate(r, from_attributes=True) for r in rows]
 
 
+@router.get("/traces", response_model=list[TraceSummaryOut])
+async def traces(
+    db: Db,
+    me: Admin,
+    status: Annotated[str | None, Query(max_length=16)] = None,
+    failure_reason: Annotated[str | None, Query(max_length=32)] = None,
+    before_id: int | None = None,
+    limit: Annotated[int, Query(ge=1, le=trace_views.LIST_LIMIT)] = 50,
+) -> list[TraceSummaryOut]:
+    rows = await trace_views.listing(
+        db, status=status, failure_reason=failure_reason, before_id=before_id, limit=limit
+    )
+    # 질문이 담긴 목록이다 — 상세와 같이 열람을 남긴다.
+    audit.record(
+        db,
+        audit.TRACE_VIEWED,
+        actor_id=me.id,
+        target="trace:list",
+        payload={"status": status, "failure_reason": failure_reason, "returned": len(rows)},
+    )
+    return [TraceSummaryOut.model_validate(r, from_attributes=True) for r in rows]
+
+
 @router.get("/traces/{trace_id}", response_model=TraceOut)
 async def trace(trace_id: int, db: Db, me: Admin) -> TraceOut:
     t = await db.get(Trace, trace_id)
     if t is None:
         raise ProblemError(404, "트레이스를 찾을 수 없습니다", code="trace_not_found")
     # 트레이스는 마스킹돼 있지만 질문·계획을 담는다 — 누가 열어 봤는지 남긴다.
+    out = TraceOut.model_validate(t, from_attributes=True)
+    out.question = await trace_views.question_of(db, t.message_id)
     audit.record(db, audit.TRACE_VIEWED, actor_id=me.id, target=f"trace:{trace_id}")
-    return TraceOut.model_validate(t, from_attributes=True)
+    return out

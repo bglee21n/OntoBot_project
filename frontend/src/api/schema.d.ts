@@ -1026,7 +1026,7 @@ export interface paths {
         };
         /**
          * Neighbors
-         * @description 1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로 자른다.
+         * @description 1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로.
          */
         get: operations["neighbors_api_v1_objects__object_type___pk__neighbors_get"];
         put?: never;
@@ -1472,6 +1472,23 @@ export interface paths {
         };
         /** List Sync Runs */
         get: operations["list_sync_runs_api_v1_sync_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Traces */
+        get: operations["traces_api_v1_traces_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3879,10 +3896,14 @@ export interface components {
             plan: {
                 [key: string]: unknown;
             } | null;
+            /** Question */
+            question?: string | null;
             /** Removed Citations */
             removed_citations: {
                 [key: string]: unknown;
             }[];
+            /** Row Count */
+            row_count: number | null;
             /** Sql Masked */
             sql_masked: string | null;
             /** Stage Latency Ms */
@@ -3893,6 +3914,36 @@ export interface components {
             status: string | null;
             /** User Id */
             user_id: number | null;
+            /** Verified Sentences */
+            verified_sentences: number | null;
+        };
+        /** TraceSummaryOut */
+        TraceSummaryOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Fact Sentences */
+            fact_sentences: number | null;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Grade */
+            grade: number | null;
+            /** Id */
+            id: number;
+            /** Question */
+            question: string | null;
+            /** Removed Citations */
+            removed_citations: number;
+            /** Row Count */
+            row_count: number | null;
+            /** Status */
+            status: string | null;
+            /** Total Ms */
+            total_ms: number;
+            /** User Name */
+            user_name: string | null;
             /** Verified Sentences */
             verified_sentences: number | null;
         };
@@ -7135,6 +7186,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    traces_api_v1_traces_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                failure_reason?: string | null;
+                before_id?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceSummaryOut"][];
                 };
             };
             /** @description Validation Error */

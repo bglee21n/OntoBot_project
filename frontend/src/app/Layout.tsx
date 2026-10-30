@@ -28,6 +28,7 @@ export function Layout() {
             {ko.nav.actions}
             {unread > 0 && <span className="badge failed"> {unread}</span>}
           </NavLink>
+          {me.data?.roles.includes("admin") && <NavLink to="/traces">{ko.nav.traces}</NavLink>}
           {me.data?.roles.includes("admin") && <NavLink to="/admin">{ko.nav.admin}</NavLink>}
         </nav>
         <span className="spacer" />

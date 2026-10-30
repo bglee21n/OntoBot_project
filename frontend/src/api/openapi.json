@@ -7019,6 +7019,17 @@
             ],
             "title": "Plan"
           },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
           "removed_citations": {
             "items": {
               "additionalProperties": true,
@@ -7026,6 +7037,17 @@
             },
             "title": "Removed Citations",
             "type": "array"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
           },
           "sql_masked": {
             "anyOf": [
@@ -7087,6 +7109,7 @@
           "status",
           "failure_reason",
           "grade",
+          "row_count",
           "plan",
           "sql_masked",
           "cypher_masked",
@@ -7097,6 +7120,131 @@
           "llm_calls"
         ],
         "title": "TraceOut",
+        "type": "object"
+      },
+      "TraceSummaryOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "fact_sentences": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fact Sentences"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "removed_citations": {
+            "title": "Removed Citations",
+            "type": "integer"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "total_ms": {
+            "title": "Total Ms",
+            "type": "integer"
+          },
+          "user_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Name"
+          },
+          "verified_sentences": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Sentences"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "user_name",
+          "question",
+          "status",
+          "failure_reason",
+          "grade",
+          "row_count",
+          "fact_sentences",
+          "verified_sentences",
+          "removed_citations",
+          "total_ms"
+        ],
+        "title": "TraceSummaryOut",
         "type": "object"
       },
       "TurnOut": {
@@ -10487,7 +10635,7 @@
     },
     "/api/v1/objects/{object_type}/{pk}/neighbors": {
       "get": {
-        "description": "1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로 자른다.",
+        "description": "1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로.",
         "operationId": "neighbors_api_v1_objects__object_type___pk__neighbors_get",
         "parameters": [
           {
@@ -12288,6 +12436,105 @@
         "summary": "List Sync Runs",
         "tags": [
           "sync"
+        ]
+      }
+    },
+    "/api/v1/traces": {
+      "get": {
+        "operationId": "traces_api_v1_traces_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "failure_reason",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Failure Reason"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TraceSummaryOut"
+                  },
+                  "title": "Response Traces Api V1 Traces Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Traces",
+        "tags": [
+          "admin"
         ]
       }
     },

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../../api/client";
 import type { FeedbackItemOut, GoldenSetDetail, ItemOut, PromoteIn } from "../../api/types";
+import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 
@@ -26,6 +28,8 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // 트레이스는 관리자만 본다(서버도 막는다).
+  const isAdmin = useMe().data?.roles.includes("admin") ?? false;
   const list = useQuery({
     queryKey: ["feedback"],
     queryFn: () => api.get<FeedbackItemOut[]>("/feedback"),
@@ -89,6 +93,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
                 <td>
                   {fb.answer_status && <span className="badge">{fb.answer_status}</span>} {fb.answer}
                   {fb.conditions && <div className="muted">{fb.conditions}</div>}
+                  {isAdmin && fb.trace_id != null && <Link to={`/traces/${fb.trace_id}`}>{f.trace}</Link>}
                 </td>
                 <td>{fb.comment ?? "—"}</td>
                 <td>{new Date(fb.created_at).toLocaleString("ko-KR")}</td>

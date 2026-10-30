@@ -288,6 +288,7 @@ async def test_chat_streams_events_and_records_history(
     async with session_scope() as db:
         trace = await db.scalar(select(Trace).where(Trace.id == data["done"]["trace_id"]))
         assert trace is not None and trace.user_id == user_id and trace.grade == 1
+        assert (trace.row_count or 0) >= 2  # 실행이 돌려준 행 수(트레이스 화면, Phase 15)
         assert trace.message_id == data["done"]["message_id"]
         assert {c["role"] for c in trace.llm_calls} == {"planner", "answerer"}
         assert all(c["messages"] and c["external"] is False for c in trace.llm_calls)

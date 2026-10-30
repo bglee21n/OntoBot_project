@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 진행 중(a 피드백·b 객체 탐색 완료 — 다음 트레이스 화면) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료(a 피드백·b 객체 탐색·c 트레이스 화면 — 그래프에서의 편집은 제안서 2단계로 남음) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -208,6 +208,10 @@ TRD v0.12 17.1절에 같은 내용이 있다.
     화면 `/explore` — 깊이 N 은 화면이 1홉을 너비 우선으로 되풀이, 접기는 확장 출처 기록으로. 근거 카드 → 탐색기는
     라우터 상태로 넘긴다(URL 에 pk 없음). 그래프에서의 편집(Action)은 제안서 2단계 편집으로 남긴다.
 - `features/traces`(질의 → 계획 → SQL/Cypher → 결과 수 → 근거 판정 → 등급, 관리 화면의 트레이스 상세를 독립 화면으로).
+  - **15c 완료(2026-10-31)**: `trace.row_count`(0017, 파이프라인이 실행 행 수를 남긴다 — 조회·Function 두 경로),
+    `GET /traces`(관리자, 상태·실패 사유·`before_id`, 질문은 답 앞 사용자 메시지를 패턴 마스킹, 열람 감사 `trace:list`),
+    상세에도 질문. 화면 `/traces[/:id]` 는 ①~⑥ 단계 순서, 관리 화면 트레이스 탭과 피드백 후보가 같은 상세를 쓴다.
+    답 → 질문 찾기는 `chat/history.questions_for` 하나로(피드백 목록과 공유). `eval-replay` 게이트 통과(카세트 놓침 0).
 - `feedback(message_id, user_id, rating, comment)` + 관리 화면 목록, 싫어요 → 골든 문항 후보로 옮기기(기대 답변은 사람이).
   - **15a 완료(2026-10-31)**: `feedback`(0015, 사용자·답마다 하나, 다시 누르면 고침, 의견 마스킹 저장) — 자기 대화의
     답에만(`PUT /messages/{id}/feedback`, 남의 답은 404). 목록·옮기기·넘기기는 평가 화면(`bot_builder`·`modeler`,
