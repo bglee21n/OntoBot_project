@@ -97,6 +97,77 @@ TRD v0.12 17.1절에 같은 내용이 있다.
 - **완료 기준**: 골든 Action 문항 파라미터 정확도 기준 통과(가안 90%), 존재하지 않는 대상 지정 문항에서 실행 차단 100%, 기존 조회
   문항 회귀 없음.
 
+### Phase G1 — 스키마 그래프 편집기 (Ontology Manager 그래프 뷰, 제안서 1단계)
+
+[그래프 편집 제안서](OntoBot_project-graph-editing-proposal.md)의 1단계다. Phase 12 와 독립적이어서 먼저 진행한다.
+기존 draft API(`api/ontology.py`) 위에 **새 보기**를 더하는 일이고, 목록 화면(`VersionDetailPage`)은 그대로 둔다(탭 전환: 목록 | 그래프).
+인스턴스 그래프(2단계)는 Phase 14(그룹·쓰기 권한)·15(탐색) 위에 따로 계획한다.
+
+- **G1-1 의존성·골격**
+  - `frontend` 에 `@xyflow/react`·`elkjs` 를 추가한다. 버전은 정확히 고정하고, npm 번들이라 폐쇄망에서도 외부 호출이 없다. 라이선스는 MIT·EPL-2.0 이므로 번들 제3자 고지에 추가한다
+  - `features/ontology/graph/` 를 새로 둔다
+    - `SchemaGraph.tsx`(캔버스)
+    - `toGraph.ts`(VersionDetail → 노드·엣지, 순수 함수)
+    - `layout.ts`(elk 자동 배치 + 저장 좌표 우선)
+    - `SidePanel.tsx`(선택한 요소 편집)
+  - 편집 폼은 기존 `forms.tsx`(`ObjectTypeForm`·`PropertyForm`·`LinkTypeForm`)와 `ActionTypes.tsx` 의 `ActionForm` 을 그대로 쓴다. `VersionDetailPage` 의 `ObjectTypeCard` 는 옆 패널에서도 쓸 수 있게 따로 꺼낸다(동작 변경 없음)
+  - 화면 문구는 `i18n/ko/index.ts` 의 `ko.ontology.graph.*` 에 둔다
+- **G1-2 보기**
+  - 노드: 타입(표시 이름·`api_name`·pk·제목·속성 수, PII 속성이 있으면 표시, Action 칩)
+  - 엣지: 링크 타입(cardinality 화살표, `fk_property` 실선·`join_mapping` 점선, 라벨은 표시 이름)
+  - 게시 전 검사 `issues` 는 `path` 앞부분으로 해당 노드·엣지에 배지를 붙인다. 문서 전체에 걸린 문제는 상단에 둔다
+  - 변경 겹치기: 기존 `useDiff(v.id, base)` 결과로 추가·변경·삭제를 색으로 표시한다. 삭제된 요소는 base 문서에서 가져와 유령 노드로 그린다. base 는 기본이 `parent_id` 이고, 기존 `DiffPanel` 과 같은 선택 상자를 쓴다
+  - 깊이 포커스: 노드를 고르고 깊이 1~3 을 정하면 그 범위 밖을 흐리게 하거나 숨긴다. 노드별 `+`/`−` 로 펼치고 접는다. 서버 호출 없이 문서 안에서 너비 우선으로 계산한다(`toGraph.ts` 의 `neighborhood(doc, start, depth)`, 단위 테스트 대상)
+- **G1-3 편집 조작**(draft 일 때만, 게시·보관본은 읽기 전용)
+  - 빈 곳 더블클릭 → 옆 패널 `ObjectTypeForm` → `POST …/object-types`
+  - 노드 A 핸들 → B 로 끌기 → `LinkTypeForm` 이 from=A·to=B 로 미리 채워지고, FK 속성 후보는 A 의 속성으로 좁혀진다 → `POST …/link-types`
+  - 노드·엣지 클릭 → 옆 패널 편집(`PATCH`). 게시본(parent)에 이미 있는 요소면 `api_name` 을 읽기 전용으로 둔다. 서버는 원래 이름을 바꾸지 않는다
+  - 삭제(Delete 키·메뉴) → G1-4 영향 확인 창 → 고른 요소만 차례로 `DELETE`. 연쇄 삭제는 자동으로 하지 않는다
+  - 편집이 성공하면 기존 `useVersionMutation` 이 버전 쿼리를 무효화해 그래프가 다시 그려진다
+- **G1-4 영향 분석 API**(Phase 17 `ontology/impact.py` 의 첫 조각)
+  - `ontology/impact.py`(순수 함수) `references(doc, kind, name) -> list[Ref]`
+    - 문서 안의 참조: 링크 양 끝, FK 속성, Action 대상·바꿀 속성·사전 조건·연락처 속성, pk·제목 속성
+  - DB 참조
+    - `mapping.object_type`(동기화 매핑)
+    - 그 타입의 게시 데이터 존재 여부(객체가 있는지만 — 개수·값은 싣지 않는다, `objects/` 안의 함수로)
+    - 골든 문항의 타입·속성 이름(**정확 일치**)
+  - `GET /ontology/versions/{id}/references?kind=object_type|property|link_type&name=…[&type=…]` → `{in_document: [...], mappings: [{id, name}], golden_items: [{id}], has_objects: bool}`
+    - 이름과 개수만 낸다. 매핑 설정·골든 본문은 싣지 않는다
+    - 권한은 `Reader`(modeler·admin), 기존 의존성 그대로
+- **G1-5 폐기(deprecated)**
+  - 정의 모델: `ObjectTypeDef`·`LinkTypeDef` 에 `deprecated: bool = False` 를 더한다. 마이그레이션 0009 로 `object_type`·`link_type` 에 열을 추가하고 기본값은 false
+  - 가져오기·내보내기·`diff`·`to_document` 에도 반영한다
+  - 게시본에 이미 있는 타입·링크를 삭제하려 하면 확인 창이 "폐기"를 기본으로 권한다. 실제 삭제는 draft 에서 새로 만든 요소에만 바로 허용하고, 그 밖에는 경고를 한 번 더 띄운다(서버는 막지 않는다 — 게시 검사가 깨진 참조를 막는다)
+  - 효과
+    - `ontology/summary.py` 의 `schema_summary` 가 폐기된 타입과 그 타입에 닿는 링크를 싣지 않는다. 플래너가 새 질문에 쓰지 않게 하려는 것이다
+    - 근거 카드(`GET /objects/{type}/{pk}`)·기존 대화 맥락은 계속 읽는다
+    - `check_document`: 폐기되지 않은 Action 이 폐기된 타입을 대상으로 삼으면 문제로 보고한다
+  - 측정: 폐기 요소가 없으면 요약이 바이트 단위로 같아서 카세트 키가 그대로다(단위 테스트로 고정). 그러므로 `spike_plan` 재측정은 하지 않는다. 폐기를 쓰는 골든 문항을 더할 때만 `eval-record` 를 한다
+- **G1-6 배치 저장**
+  - 마이그레이션 0009 에 함께 넣는다: `ontology_layout(version_id FK cascade, element_kind, element_name, x, y, updated_by, updated_at)`, 유일 키는 `(version_id, element_kind, element_name)`
+  - 정의 문서 밖이므로 `content_hash`·게시 불변성과 무관하다. 게시본의 배치도 고칠 수 있다(정의가 아니라 화면 상태다)
+  - `GET`·`PUT /ontology/versions/{id}/layout`(`PUT` 은 `Modeler`, 통째 교체, 항목 상한 2000). 감사 기록은 남기지 않는다(정의 변경이 아니다 — 결정 기록에 남긴다)
+  - `POST /versions`(parent 에서 draft 만들기)가 부모 배치를 복사한다(`versioning.create_draft` 안, 같은 트랜잭션)
+  - 화면: 저장된 좌표 → 없으면 elk 자동 배치. 끌기가 끝나면 0.5초 디바운스 뒤 저장. "자동 정렬" 단추는 저장 좌표를 지우고 다시 배치한다
+- **G1-7 draft 소유자 표시**
+  - `VersionSummary`·`VersionDetail` 에 `created_by_name` 을 더한다(이미 있는 `ontology_version.created_by`)
+  - 내가 만들지 않은 draft 를 열면 상단에 "○○○ 님의 draft 입니다 — 함께 편집하면 서로의 변경을 덮을 수 있습니다" 경고를 띄운다. 편집은 막지 않는다. 게시는 기존 advisory lock 이 줄을 세운다
+- **API 변경 후**: `task.py openapi` 로 프론트 타입을 다시 만든다. 계약 스냅샷이 갱신된다
+- **매뉴얼**: 사용자·운영자 매뉴얼의 온톨로지 편집 장에 그래프 보기를 추가한다(화면 캡처는 `docs/manual/tools/capture_app.py`)
+- **완료 기준**
+  - 단위 테스트
+    - `toGraph`·`neighborhood`(깊이 1~3, 순환)·issue 경로 → 노드 매핑
+    - `impact.references`(링크 끝·FK·Action 참조)
+    - 폐기 타입이 요약에서 빠짐 + 폐기 없으면 요약이 같음
+    - `deprecated` 왕복(가져오기·내보내기·diff)
+  - 통합 테스트
+    - `references` 가 매핑·골든·객체 존재를 이름·불리언으로만 냄
+    - layout `PUT`·`GET` 과 draft 생성 시 복사
+    - layout 변경 후 `content_hash` 불변
+    - 권한: admin 은 읽기만, user 는 404/403
+  - 브라우저(개발 DB): 그래프에서 타입 추가 → 끌어서 링크 → 속성 편집 → 이슈 배지가 사라지는지 → 게시본 대비 색 → 깊이 포커스 → 삭제 영향 창 → 폐기 → 게시 → 채팅 질문에서 폐기 타입이 쓰이지 않는지
+  - `lint`·`test-contract`·`eval-replay` 통과(카세트 놓침 0)
+
 ### Phase 12 — Function (PRD 5.10)
 
 - 온톨로지 문서 확장: `FunctionDef{api_name, params[], body}` — body 는 결정 7 의 식 트리(`query`(QueryPlan 조각, 파라미터 바인드)·
@@ -181,6 +252,7 @@ MVP 계획과 같다(`task.py lint`·`test-unit`·`test-int`·`test-contract`·`
 | 2026-10-20 | 결정 7 Function 형태 | 별도 의견 없음 → 권장안(선언형 식 트리) 유지. 바꾸려면 Phase 12 착수 전에 |
 | 2026-10-20 | 배포 방식 | 사용자: **화면으로 배포** → 이어서 **Docker 전환**(Windows Server + WSL2 + Docker Engine, 개발·CI 테스트도 컨테이너, Ollama 컨테이너 + GPU, 별도 배포 콘솔·브라우저 업로드 + 반입 폴더·번들 서명). ADR-0013·0014, ADR-0007·0010 대체 |
 | 2026-10-21 | 개발 콘솔 | 사용자: 개발자가 화면으로 소스·검사·평가·빌드·번들을 — **개발 PC 전용(localhost)**, 소스는 **PR·CI 까지**, 기능은 검사·테스트·평가·카세트·이미지·번들·서명·개발 환경 모두. ADR-0015 |
+| 2026-10-30 | 그래프 편집 | 사용자: 스키마 그래프(Phase G1)를 먼저 한다. 인스턴스 그래프는 Phase 14 를 **그룹 기반 데이터 권한**(역할 = 기능, 그룹 = 읽기·생성·편집·삭제·연결, 관리 화면 + SSO 선택 연동, 소유 그룹 필수)으로 넓힌 뒤 Phase 15 위에 둔다. 원천 객체 삭제 = 숨김 묘비 + 충돌 기록, draft 는 소유자 표시 + 경고, 확장 한도는 관리자 설정. 배치(layout)는 정의가 아니므로 감사 기록 없이 둔다. 상세는 [제안서](OntoBot_project-graph-editing-proposal.md) |
 | — | PRD 7절 수치 | 미정. 제안: 동시 8명·P95 25초(ADR-0011), v1 파라미터 정확도 90%(가안) |
 
 ## 진행 기록
