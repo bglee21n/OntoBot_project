@@ -137,3 +137,40 @@ tr.selected-row td { background: #eff6ff; }
 .topbar.wrap { flex-wrap: wrap; }
 .topbar.wrap nav { flex-wrap: wrap; gap: 0.4rem; }
 .topbar.wrap nav button, .topbar.wrap > strong { white-space: nowrap; }
+
+/* 온톨로지 — 목록·그래프 탭, 스키마 그래프(Phase G1) */
+.tabs { gap: 0; border-bottom: 1px solid var(--line); }
+.tabs .tab { background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); padding: 0.4rem 0.9rem; }
+.tabs .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.notice.warn { background: #fffbeb; border-color: #fcd34d; }
+.schema-graph { display: flex; flex-direction: column; gap: 0.4rem; }
+.schema-toolbar input[type="range"] { width: 6rem; }
+.schema-toolbar label { flex-direction: row; align-items: center; gap: 0.4rem; }
+.schema-body { display: flex; gap: 0.75rem; align-items: stretch; }
+.schema-canvas { position: relative; flex: 1; min-width: 0; height: 68vh; min-height: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+.schema-empty { position: absolute; inset: 40% 0 auto; text-align: center; z-index: 5; pointer-events: none; }
+.schema-panel { width: 440px; flex: none; max-height: 68vh; overflow: auto; }
+.schema-panel table { font-size: 0.8em; }
+.schema-panel th, .schema-panel td { white-space: nowrap; }
+.schema-panel .grid-form { grid-template-columns: 1fr 1fr; }
+.schema-node { width: 220px; box-sizing: border-box; background: var(--card); border: 1px solid #9aa5b1; border-radius: 6px; padding: 0.45rem 0.6rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.schema-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #bfdbfe; }
+.schema-node.change-added { border-color: var(--ok); background: #f0fdf4; }
+.schema-node.change-changed { border-color: var(--warn); background: #fffbeb; }
+.schema-node.ghost { border-style: dashed; opacity: 0.55; }
+.schema-node.deprecated { background: #f3f4f6; color: var(--muted); }
+.schema-node.has-issues { border-color: var(--danger); }
+.schema-node.dimmed { opacity: 0.25; }
+.schema-node-head { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; }
+.schema-node-meta { font-size: 0.8em; }
+.schema-node-issues { color: var(--danger); font-size: 0.8em; }
+.schema-node-actions { display: flex; gap: 0.2rem; flex-wrap: wrap; }
+.schema-node-actions .badge { font-size: 0.72em; background: #eff6ff; border-color: #bfdbfe; }
+.schema-node-expand { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.schema-node-expand button { padding: 0 0.3rem; font-weight: 600; }
+.dialog-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.dialog { width: min(560px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; }
+@media (max-width: 900px) {
+  .schema-body { flex-direction: column; }
+  .schema-panel { width: auto; max-height: none; }
+}

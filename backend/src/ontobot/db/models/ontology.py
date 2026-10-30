@@ -9,11 +9,13 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Float,
     ForeignKey,
     Index,
     Integer,
     String,
     Text,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -70,6 +72,7 @@ class ObjectType(IdMixin, Base):
     description: Mapped[str | None] = mapped_column(Text)
     pk_property: Mapped[str] = mapped_column(String(64))
     title_property: Mapped[str] = mapped_column(String(64))
+    deprecated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     version: Mapped[OntologyVersion] = relationship(back_populates="object_types")
     properties: Mapped[list[PropertyType]] = relationship(
@@ -119,6 +122,7 @@ class LinkType(IdMixin, Base):
     cardinality: Mapped[str] = mapped_column(String(8))
     # {"kind": "fk_property", "property": "owner_org_id"} | {"kind": "join_mapping", ...}
     source: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    deprecated: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     version: Mapped[OntologyVersion] = relationship(back_populates="link_types")
 
@@ -140,3 +144,33 @@ class ActionType(IdMixin, Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
     version: Mapped[OntologyVersion] = relationship(back_populates="action_types")
+
+
+class OntologyLayout(IdMixin, Base):
+    """스키마 그래프 화면의 노드 위치. 정의가 아니라 화면 상태다.
+
+    정의 문서 밖에 두어 ``content_hash``·게시 불변성과 무관하다 — 게시본의 배치도 고칠 수 있고,
+    감사 기록도 남기지 않는다. draft 를 만들 때 부모 버전의 배치를 복사한다.
+    """
+
+    __tablename__ = "ontology_layout"
+    __table_args__ = (
+        Index(
+            "uq_ontology_layout_element",
+            "version_id",
+            "element_kind",
+            "element_name",
+            unique=True,
+        ),
+        CheckConstraint("element_kind IN ('object_type')", name="element_kind"),
+    )
+
+    version_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("ontology_version.id", ondelete="CASCADE")
+    )
+    element_kind: Mapped[str] = mapped_column(String(16))
+    element_name: Mapped[str] = mapped_column(String(64))
+    x: Mapped[float] = mapped_column(Float)
+    y: Mapped[float] = mapped_column(Float)
+    updated_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    updated_at: Mapped[datetime] = mapped_column(tz(), server_default=func.now())

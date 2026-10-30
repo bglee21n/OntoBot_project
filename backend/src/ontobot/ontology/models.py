@@ -66,6 +66,10 @@ class ObjectTypeDef(_Strict):
     pk_property: MemberName
     title_property: MemberName
     properties: list[PropertyDef] = Field(default_factory=list)
+    # 폐기(Foundry 의 deprecated) — 새 질문의 계획에는 쓰지 않고, 이미 있는 데이터·근거 카드는
+    # 읽는다.
+    # 게시본에 있던 타입을 지우면 객체·대화 맥락·감사 기록이 고아가 되므로 지우는 대신 이것을 쓴다.
+    deprecated: bool = False
 
     @model_validator(mode="after")
     def _unique_properties(self) -> ObjectTypeDef:
@@ -102,6 +106,19 @@ class LinkTypeDef(_Strict):
     to_type: TypeName
     cardinality: Cardinality
     source: LinkSource
+    deprecated: bool = False
+
+
+def drop_default_flags(data: dict[str, Any]) -> dict[str, Any]:
+    """``model_dump`` 결과에서 거짓인 ``deprecated`` 를 뺀다(제자리 수정).
+
+    폐기 표시가 생기기 전의 문서와 같은 정규 표현·내보내기를 내야 게시본 ``content_hash`` 가 맞는다.
+    """
+    for key in ("object_types", "link_types"):
+        for element in data.get(key, []):
+            if not element.get("deprecated", True):
+                del element["deprecated"]
+    return data
 
 
 # ---------------------------------------------------------------- Action Type (PRD 5.3, TRD 17.1)
@@ -233,9 +250,27 @@ class OntologyDocument(_Strict):
     def action_type(self, name: str) -> ActionTypeDef | None:
         return next((a for a in self.action_types if a.api_name == name), None)
 
+    def active(self) -> OntologyDocument:
+        """폐기된 요소를 뺀 문서 — 플래너 요약·계획 검증이 본다(새 질문은 폐기 요소를 쓰지 않는다).
+
+        폐기된 타입에 닿는 링크와 그 타입을 대상으로 하는 Action 도 뺀다. 폐기가 없으면 같은 문서다.
+        """
+        gone = {t.api_name for t in self.object_types if t.deprecated}
+        if not gone and not any(lt.deprecated for lt in self.link_types):
+            return self
+        return OntologyDocument(
+            object_types=[t for t in self.object_types if not t.deprecated],
+            link_types=[
+                lt
+                for lt in self.link_types
+                if not lt.deprecated and lt.from_type not in gone and lt.to_type not in gone
+            ],
+            action_types=[a for a in self.action_types if a.target_type not in gone],
+        )
+
     def canonical_json(self) -> str:
         """순서·공백과 무관한 정규 표현. 같은 정의면 같은 문자열이다."""
-        data = self.model_dump(mode="json")
+        data = drop_default_flags(self.model_dump(mode="json"))
         data["object_types"] = sorted(
             (
                 {**t, "properties": sorted(t["properties"], key=lambda p: p["api_name"])}
@@ -313,10 +348,12 @@ def check_document(doc: OntologyDocument) -> list[Issue]:
 def _check_action(doc: OntologyDocument, a: ActionTypeDef) -> list[Issue]:
     """Action 교차 검사. 파라미터 자료형은 바꿀 속성 자료형과 같아야 한다(enum 은 값 포함)."""
     path = f"action_types.{a.api_name}"
-    issues: list[Issue] = []
     t = doc.object_type(a.target_type)
     if t is None:
         return [Issue(path, f"대상 타입 '{a.target_type}' 이 없습니다")]
+    issues: list[Issue] = []
+    if t.deprecated:
+        issues.append(Issue(path, f"대상 타입 '{a.target_type}' 이 폐기되었습니다"))
     # 바꿀 수 없는 속성: pk·제목(Neo4j 노드·FK 이름 재작성), FK(링크 원천) — TRD 17.1-3.
     fk = {
         lt.source.property

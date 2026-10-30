@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../../api/client";
-import type { ObjectTypeOut, PropertyDef, PropertyOut, VersionDetail } from "../../api/types";
+import type { VersionDetail } from "../../api/types";
+import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ActionTypesSection } from "./ActionTypes";
-import { LinkTypeForm, ObjectTypeForm, PropertyForm } from "./forms";
+import { LinkTypeForm, ObjectTypeForm } from "./forms";
+import { SchemaGraph } from "./graph/SchemaGraph";
+import { ObjectTypeCard } from "./ObjectTypeCard";
 import { useDiff, useVersion, useVersionMutation, useVersions, V } from "./queries";
 
 export function VersionDetailPage() {
@@ -23,10 +26,12 @@ export function VersionDetailPage() {
 
 function VersionEditor({ v }: { v: VersionDetail }) {
   const editable = v.status === "draft";
+  const me = useMe();
+  const [params, setParams] = useSearchParams();
+  const view = params.get("view") === "graph" ? "graph" : "list";
+  const isModeler = me.data?.roles.includes("modeler") ?? false;
+  const othersDraft = editable && v.created_by != null && me.data != null && v.created_by !== me.data.id;
   const publish = useVersionMutation(v.id, () => api.post(`${V}/${v.id}/publish`));
-  const addType = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/object-types`, body));
-  const addLink = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/link-types`, body));
-  const delLink = useVersionMutation(v.id, (linkId: number) => api.del(`${V}/${v.id}/link-types/${linkId}`));
 
   return (
     <section className="stack">
@@ -48,8 +53,38 @@ function VersionEditor({ v }: { v: VersionDetail }) {
       </div>
       {publish.isError && <ErrorBox error={publish.error} />}
       {!editable && <p className="notice">{ko.ontology.readonly}</p>}
+      {othersDraft && <p className="notice warn">{ko.ontology.draftOwner(v.created_by_name ?? `#${v.created_by}`)}</p>}
 
       {editable && <Issues issues={v.issues} />}
+      <div className="row tabs" role="tablist">
+        {(["list", "graph"] as const).map((x) => (
+          <button
+            key={x}
+            type="button"
+            role="tab"
+            aria-selected={view === x}
+            className={view === x ? "tab active" : "tab"}
+            onClick={() => setParams(x === "graph" ? { view: "graph" } : {}, { replace: true })}
+          >
+            {x === "graph" ? ko.ontology.viewGraph : ko.ontology.viewList}
+          </button>
+        ))}
+      </div>
+      {view === "graph" ? (
+        <SchemaGraph v={v} editable={editable && isModeler} canSaveLayout={isModeler} />
+      ) : (
+        <ListView v={v} editable={editable} />
+      )}
+    </section>
+  );
+}
+
+function ListView({ v, editable }: { v: VersionDetail; editable: boolean }) {
+  const addType = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/object-types`, body));
+  const addLink = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/link-types`, body));
+  const delLink = useVersionMutation(v.id, (linkId: number) => api.del(`${V}/${v.id}/link-types/${linkId}`));
+  return (
+    <>
       {editable && <ImportPanel id={v.id} />}
       <DiffPanel v={v} />
 
@@ -118,7 +153,7 @@ function VersionEditor({ v }: { v: VersionDetail }) {
       )}
 
       <ActionTypesSection v={v} editable={editable} />
-    </section>
+    </>
   );
 }
 
@@ -138,114 +173,6 @@ function Issues({ issues }: { issues: VersionDetail["issues"] }) {
         </ul>
       )}
     </div>
-  );
-}
-
-function ObjectTypeCard({ versionId, t, editable }: { versionId: number; t: ObjectTypeOut; editable: boolean }) {
-  const base = `${V}/${versionId}/object-types/${t.id}`;
-  const [editing, setEditing] = useState<number | null>(null);
-  const addProp = useVersionMutation(versionId, (p: PropertyDef) => api.post(`${base}/properties`, p));
-  const editProp = useVersionMutation(versionId, (a: { id: number; p: PropertyDef }) =>
-    api.patch(`${base}/properties/${a.id}`, a.p),
-  );
-  const delProp = useVersionMutation(versionId, (propId: number) => api.del(`${base}/properties/${propId}`));
-  const delType = useVersionMutation(versionId, () => api.del(base));
-  const error = addProp.error ?? editProp.error ?? delProp.error ?? delType.error;
-
-  const toDef = (p: PropertyOut): PropertyDef => {
-    const def: PropertyDef & { id?: number } = { ...p };
-    delete def.id;
-    return def;
-  };
-
-  return (
-    <article className="card stack">
-      <div className="row">
-        <h3>
-          {t.display_name} <code>{t.api_name}</code>
-        </h3>
-        <span className="muted">
-          {ko.ontology.pk} <code>{t.pk_property}</code> · {ko.ontology.title} <code>{t.title_property}</code>
-        </span>
-        <span className="spacer" />
-        {editable && (
-          <button
-            type="button"
-            className="link danger"
-            onClick={() => window.confirm(ko.common.confirmDelete) && delType.mutate(undefined)}
-          >
-            {ko.common.delete}
-          </button>
-        )}
-      </div>
-      {t.description && <p className="muted">{t.description}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>{ko.ontology.apiName}</th>
-            <th>{ko.ontology.displayName}</th>
-            <th>{ko.ontology.dataType}</th>
-            <th>{ko.ontology.nullable}</th>
-            <th>{ko.ontology.indexed}</th>
-            <th>{ko.ontology.piiKind}</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {t.properties.map((p) =>
-            editing === p.id ? (
-              <tr key={p.id}>
-                <td colSpan={7}>
-                  <PropertyForm
-                    initial={toDef(p)}
-                    pending={editProp.isPending}
-                    onCancel={() => setEditing(null)}
-                    onSubmit={(def) => editProp.mutate({ id: p.id, p: def }, { onSuccess: () => setEditing(null) })}
-                  />
-                </td>
-              </tr>
-            ) : (
-              <tr key={p.id}>
-                <td>
-                  <code>{p.api_name}</code>
-                </td>
-                <td>{p.display_name}</td>
-                <td>
-                  {p.data_type}
-                  {p.enum_values ? ` (${p.enum_values.join(", ")})` : ""}
-                </td>
-                <td>{p.nullable ? "예" : "아니오"}</td>
-                <td>{p.indexed ? "예" : ""}</td>
-                <td>{p.pii_kind ?? ""}</td>
-                <td className="actions">
-                  {editable && (
-                    <>
-                      <button type="button" className="link" onClick={() => setEditing(p.id)}>
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        className="link danger"
-                        onClick={() => window.confirm(ko.common.confirmDelete) && delProp.mutate(p.id)}
-                      >
-                        {ko.common.delete}
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ),
-          )}
-        </tbody>
-      </table>
-      {error && <ErrorBox error={error} />}
-      {editable && (
-        <details>
-          <summary>{ko.ontology.addProperty}</summary>
-          <PropertyForm key={t.properties.length} pending={addProp.isPending} onSubmit={(p) => addProp.mutate(p)} />
-        </details>
-      )}
-    </article>
   );
 }
 

@@ -151,6 +151,29 @@ async def run_query(db: AsyncSession, q: CompiledQuery) -> list[ObjectRow] | lis
     return [_row(q.object_type, r, q.declared_properties) for r in result]
 
 
+# ---------------------------------------------------------------- 존재 확인(영향 분석, Phase G1)
+#
+# 값도 개수도 내지 않는다 — 스키마 그래프의 삭제 확인 창이 "데이터가 있다"만 알린다.
+
+
+async def has_objects(db: AsyncSession, object_type: str) -> bool:
+    return bool(
+        await db.scalar(
+            text("SELECT EXISTS (SELECT 1 FROM object WHERE type = :t AND deleted_at IS NULL)"),
+            {"t": object_type},
+        )
+    )
+
+
+async def has_links(db: AsyncSession, link_type: str) -> bool:
+    return bool(
+        await db.scalar(
+            text("SELECT EXISTS (SELECT 1 FROM link WHERE link_type = :l AND deleted_at IS NULL)"),
+            {"l": link_type},
+        )
+    )
+
+
 # ---------------------------------------------------------------- 그래프 대사·재구축용 (TRD 5.5)
 
 

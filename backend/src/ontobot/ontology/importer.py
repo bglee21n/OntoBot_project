@@ -8,7 +8,7 @@ from typing import Literal
 import yaml
 from pydantic import ValidationError
 
-from ontobot.ontology.models import Issue, OntologyDocument, check_document
+from ontobot.ontology.models import Issue, OntologyDocument, check_document, drop_default_flags
 
 Format = Literal["yaml", "json"]
 
@@ -43,7 +43,7 @@ def parse(text: str, fmt: Format) -> OntologyDocument:
 
 
 def dump(doc: OntologyDocument, fmt: Format) -> str:
-    data = doc.model_dump(mode="json", exclude_none=True)
+    data = drop_default_flags(doc.model_dump(mode="json", exclude_none=True))
     if fmt == "json":
         return json.dumps(data, ensure_ascii=False, indent=2)
     text: str = yaml.safe_dump(data, allow_unicode=True, sort_keys=False)

@@ -35,3 +35,6 @@ logs/
 
 # 개발 콘솔 기록(작업·서비스 로그, ADR-0015)
 .devconsole/
+
+# Playwright MCP 작업 파일(화면 확인 캡처·콘솔 기록)
+.playwright-mcp/

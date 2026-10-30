@@ -168,7 +168,10 @@ async def _plan_and_validate(
     res: PipelineResult,
     actions: Set[str],
 ) -> ValidatedPlan | action_params.ProposalCheck | PipelineResult:
-    summary = schema_summary(schema.document, readable, actions)
+    # 계획은 폐기되지 않은 요소로만 세운다 — 폐기 타입은 '없는 것'이라 재계획 대상이다
+    # (권한 없음이 아니다).
+    doc = schema.document.active()
+    summary = schema_summary(doc, readable, actions)
     allowed = frozenset((c["type"], c["pk"]) for c in context)
     errors: list[str] | None = None
     proposal: action_params.ProposalCheck | None = None
@@ -196,7 +199,7 @@ async def _plan_and_validate(
             res.plan = {"action": out.action.model_dump(mode="json")}
             try:
                 proposal = await action_params.check_proposal(
-                    db, schema.document, actions, out.action, question, context
+                    db, doc, actions, out.action, question, context
                 )
             except action_params.UnknownAction as e:
                 errors = e.errors
@@ -213,26 +216,24 @@ async def _plan_and_validate(
             errors = ["kind 가 query 이면 plan 이 있어야 합니다"]
             res.plan_attempts.append({"structured_ok": True, "errors": errors})
             continue
-        plan, rewrites = await rewrite_fk_names(db, schema.document, out.plan)
+        plan, rewrites = await rewrite_fk_names(db, doc, out.plan)
         res.plan = plan.model_dump(mode="json")
         try:
-            vp = validate(schema.document, readable, plan, allowed)
+            vp = validate(doc, readable, plan, allowed)
         except PlanInvalid as e:
             if e.forbidden:
                 res.plan_attempts.append({"structured_ok": True, "errors": e.errors})
                 return _failed(res, "forbidden")
             errors = (
                 e.errors
-                + await check_raw_references(db, schema.document, plan)
+                + await check_raw_references(db, doc, plan)
                 + coverage_errors(question, plan)
             )
             res.plan_attempts.append(
                 {"structured_ok": True, "errors": errors, "rewrites": rewrites}
             )
             continue
-        ref_errors = await check_references(db, schema.document, vp) + coverage_errors(
-            question, plan
-        )
+        ref_errors = await check_references(db, doc, vp) + coverage_errors(question, plan)
         if ref_errors:
             res.plan_attempts.append(
                 {"structured_ok": True, "errors": ref_errors, "rewrites": rewrites}

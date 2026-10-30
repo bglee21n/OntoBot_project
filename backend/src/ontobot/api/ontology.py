@@ -20,9 +20,10 @@ from ontobot.db.models.ontology import (
     OntologyVersion,
     PropertyType,
 )
+from ontobot.db.models.security import AppUser
 from ontobot.jobs import handlers, queue
 from ontobot.ontology import diff as diff_mod
-from ontobot.ontology import importer, registry, versioning
+from ontobot.ontology import impact, importer, registry, versioning
 from ontobot.ontology.models import (
     ActionTypeDef,
     LinkSource,
@@ -59,6 +60,7 @@ class ObjectTypeOut(BaseModel):
     pk_property: str
     title_property: str
     properties: list[PropertyOut]
+    deprecated: bool
 
 
 class LinkTypeOut(LinkTypeDef):
@@ -76,6 +78,9 @@ class VersionSummary(BaseModel):
     parent_id: int | None
     created_at: datetime
     published_at: datetime | None
+    # draft 를 만든 사람 — 남의 draft 를 열면 화면이 경고한다(편집은 막지 않는다).
+    created_by: int | None
+    created_by_name: str | None
 
 
 class VersionDetail(VersionSummary):
@@ -94,7 +99,7 @@ class ChangeOut(BaseModel):
     after: dict[str, Any] | None
 
 
-def _summary(v: OntologyVersion) -> VersionSummary:
+def _summary(v: OntologyVersion, creator: str | None) -> VersionSummary:
     return VersionSummary(
         id=v.id,
         version_no=v.version_no,
@@ -102,7 +107,15 @@ def _summary(v: OntologyVersion) -> VersionSummary:
         parent_id=v.parent_id,
         created_at=v.created_at,
         published_at=v.published_at,
+        created_by=v.created_by,
+        created_by_name=creator,
     )
+
+
+async def _creator(db: Db, v: OntologyVersion) -> str | None:
+    if v.created_by is None:
+        return None
+    return await db.scalar(select(AppUser.display_name).where(AppUser.id == v.created_by))
 
 
 def _prop_out(p: PropertyType) -> PropertyOut:
@@ -118,6 +131,7 @@ def _type_out(t: ObjectType) -> ObjectTypeOut:
         pk_property=t.pk_property,
         title_property=t.title_property,
         properties=[_prop_out(p) for p in t.properties],
+        deprecated=t.deprecated,
     )
 
 
@@ -130,6 +144,7 @@ def _link_out(lt: LinkType) -> LinkTypeOut:
         to_type=lt.to_type,
         cardinality=lt.cardinality,  # type: ignore[arg-type]
         source=LinkSource.model_validate(lt.source),
+        deprecated=lt.deprecated,
     )
 
 
@@ -137,10 +152,10 @@ def _action_out(a: ActionType) -> ActionTypeOut:
     return ActionTypeOut(id=a.id, **versioning.action_def(a).model_dump())
 
 
-def _detail(v: OntologyVersion) -> VersionDetail:
+async def _detail(db: Db, v: OntologyVersion) -> VersionDetail:
     issues = check_document(versioning.to_document(v))
     return VersionDetail(
-        **_summary(v).model_dump(),
+        **_summary(v, await _creator(db, v)).model_dump(),
         object_types=[_type_out(t) for t in v.object_types],
         link_types=[_link_out(lt) for lt in v.link_types],
         action_types=[_action_out(a) for a in v.action_types],
@@ -198,22 +213,26 @@ class CreateVersion(BaseModel):
 
 @router.get("/versions", response_model=list[VersionSummary])
 async def list_versions(db: Db, _: Reader) -> list[VersionSummary]:
-    rows = await db.scalars(select(OntologyVersion).order_by(OntologyVersion.version_no.desc()))
-    return [_summary(v) for v in rows]
+    rows = await db.execute(
+        select(OntologyVersion, AppUser.display_name)
+        .outerjoin(AppUser, AppUser.id == OntologyVersion.created_by)
+        .order_by(OntologyVersion.version_no.desc())
+    )
+    return [_summary(v, name) for v, name in rows]
 
 
 @router.post("/versions", response_model=VersionDetail, status_code=201)
 async def create_version(body: CreateVersion, db: Db, user: Modeler) -> VersionDetail:
     with _domain_errors():
-        return _detail(
-            await versioning.create_draft(db, actor_id=user.id, parent_id=body.parent_id)
+        return await _detail(
+            db, await versioning.create_draft(db, actor_id=user.id, parent_id=body.parent_id)
         )
 
 
 @router.get("/versions/{version_id}", response_model=VersionDetail)
 async def get_version(version_id: int, db: Db, _: Reader) -> VersionDetail:
     with _domain_errors():
-        return _detail(await versioning.get_version(db, version_id))
+        return await _detail(db, await versioning.get_version(db, version_id))
 
 
 @router.get("/versions/{version_id}/diff", response_model=list[ChangeOut])
@@ -240,7 +259,9 @@ async def import_document(
 ) -> VersionDetail:
     with _domain_errors():
         doc = importer.parse(body.content, body.format)
-        return _detail(await versioning.replace_document(db, version_id, doc, actor_id=user.id))
+        return await _detail(
+            db, await versioning.replace_document(db, version_id, doc, actor_id=user.id)
+        )
 
 
 @router.get("/versions/{version_id}/export")
@@ -276,7 +297,86 @@ async def publish_version(version_id: int, db: Db, user: Modeler) -> VersionDeta
     # 레지스트리는 커밋 뒤에 다시 읽어야 한다 — 커밋 전에 읽으면 롤백된 버전이 캐시에 남는다.
     await db.commit()
     await registry.reload(db)
-    return _detail(await versioning.get_version(db, version_id))
+    return await _detail(db, await versioning.get_version(db, version_id))
+
+
+# ---------------------------------------------------------------- 영향 분석·그래프 배치(Phase G1)
+
+
+class MappingRefOut(BaseModel):
+    id: int
+    data_source: str
+    object_type: str
+
+
+class ReferencesOut(BaseModel):
+    """지우거나 폐기하려는 요소를 무엇이 쓰는가 — 이름과 개수만(설정·본문·값은 없다)."""
+
+    in_document: list[IssueOut]
+    mappings: list[MappingRefOut]
+    golden_items: list[int]
+    has_data: bool
+
+
+@router.get("/versions/{version_id}/references", response_model=ReferencesOut)
+async def element_references(
+    version_id: int,
+    db: Db,
+    _: Reader,
+    kind: impact.ElementKind,
+    name: Annotated[str, Query(min_length=1, max_length=64)],
+    type: Annotated[str | None, Query(max_length=64, description="속성이면 그 객체 타입")] = None,
+) -> ReferencesOut:
+    if kind == "property" and type is None:
+        raise ProblemError(
+            422, "속성의 영향은 객체 타입(type)과 함께 묻습니다", code="type_required"
+        )
+    with _domain_errors():
+        doc = versioning.to_document(await versioning.get_version(db, version_id))
+    u = await impact.usage(db, doc, kind, name, type)
+    return ReferencesOut(
+        in_document=[IssueOut(path=i.path, message=i.message) for i in u.in_document],
+        mappings=[MappingRefOut(**m.__dict__) for m in u.mappings],
+        golden_items=u.golden_items,
+        has_data=u.has_data,
+    )
+
+
+class NodePositionIn(BaseModel):
+    kind: Literal["object_type"] = "object_type"
+    name: str = Field(min_length=1, max_length=64)
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
+
+
+class LayoutIn(BaseModel):
+    nodes: list[NodePositionIn] = Field(max_length=versioning.LAYOUT_LIMIT)
+
+
+class LayoutOut(BaseModel):
+    nodes: list[NodePositionIn]
+
+
+def _layout_out(nodes: list[versioning.NodePosition]) -> LayoutOut:
+    return LayoutOut(
+        nodes=[NodePositionIn(kind="object_type", name=n.name, x=n.x, y=n.y) for n in nodes]
+    )
+
+
+@router.get("/versions/{version_id}/layout", response_model=LayoutOut)
+async def get_layout(version_id: int, db: Db, _: Reader) -> LayoutOut:
+    with _domain_errors():
+        return _layout_out(await versioning.get_layout(db, version_id))
+
+
+@router.put("/versions/{version_id}/layout", response_model=LayoutOut)
+async def put_layout(version_id: int, body: LayoutIn, db: Db, user: Modeler) -> LayoutOut:
+    names = [n.name for n in body.nodes]
+    if len(set(names)) != len(names):
+        raise ProblemError(422, "같은 요소의 위치가 두 번 있습니다", code="layout_duplicate")
+    nodes = [versioning.NodePosition(n.kind, n.name, n.x, n.y) for n in body.nodes]
+    with _domain_errors():
+        return _layout_out(await versioning.replace_layout(db, version_id, nodes, actor_id=user.id))
 
 
 # ---------------------------------------------------------------- 객체 타입
@@ -291,6 +391,7 @@ class ObjectTypePatch(BaseModel):
     description: str | None = None
     pk_property: str | None = None
     title_property: str | None = None
+    deprecated: bool | None = None
 
 
 @router.post("/versions/{version_id}/object-types", response_model=ObjectTypeOut, status_code=201)

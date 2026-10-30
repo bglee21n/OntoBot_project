@@ -859,6 +859,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ontology/versions/{version_id}/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Layout */
+        get: operations["get_layout_api_v1_ontology_versions__version_id__layout_get"];
+        /** Put Layout */
+        put: operations["put_layout_api_v1_ontology_versions__version_id__layout_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ontology/versions/{version_id}/link-types": {
         parameters: {
             query?: never;
@@ -975,6 +993,23 @@ export interface paths {
         put?: never;
         /** Publish Version */
         post: operations["publish_version_api_v1_ontology_versions__version_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ontology/versions/{version_id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Element References */
+        get: operations["element_references_api_v1_ontology_versions__version_id__references_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2258,6 +2293,16 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** LayoutIn */
+        LayoutIn: {
+            /** Nodes */
+            nodes: components["schemas"]["NodePositionIn"][];
+        };
+        /** LayoutOut */
+        LayoutOut: {
+            /** Nodes */
+            nodes: components["schemas"]["NodePositionIn"][];
+        };
         /**
          * LinkSource
          * @description 링크를 원천에서 어떻게 만드는가. ``join_mapping`` 의 상세는 Phase 2(동기화)에서 정한다.
@@ -2284,6 +2329,11 @@ export interface components {
              * @enum {string}
              */
             cardinality: "one" | "many";
+            /**
+             * Deprecated
+             * @default false
+             */
+            deprecated: boolean;
             /** Display Name */
             display_name: string;
             /** From Type */
@@ -2301,6 +2351,11 @@ export interface components {
              * @enum {string}
              */
             cardinality: "one" | "many";
+            /**
+             * Deprecated
+             * @default false
+             */
+            deprecated: boolean;
             /** Display Name */
             display_name: string;
             /** From Type */
@@ -2387,6 +2442,15 @@ export interface components {
             /** Watermark Column */
             watermark_column?: string | null;
         };
+        /** MappingRefOut */
+        MappingRefOut: {
+            /** Data Source */
+            data_source: string;
+            /** Id */
+            id: number;
+            /** Object Type */
+            object_type: string;
+        };
         /** Me */
         Me: {
             /** Display Name */
@@ -2431,6 +2495,21 @@ export interface components {
             role: "user" | "assistant";
             /** Status */
             status: ("ok" | "empty" | "failed" | "not_query" | "action_preview") | null;
+        };
+        /** NodePositionIn */
+        NodePositionIn: {
+            /**
+             * Kind
+             * @default object_type
+             * @constant
+             */
+            kind: "object_type";
+            /** Name */
+            name: string;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
         };
         /** NotificationList */
         NotificationList: {
@@ -2480,6 +2559,11 @@ export interface components {
         ObjectTypeCreate: {
             /** Api Name */
             api_name: string;
+            /**
+             * Deprecated
+             * @default false
+             */
+            deprecated: boolean;
             /** Description */
             description?: string | null;
             /** Display Name */
@@ -2495,6 +2579,8 @@ export interface components {
         ObjectTypeOut: {
             /** Api Name */
             api_name: string;
+            /** Deprecated */
+            deprecated: boolean;
             /** Description */
             description: string | null;
             /** Display Name */
@@ -2510,6 +2596,8 @@ export interface components {
         };
         /** ObjectTypePatch */
         ObjectTypePatch: {
+            /** Deprecated */
+            deprecated?: boolean | null;
             /** Description */
             description?: string | null;
             /** Display Name */
@@ -2700,6 +2788,20 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "degraded" | "unavailable";
+        };
+        /**
+         * ReferencesOut
+         * @description 지우거나 폐기하려는 요소를 무엇이 쓰는가 — 이름과 개수만(설정·본문·값은 없다).
+         */
+        ReferencesOut: {
+            /** Golden Items */
+            golden_items: number[];
+            /** Has Data */
+            has_data: boolean;
+            /** In Document */
+            in_document: components["schemas"]["IssueOut"][];
+            /** Mappings */
+            mappings: components["schemas"]["MappingRefOut"][];
         };
         /** RejectRequest */
         RejectRequest: {
@@ -3092,6 +3194,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Created By */
+            created_by: number | null;
+            /** Created By Name */
+            created_by_name: string | null;
             /** Id */
             id: number;
             /** Issues */
@@ -3119,6 +3225,10 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Created By */
+            created_by: number | null;
+            /** Created By Name */
+            created_by_name: string | null;
             /** Id */
             id: number;
             /** Parent Id */
@@ -4780,6 +4890,72 @@ export interface operations {
             };
         };
     };
+    get_layout_api_v1_ontology_versions__version_id__layout_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_layout_api_v1_ontology_versions__version_id__layout_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LayoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_link_type_api_v1_ontology_versions__version_id__link_types_post: {
         parameters: {
             query?: never;
@@ -5104,6 +5280,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    element_references_api_v1_ontology_versions__version_id__references_get: {
+        parameters: {
+            query: {
+                kind: "object_type" | "property" | "link_type";
+                name: string;
+                /** @description 속성이면 그 객체 타입 */
+                type?: string | null;
+            };
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferencesOut"];
                 };
             };
             /** @description Validation Error */

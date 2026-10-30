@@ -217,3 +217,59 @@ def test_summary_marks_fk_properties_only_through_visible_links() -> None:
 
 def test_summary_with_no_permission_is_empty() -> None:
     assert schema_summary(sample(), set()) == {"object_types": [], "link_types": []}
+
+
+# ---------------------------------------------------------------- 폐기(Phase G1)
+
+
+def _deprecate(
+    doc: OntologyDocument,
+    *,
+    types: frozenset[str] = frozenset(),
+    links: frozenset[str] = frozenset(),
+) -> OntologyDocument:
+    return doc.model_copy(
+        update={
+            "object_types": [
+                t.model_copy(update={"deprecated": t.api_name in types}) for t in doc.object_types
+            ],
+            "link_types": [
+                lt.model_copy(update={"deprecated": lt.api_name in links}) for lt in doc.link_types
+            ],
+        }
+    )
+
+
+def test_no_deprecation_keeps_canonical_form_and_export() -> None:
+    # 폐기 표시가 생기기 전과 같은 정규 표현이어야 게시본 content_hash·카세트 키가 그대로다.
+    doc = sample()
+    assert "deprecated" not in doc.canonical_json()
+    assert "deprecated" not in importer.dump(doc, "yaml")
+    assert doc.active() is doc
+
+
+def test_deprecated_flag_round_trips_and_changes_hash() -> None:
+    doc = _deprecate(sample(), types={"Region"}, links={"owned_by"})
+    assert doc.content_hash() != sample().content_hash()
+    for fmt in ("yaml", "json"):
+        back = importer.parse(importer.dump(doc, fmt), fmt)
+        assert back.content_hash() == doc.content_hash()
+    changed = {(c.kind, c.element, c.path) for c in diff(sample(), doc)}
+    assert changed == {("changed", "object_type", "Region"), ("changed", "link_type", "owned_by")}
+
+
+def test_active_document_drops_deprecated_types_and_their_links() -> None:
+    active = _deprecate(sample(), types={"Region"}).active()
+    assert [t.api_name for t in active.object_types] == ["Organization", "Facility"]
+    assert [lt.api_name for lt in active.link_types] == ["owned_by"]
+    readable = {"Facility", "Region", "Organization"}
+    s = schema_summary(active, readable)
+    assert "Region" not in repr(s) and "located_in" not in repr(s)
+    # 폐기가 없으면 요약이 바이트 단위로 같다(측정한 프롬프트 유지).
+    assert schema_summary(sample().active(), readable) == schema_summary(sample(), readable)
+
+
+def test_deprecated_link_alone_is_dropped() -> None:
+    active = _deprecate(sample(), links={"located_in"}).active()
+    assert [t.api_name for t in active.object_types] == ["Region", "Organization", "Facility"]
+    assert [lt.api_name for lt in active.link_types] == ["owned_by"]

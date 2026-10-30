@@ -3036,6 +3036,39 @@
         "title": "JobOut",
         "type": "object"
       },
+      "LayoutIn": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodePositionIn"
+            },
+            "maxItems": 2000,
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "title": "LayoutIn",
+        "type": "object"
+      },
+      "LayoutOut": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodePositionIn"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "title": "LayoutOut",
+        "type": "object"
+      },
       "LinkSource": {
         "additionalProperties": false,
         "description": "링크를 원천에서 어떻게 만드는가. ``join_mapping`` 의 상세는 Phase 2(동기화)에서 정한다.",
@@ -3095,6 +3128,11 @@
             "title": "Cardinality",
             "type": "string"
           },
+          "deprecated": {
+            "default": false,
+            "title": "Deprecated",
+            "type": "boolean"
+          },
           "display_name": {
             "maxLength": 128,
             "minLength": 1,
@@ -3141,6 +3179,11 @@
             ],
             "title": "Cardinality",
             "type": "string"
+          },
+          "deprecated": {
+            "default": false,
+            "title": "Deprecated",
+            "type": "boolean"
           },
           "display_name": {
             "maxLength": 128,
@@ -3418,6 +3461,29 @@
         "title": "MappingOut",
         "type": "object"
       },
+      "MappingRefOut": {
+        "properties": {
+          "data_source": {
+            "title": "Data Source",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "data_source",
+          "object_type"
+        ],
+        "title": "MappingRefOut",
+        "type": "object"
+      },
       "Me": {
         "properties": {
           "display_name": {
@@ -3582,6 +3648,37 @@
         "title": "MessageOut",
         "type": "object"
       },
+      "NodePositionIn": {
+        "properties": {
+          "kind": {
+            "const": "object_type",
+            "default": "object_type",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "x",
+          "y"
+        ],
+        "title": "NodePositionIn",
+        "type": "object"
+      },
       "NotificationList": {
         "properties": {
           "items": {
@@ -3729,6 +3826,11 @@
             "title": "Api Name",
             "type": "string"
           },
+          "deprecated": {
+            "default": false,
+            "title": "Deprecated",
+            "type": "boolean"
+          },
           "description": {
             "anyOf": [
               {
@@ -3779,6 +3881,10 @@
             "title": "Api Name",
             "type": "string"
           },
+          "deprecated": {
+            "title": "Deprecated",
+            "type": "boolean"
+          },
           "description": {
             "anyOf": [
               {
@@ -3821,13 +3927,25 @@
           "description",
           "pk_property",
           "title_property",
-          "properties"
+          "properties",
+          "deprecated"
         ],
         "title": "ObjectTypeOut",
         "type": "object"
       },
       "ObjectTypePatch": {
         "properties": {
+          "deprecated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deprecated"
+          },
           "description": {
             "anyOf": [
               {
@@ -4406,6 +4524,44 @@
           "llm"
         ],
         "title": "ReadinessOut",
+        "type": "object"
+      },
+      "ReferencesOut": {
+        "description": "지우거나 폐기하려는 요소를 무엇이 쓰는가 — 이름과 개수만(설정·본문·값은 없다).",
+        "properties": {
+          "golden_items": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Golden Items",
+            "type": "array"
+          },
+          "has_data": {
+            "title": "Has Data",
+            "type": "boolean"
+          },
+          "in_document": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "In Document",
+            "type": "array"
+          },
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/MappingRefOut"
+            },
+            "title": "Mappings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "in_document",
+          "mappings",
+          "golden_items",
+          "has_data"
+        ],
+        "title": "ReferencesOut",
         "type": "object"
       },
       "RejectRequest": {
@@ -5646,6 +5802,28 @@
             "title": "Created At",
             "type": "string"
           },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -5715,6 +5893,8 @@
           "parent_id",
           "created_at",
           "published_at",
+          "created_by",
+          "created_by_name",
           "object_types",
           "link_types",
           "action_types",
@@ -5729,6 +5909,28 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
           },
           "id": {
             "title": "Id",
@@ -5777,7 +5979,9 @@
           "status",
           "parent_id",
           "created_at",
-          "published_at"
+          "published_at",
+          "created_by",
+          "created_by_name"
         ],
         "title": "VersionSummary",
         "type": "object"
@@ -8126,6 +8330,98 @@
         ]
       }
     },
+    "/api/v1/ontology/versions/{version_id}/layout": {
+      "get": {
+        "operationId": "get_layout_api_v1_ontology_versions__version_id__layout_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Layout",
+        "tags": [
+          "ontology"
+        ]
+      },
+      "put": {
+        "operationId": "put_layout_api_v1_ontology_versions__version_id__layout_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayoutIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayoutOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Layout",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
     "/api/v1/ontology/versions/{version_id}/link-types": {
       "post": {
         "operationId": "create_link_type_api_v1_ontology_versions__version_id__link_types_post",
@@ -8655,6 +8951,92 @@
           }
         },
         "summary": "Publish Version",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/references": {
+      "get": {
+        "operationId": "element_references_api_v1_ontology_versions__version_id__references_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "object_type",
+                "property",
+                "link_type"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "description": "속성이면 그 객체 타입",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "속성이면 그 객체 타입",
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Element References",
         "tags": [
           "ontology"
         ]

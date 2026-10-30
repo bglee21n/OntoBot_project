@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../../api/client";
-import type { ChangeOut, VersionDetail, VersionSummary } from "../../api/types";
+import type { ChangeOut, LayoutOut, ReferencesOut, VersionDetail, VersionSummary } from "../../api/types";
 
 export const V = "/ontology/versions";
 const listKey = ["ontology", "versions"];
@@ -11,8 +11,8 @@ export function useVersions() {
   return useQuery({ queryKey: listKey, queryFn: () => api.get<VersionSummary[]>(V) });
 }
 
-export function useVersion(id: number) {
-  return useQuery({ queryKey: detailKey(id), queryFn: () => api.get<VersionDetail>(`${V}/${id}`) });
+export function useVersion(id: number, enabled = true) {
+  return useQuery({ queryKey: detailKey(id), queryFn: () => api.get<VersionDetail>(`${V}/${id}`), enabled });
 }
 
 export function useDiff(id: number, base: number | null) {
@@ -43,5 +43,33 @@ export function useCreateDraft() {
   return useMutation({
     mutationFn: (parentId: number | null) => api.post<VersionDetail>(V, { parent_id: parentId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: listKey }),
+  });
+}
+
+/** 스키마 그래프의 노드 위치 — 정의가 아니라 화면 상태다(게시본도 고칠 수 있다). */
+export function useLayout(id: number) {
+  return useQuery({ queryKey: ["ontology", "layout", id], queryFn: () => api.get<LayoutOut>(`${V}/${id}/layout`) });
+}
+
+export function useSaveLayout(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (nodes: LayoutOut["nodes"]) => api.put<LayoutOut>(`${V}/${id}/layout`, { nodes }),
+    onSuccess: (data) => qc.setQueryData(["ontology", "layout", id], data),
+  });
+}
+
+/** 지우거나 폐기하려는 요소를 무엇이 쓰는가 — 이름과 개수만. */
+export function useReferences(
+  id: number,
+  target: { kind: "object_type" | "property" | "link_type"; name: string; type?: string } | null,
+) {
+  const params = target
+    ? new URLSearchParams({ kind: target.kind, name: target.name, ...(target.type ? { type: target.type } : {}) })
+    : null;
+  return useQuery({
+    queryKey: ["ontology", "references", id, params?.toString()],
+    queryFn: () => api.get<ReferencesOut>(`${V}/${id}/references?${params}`),
+    enabled: target !== null,
   });
 }

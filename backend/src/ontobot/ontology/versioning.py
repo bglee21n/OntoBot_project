@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import BigInteger, delete, func, insert, literal, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,6 +17,7 @@ from ontobot.db.models.ontology import (
     ActionType,
     LinkType,
     ObjectType,
+    OntologyLayout,
     OntologyVersion,
     PropertyType,
 )
@@ -102,6 +104,7 @@ def to_document(version: OntologyVersion) -> OntologyDocument:
                 pk_property=t.pk_property,
                 title_property=t.title_property,
                 properties=[prop_def(p) for p in t.properties],
+                deprecated=t.deprecated,
             )
             for t in version.object_types
         ],
@@ -113,6 +116,7 @@ def to_document(version: OntologyVersion) -> OntologyDocument:
                 to_type=lt.to_type,
                 cardinality=lt.cardinality,  # type: ignore[arg-type]
                 source=LinkSource.model_validate(lt.source),
+                deprecated=lt.deprecated,
             )
             for lt in version.link_types
         ],
@@ -173,6 +177,8 @@ async def create_draft(
     )
     db.add(version)
     await db.flush()
+    if parent_id is not None:
+        await _copy_layout(db, parent_id, version.id)
     audit.record(
         db,
         audit.DRAFT_CREATED,
@@ -227,6 +233,7 @@ def _object_type_row(t: ObjectTypeDef) -> ObjectType:
         pk_property=t.pk_property,
         title_property=t.title_property,
         properties=[PropertyType(**p.model_dump()) for p in t.properties],
+        deprecated=t.deprecated,
     )
 
 
@@ -238,6 +245,7 @@ def _link_type_row(lt: LinkTypeDef) -> LinkType:
         to_type=lt.to_type,
         cardinality=lt.cardinality,
         source=lt.source.model_dump(mode="json", exclude_none=True),
+        deprecated=lt.deprecated,
     )
 
 
@@ -292,6 +300,7 @@ async def update_object_type(
     description: str | None = None,
     pk_property: str | None = None,
     title_property: str | None = None,
+    deprecated: bool | None = None,
 ) -> ObjectType:
     """``api_name`` 은 바꾸지 않는다 — 매핑·권한·링크가 그 문자열로 타입을 가리킨다."""
     version = await _draft(db, version_id)
@@ -301,6 +310,7 @@ async def update_object_type(
         ("description", description),
         ("pk_property", pk_property),
         ("title_property", title_property),
+        ("deprecated", deprecated),
     ):
         if value is not None:
             setattr(row, field, value)
@@ -389,7 +399,7 @@ async def replace_link_type(
     if row.api_name != lt.api_name:
         raise ElementConflict("링크 타입 api_name 은 바꿀 수 없습니다")
     new = _link_type_row(lt)
-    for field in ("display_name", "from_type", "to_type", "cardinality", "source"):
+    for field in ("display_name", "from_type", "to_type", "cardinality", "source", "deprecated"):
         setattr(row, field, getattr(new, field))
     await db.flush()
     _edited(db, actor_id, version_id, "link_type.update", lt.api_name)
@@ -448,6 +458,68 @@ async def delete_action_type(
     version.action_types.remove(row)
     await db.flush()
     _edited(db, actor_id, version_id, "action_type.delete", row.api_name)
+
+
+# ---------------------------------------------------------------- 그래프 배치(정의 밖 — 감사 없음)
+
+LAYOUT_LIMIT = 2000
+
+
+@dataclass(frozen=True)
+class NodePosition:
+    kind: str
+    name: str
+    x: float
+    y: float
+
+
+async def get_layout(db: AsyncSession, version_id: int) -> list[NodePosition]:
+    await get_version(db, version_id)
+    rows = await db.scalars(
+        select(OntologyLayout)
+        .where(OntologyLayout.version_id == version_id)
+        .order_by(OntologyLayout.element_kind, OntologyLayout.element_name)
+    )
+    return [NodePosition(r.element_kind, r.element_name, r.x, r.y) for r in rows]
+
+
+async def replace_layout(
+    db: AsyncSession, version_id: int, nodes: list[NodePosition], *, actor_id: int
+) -> list[NodePosition]:
+    """배치를 통째로 바꾼다. 게시·보관본도 고칠 수 있다 — 정의가 아니라 화면 상태다.
+
+    요소 이름은 검사하지 않는다(지운 타입의 좌표가 남아도 화면이 무시한다). 다음 draft 로 복사된다.
+    """
+    await get_version(db, version_id)
+    await db.execute(delete(OntologyLayout).where(OntologyLayout.version_id == version_id))
+    for n in nodes:
+        db.add(
+            OntologyLayout(
+                version_id=version_id,
+                element_kind=n.kind,
+                element_name=n.name,
+                x=n.x,
+                y=n.y,
+                updated_by=actor_id,
+            )
+        )
+    await db.flush()
+    return await get_layout(db, version_id)
+
+
+async def _copy_layout(db: AsyncSession, parent_id: int, version_id: int) -> None:
+    src = select(
+        literal(version_id, BigInteger),
+        OntologyLayout.element_kind,
+        OntologyLayout.element_name,
+        OntologyLayout.x,
+        OntologyLayout.y,
+    ).where(OntologyLayout.version_id == parent_id)
+    await db.execute(
+        insert(OntologyLayout).from_select(
+            ["version_id", "element_kind", "element_name", "x", "y"], src
+        )
+    )
 
 
 # ---------------------------------------------------------------- 게시

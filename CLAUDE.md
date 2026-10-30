@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.17) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.18) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
-설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action) 완료 —
-다음은 Phase 12(Function). 설치 정본은
+설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
+G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md)) 완료 — 다음은 Phase 12(Function). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -189,6 +189,9 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   작업 실행기는 배포 콘솔과 공유(`opsjobs/`) — 바꾸면 두 콘솔 테스트를 함께 돌린다. 화면 부품은 `frontend/src/components/ops/`.
 - 채팅 한 건은 답이 끝날 때까지 DB 연결을 쥔다. 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`)이 동시 채팅 상한이다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
+- **폐기(`deprecated`)는 정의 문서에서 거짓이면 빠진다**(`models.drop_default_flags`) — 그래야 기존 게시본 `content_hash`·
+  카세트 키가 그대로다. 플래너 요약·계획 검증은 `schema.document.active()`(폐기 제외)를 본다. 그래프 노드 위치
+  (`ontology_layout`)는 정의가 아니다 — 정의 문서·해시에 넣지 말 것. 영향 분석(`ontology/impact.py`)은 이름·개수만 낸다.
 - `objects.reader` 가 삭제 표시 제외·**게시 버전에 선언된 속성만** 내보내기·**편집 레이어 덮어 읽기**를 맡는다.
   객체 값을 읽는 SQL 은 `FROM object` 가 아니라 reader 의 파생 행(`_OBJECTS`)에서 읽어야 한다 — 카드는 편집 값인데
   필터·집계가 원천 값이면 결과가 조용히 틀린다. P3 시나리오도 여기서 덮는다. 동기화는 `object_edit` 를 건드리지 않고
