@@ -113,6 +113,20 @@ export const ko = {
     filterEvent: "이벤트로 거르기",
     more: "더 보기",
     auditNote: "감사 로그 조회도 감사 로그에 남습니다.",
+    chain: {
+      check: "해시 체인 검증",
+      ok: (rows: number, seq: number) => `정상 — ${rows}행, 마지막 순번 ${seq}. 매일 자동으로도 검증합니다.`,
+      broken: (reason: string, seq: number | null | undefined, id: number | null | undefined) =>
+        `끊김: ${reason} (순번 ${seq ?? "—"}, id ${id ?? "—"}). 고치지 말고 백업과 대조해 원인을 확인하세요.`,
+      reason: {
+        hash_mismatch: "내용이 바뀜",
+        link_broken: "앞 행과 이어지지 않음(중간 삭제·끼워 넣기)",
+        gap: "순번 빈칸(삭제)",
+        head_missing: "첫 행이 없음",
+        unchained: "체인 없이 들어간 행(트리거 우회)",
+        tail_missing: "마지막 행이 사라짐",
+      } as Record<string, string>,
+    },
     traceId: "트레이스 id",
     open: "열기",
     traceNote: "트레이스의 질문·계획·프롬프트는 마스킹돼 있습니다. 열어 본 기록이 감사 로그에 남습니다.",

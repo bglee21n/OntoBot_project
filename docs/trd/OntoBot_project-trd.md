@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.23                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.24                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -203,7 +203,7 @@ v0.13 (Phase 9 구현):
 | `auth_request`      | 진행 중인 OIDC 로그인: `state_hash`, `nonce`, `code_verifier`, `return_to`(같은 사이트 상대 경로만), `expires_at` — 콜백에서 한 번만 꺼내 지운다 |
 | `role`, `user_role` |                                                                                                                             |
 | `data_group`·`group_member`·`group_type_permission`·`group_link_permission` | 데이터 권한(v0.22, 17.6) — 그룹 × 타입 {읽기·생성·편집·삭제}, 그룹 × 링크 {연결}, 사용자 ↔ 그룹. MVP 의 `type_permission`(역할 × 타입 읽기)은 마이그레이션 0012 에서 같은 이름의 그룹으로 옮기고 지웠다 |
-| `audit_log`         | `ts`, `actor_id`, `event`, `target`, `payload`(마스킹) — 앱 DB 계정에 **INSERT·SELECT만** 허용. 해시 체인(`prev_hash`)은 P1 |
+| `audit_log`         | `ts`, `actor_id`, `event`, `target`, `payload`(마스킹), `seq`·`prev_hash`·`hash`(해시 체인 — 트리거가 매김, 17.8) — 앱 DB 계정에 **INSERT·SELECT만** 허용 |
 
 ### 6.7 평가·워크숍·작업
 
@@ -802,6 +802,22 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - **한계**: 채팅 Action 제안의 같은 제목 후보(`actions.params`)는 읽기 정책을 보지 않는다(실행 기록은 미리보기에서 막힌다 —
   후보 제목이 보일 수 있음). 참조 값 실재 대조(`existing_values`)도 정책을 보지 않는다(존재 여부만).
 
+### 17.8 감사 로그 해시 체인 (v0.24, Phase 14c)
+
+- **매기기**(마이그레이션 0014): `BEFORE INSERT` 트리거 `audit_log_chain` 이 advisory lock(트랜잭션 범위) + 체인 머리 표
+  `audit_chain_head`(한 줄: 마지막 `seq`·`hash`)로 순서를 정하고 `seq = 머리+1`, `prev_hash = 머리 해시`,
+  `hash = audit_log_hash(prev, seq, ts(UTC, 마이크로초), actor, event, target, payload::text(jsonb 정규 표현), note)`
+  (SHA-256 hex). 앱(`audit.record`)은 바뀌지 않는다. 체인 순서는 id 가 아니라 `seq` 다(id 는 트리거 전에 정해져
+  커밋 순서와 어긋날 수 있다). 기존 행은 마이그레이션이 id 순서로 채웠다(추가 전용 트리거를 그 트랜잭션에서만 끄고).
+- **검증**(`security.audit_chain.verify` — 보고만, 고치지 않는다): 트리거 없이 들어간 행(`unchained`), 같은 함수로 다시 계산한
+  해시 불일치(`hash_mismatch`), 직전 해시와 이어지지 않음(`link_broken` — 중간 삭제·끼워 넣기), 순번 빈칸(`gap`), 첫 행
+  없음(`head_missing`), 머리와 마지막 행이 다름(`tail_missing` — 꼬리 삭제). 처음 끊긴 곳 하나를 낸다.
+- **언제**: 매일 작업 `audit_verify`(끊기면 error 로그 + 작업 결과), `security.cli verify-audit`(끊기면 종료 코드 1),
+  관리 → 감사 로그 탭 **해시 체인 검증**(`GET /admin/audit-chain`, 조회도 감사).
+- **한계**: DB 소유자가 해시 함수·트리거·머리까지 바꿔 체인을 통째로 다시 쓰는 것은 막지 못한다(외부 보관 백업과 대조가
+  맡는다). 감사 기록이 있는 트랜잭션은 커밋까지 체인 잠금을 쥐므로, 감사 기록 뒤에 오래 걸리는 일을 같은 트랜잭션에서
+  하지 않는다(지금 경로는 모두 짧다).
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -884,6 +900,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |
 | v0.21 | 2026-10-30 | 성공 지표 목표를 관리자 설정으로(17.5 — `ops_target`·`/admin/targets`, 마이그레이션 0011, 측정값 출처: 평가는 재생 제외·운영은 트레이스, 게이트와 분리), 스키마 그래프 옆 패널의 Action·Function 편집 |

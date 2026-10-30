@@ -5,7 +5,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, ForeignKey, Index, String, Text, text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -160,10 +170,13 @@ class UserSession(IdMixin, Base):
 class AuditLog(IdMixin, Base):
     """추가 전용. UPDATE·DELETE·TRUNCATE 는 DB 트리거가 막는다(마이그레이션 0001).
 
-    해시 체인(``prev_hash``)은 P1이다 — 컬럼만 먼저 둔다.
+    해시 체인(Phase 14c, 마이그레이션 0014): 넣을 때 DB 트리거가 ``seq``·``prev_hash``·``hash`` 를
+    매긴다
+    (앱은 넣지 않는다). 검증은 ``security.audit_chain``.
     """
 
     __tablename__ = "audit_log"
+    __table_args__ = (Index("uq_audit_log_seq", "seq", unique=True),)
 
     ts: Mapped[datetime] = mapped_column(tz(), server_default=text("now()"))
     actor_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
@@ -172,6 +185,19 @@ class AuditLog(IdMixin, Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}")
     prev_hash: Mapped[str | None] = mapped_column(String(64))
     note: Mapped[str | None] = mapped_column(Text)
+    seq: Mapped[int | None] = mapped_column(BigInteger)
+    hash: Mapped[str | None] = mapped_column(String(64))
+
+
+class AuditChainHead(Base):
+    """감사 체인의 머리(한 줄) — 마지막 순번과 해시. 트리거만 고친다. 꼬리 삭제를 잡는 데 쓴다."""
+
+    __tablename__ = "audit_chain_head"
+    __table_args__ = (CheckConstraint("id = 1", name="single"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seq: Mapped[int] = mapped_column(BigInteger, server_default="0")
+    hash: Mapped[str | None] = mapped_column(String(64))
 
 
 class AuthRequest(IdMixin, Base):

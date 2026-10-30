@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 
 import { api } from "../../api/client";
 import type {
+  AuditChainOut,
   AuditLogOut,
   GroupOut,
   RoleOut,
@@ -440,6 +441,23 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
 
 // ---------------------------------------------------------------- 감사 로그
 
+/** 감사 로그 해시 체인 검증(PRD 5.5) — 누르면 지금 검증한다. 끊긴 곳은 보고만 한다(추가 전용). */
+function AuditChainCheck() {
+  const check = useMutation({ mutationFn: () => api.get<AuditChainOut>("/admin/audit-chain") });
+  const r = check.data;
+  const why = (x: AuditChainOut) => t.chain.reason[x.reason ?? ""] ?? x.reason ?? "";
+  return (
+    <div className="row">
+      <button type="button" disabled={check.isPending} onClick={() => check.mutate()}>
+        {t.chain.check}
+      </button>
+      {r?.ok && <span className="ok-text">{t.chain.ok(r.rows, r.last_seq)}</span>}
+      {r && !r.ok && <span className="error-text">{t.chain.broken(why(r), r.broken_seq, r.broken_id)}</span>}
+      {check.isError && <ErrorBox error={check.error} />}
+    </div>
+  );
+}
+
 const PAGE = 50;
 
 function AuditPanel() {
@@ -461,6 +479,7 @@ function AuditPanel() {
   return (
     <div className="stack">
       <p className="muted">{t.auditNote}</p>
+      <AuditChainCheck />
       <label>
         {t.filterEvent}
         <input value={event} onChange={(e) => setEvent(e.target.value.trim())} placeholder="auth.login" />

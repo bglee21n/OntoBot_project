@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
+from dataclasses import asdict
 from typing import Any
 
 from ontobot.config import get_settings
@@ -15,6 +17,7 @@ from ontobot.notify import config as notify_config
 from ontobot.notify import delivery
 from ontobot.objects.indexes import ensure_property_index
 from ontobot.ontology import registry
+from ontobot.security import audit_chain
 from ontobot.sync.runner import run_mapping
 from ontobot.tracing.retention import Policy, purge
 
@@ -25,6 +28,8 @@ GRAPH_REBUILD = "graph_rebuild"
 GRAPH_RECONCILE = "graph_reconcile"
 PROPERTY_INDEX = "create_property_index"
 RETENTION = "retention_purge"
+_log = logging.getLogger(__name__)
+AUDIT_VERIFY = "audit_verify"
 EVAL_RUN = "eval_run"
 NOTIFY = "notify_deliver"  # actions.runner.NOTIFY_JOB 와 같은 이름
 
@@ -102,6 +107,19 @@ async def retention_purge(_: dict[str, Any]) -> dict[str, Any]:
     return counts
 
 
+async def audit_verify(_: dict[str, Any]) -> dict[str, Any]:
+    """감사 해시 체인 매일 검증(PRD 5.5). 끊기면 경보 로그(error)를 남기고 결과를 작업 기록에 둔다 —
+    관리 화면이 마지막 결과를 보여 준다. 끊긴 곳은 고치지 않는다(추가 전용)."""
+    async with session_scope() as db:
+        report = await audit_chain.verify(db)
+    if not report.ok:
+        _log.error(
+            "감사 로그 해시 체인이 끊겼습니다",
+            extra={"seq": report.broken_seq, "audit_id": report.broken_id, "reason": report.reason},
+        )
+    return asdict(report)
+
+
 async def eval_run(payload: dict[str, Any]) -> dict[str, Any]:
     """평가 실행(TRD 13.1) — 실제 모델로 돈다.
 
@@ -139,6 +157,7 @@ HANDLERS: dict[str, Handler] = {
     GRAPH_RECONCILE: graph_reconcile,
     PROPERTY_INDEX: create_property_index,
     RETENTION: retention_purge,
+    AUDIT_VERIFY: audit_verify,
     EVAL_RUN: eval_run,
     NOTIFY: notify_deliver,
 }

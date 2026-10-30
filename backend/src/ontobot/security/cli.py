@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.db.models.security import AppUser, DataGroup, GroupMember, Role, UserRole
 from ontobot.db.session import dispose_engine, session_scope
-from ontobot.security import admin, audit
+from ontobot.security import admin, audit, audit_chain
 from ontobot.security.auth import MIN_PASSWORD_LENGTH, hash_password
 from ontobot.security.rbac import KNOWN_ROLES
 
@@ -91,6 +91,20 @@ async def grant_type(group_name: str, object_type: str, *, edit: bool = False) -
         print(f"{'읽기·편집' if edit else '읽기'} 권한 부여: 그룹 {group_name} → {object_type}")
 
 
+async def verify_audit() -> int:
+    """감사 해시 체인 검증 — 끊기면 종료 코드 1(운영 점검·스크립트가 쓴다)."""
+    async with session_scope() as db:
+        report = await audit_chain.verify(db)
+    if report.ok:
+        print(f"감사 체인 정상: {report.rows}행, 마지막 순번 {report.last_seq}")
+        return 0
+    print(
+        f"감사 체인 끊김: {report.reason} — 순번 {report.broken_seq}, id {report.broken_id} "
+        f"({report.rows}행 중)"
+    )
+    return 1
+
+
 async def audit_deploy(event: str, actor_id: int | None, payload: str) -> None:
     """배포 콘솔의 작업 결과를 감사 로그에(ADR-0014). 이벤트 이름은 정해진 것만."""
     if event not in audit.DEPLOY_EVENTS:
@@ -115,6 +129,7 @@ def main(argv: list[str] | None = None) -> None:
     gt.add_argument("--group", "--role", required=True, dest="group")
     gt.add_argument("--type", required=True, dest="object_type")
     gt.add_argument("--edit", action="store_true", help="편집(= Action 요청)도 준다")
+    sub.add_parser("verify-audit", help="감사 로그 해시 체인 검증(끊기면 종료 코드 1)")
     ad = sub.add_parser("audit-deploy", help="배포 콘솔 작업을 감사 로그에 남김")
     ad.add_argument("--event", required=True)
     ad.add_argument("--actor-id", type=int, default=None)
@@ -125,6 +140,10 @@ def main(argv: list[str] | None = None) -> None:
         try:
             if args.cmd == "create-user":
                 await create_user(args.username, args.display_name, args.roles, args.groups)
+            elif args.cmd == "verify-audit":
+                code = await verify_audit()
+                if code:
+                    raise SystemExit(code)
             elif args.cmd == "audit-deploy":
                 await audit_deploy(args.event, args.actor_id, args.payload)
             else:

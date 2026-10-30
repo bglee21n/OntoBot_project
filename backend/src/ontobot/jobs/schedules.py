@@ -1,4 +1,5 @@
-"""주기 작업 발행 — 매핑의 ``schedule``(``every:15m``), 매일 대사(TRD 5.5)와 보존 기간 정리(9.3),
+"""주기 작업 발행 — 매핑의 ``schedule``(``every:15m``), 매일 대사(TRD 5.5)·보존 기간
+정리(9.3)·감사 체인 검증,
 재시도 기한이 된 메일·SMS 발송(17.1-4).
 
 발행만 한다(실행은 워커가 큐에서 집는다). 같은 작업이 대기·실행 중이면 다시 넣지 않는다.
@@ -38,7 +39,7 @@ async def enqueue_due(db: AsyncSession, *, now: datetime | None = None) -> list[
             if job_id is not None:
                 issued.append(job_id)
 
-    for kind in (handlers.GRAPH_RECONCILE, handlers.RETENTION):
+    for kind in (handlers.GRAPH_RECONCILE, handlers.RETENTION, handlers.AUDIT_VERIFY):
         last = await db.scalar(select(func.max(Job.created_at)).where(Job.kind == kind))
         if last is None or last + DAILY <= now:
             job_id = await queue.enqueue(db, kind, {}, dedupe=True)

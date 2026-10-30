@@ -883,6 +883,65 @@
         "title": "AnswerData",
         "type": "object"
       },
+      "AuditChainOut": {
+        "properties": {
+          "broken_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broken Id"
+          },
+          "broken_seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broken Seq"
+          },
+          "last_seq": {
+            "title": "Last Seq",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ok",
+          "rows",
+          "last_seq",
+          "broken_seq",
+          "broken_id",
+          "reason"
+        ],
+        "title": "AuditChainOut",
+        "type": "object"
+      },
       "AuditLogOut": {
         "properties": {
           "actor_id": {
@@ -7456,6 +7515,28 @@
         "summary": "Preview Action",
         "tags": [
           "actions"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-chain": {
+      "get": {
+        "description": "감사 로그 해시 체인을 지금 검증한다(PRD 5.5). 매일 작업(``audit_verify``)도 같은 검증.",
+        "operationId": "audit_chain_check_api_v1_admin_audit_chain_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChainOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Audit Chain Check",
+        "tags": [
+          "admin"
         ]
       }
     },

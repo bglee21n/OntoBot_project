@@ -54,6 +54,7 @@ export type RoleOut = S["RoleOut"];
 export type SystemOut = S["SystemOut"];
 export type TypeOut = S["TypeOut"];
 export type GroupOut = S["GroupOut"];
+export type AuditChainOut = S["AuditChainOut"];
 export type TypeGrantIO = S["TypeGrantIO"];
 export type AuditLogOut = S["AuditLogOut"];
 export type TraceOut = S["TraceOut"];

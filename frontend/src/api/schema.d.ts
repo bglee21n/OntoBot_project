@@ -138,6 +138,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/audit-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Audit Chain Check
+         * @description 감사 로그 해시 체인을 지금 검증한다(PRD 5.5). 매일 작업(``audit_verify``)도 같은 검증.
+         */
+        get: operations["audit_chain_check_api_v1_admin_audit_chain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/groups": {
         parameters: {
             query?: never;
@@ -1757,6 +1777,21 @@ export interface components {
             estimated_sentences: number[];
             /** Text */
             text: string;
+        };
+        /** AuditChainOut */
+        AuditChainOut: {
+            /** Broken Id */
+            broken_id: number | null;
+            /** Broken Seq */
+            broken_seq: number | null;
+            /** Last Seq */
+            last_seq: number;
+            /** Ok */
+            ok: boolean;
+            /** Reason */
+            reason: string | null;
+            /** Rows */
+            rows: number;
         };
         /** AuditLogOut */
         AuditLogOut: {
@@ -3942,6 +3977,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_chain_check_api_v1_admin_audit_chain_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditChainOut"];
                 };
             };
         };

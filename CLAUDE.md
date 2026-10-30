@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.23) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.24) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
-G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14a(데이터 그룹)·14b(속성·행 권한) 완료 — 다음은 Phase 14c
-(감사 해시 체인), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인) 완료 — 다음은 Phase 15(객체 탐색·트레이스·
+피드백), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -154,7 +154,8 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - 게시본은 불변(편집은 draft 만, `ontology/versioning.py`). 게시 버전은 부분 유일 인덱스로 하나뿐, 번호 발급·게시는
   advisory lock 으로 직렬화. 레지스트리는 **커밋 뒤** reload 한다. 타입·속성 `api_name` 은 바꾸지 않는다.
 - `audit.record` 는 호출자 트랜잭션에 넣는다(변경과 기록이 함께). payload 는 마스킹된다. 감사 로그는 DB 트리거로 추가 전용
-  (보존 기간 작업도 지우지 않는다). 관리 규칙(자기 잠금 방지·세션 폐기)은 `security/admin.py` 에만.
+  (보존 기간 작업도 지우지 않는다). 해시 체인(`seq`·`hash`)도 트리거가 매긴다 — 앱에서 해시를 계산하거나 체인 컬럼을
+  넣지 말 것. 감사 기록이 든 트랜잭션은 커밋까지 체인 잠금을 쥐므로 그 뒤에 LLM 호출 같은 오래 걸리는 일을 두지 않는다. 관리 규칙(자기 잠금 방지·세션 폐기)은 `security/admin.py` 에만.
 - **PII 값은 `LLMGateway.protect` 로 알린다.** 외부 공급자(`external: true`)면 게이트웨이가 가역 토큰으로 바꿔 보내고
   되돌린다(호출부는 원값만 본다, 근거 대조도 원값). 호출 기록·트레이스는 그 값과 패턴으로 마스킹된다. 새 LLM 호출
   경로를 만들면 그 요청의 PII 값을 `protect` 하는 것을 잊지 말 것. 어댑터는 SDK 없이 HTTP 로 부른다.

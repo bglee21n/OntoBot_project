@@ -7,11 +7,11 @@ from collections.abc import AsyncIterator
 
 import httpx
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from ontobot.db.models.security import AuditLog
 from ontobot.db.session import session_scope
-from ontobot.security import admin, rbac
+from ontobot.security import admin, audit, audit_chain, rbac
 from tests.integration.conftest import MakeUser, login
 
 pytestmark = pytest.mark.integration
@@ -346,3 +346,52 @@ async def test_hidden_properties_and_row_policies_are_validated_and_merged(
     assert acc.of("Facility").hidden == {"capacity_kw"}
     assert acc.of("Facility").read_rows is None
     assert acc.of("Facility").write_rows == (tuple(policy),)  # 편집은 첫 그룹만 준다
+
+
+async def test_audit_chain_detects_tampering(client, make_user: MakeUser) -> None:
+    # Phase 14c — 트리거가 매긴 체인을 검증하고, 트리거를 우회한 변조를 잡는다.
+    # 변조는 트랜잭션 안에서만 하고 되돌린다(공유 테스트 DB 의 체인을 깨지 않게).
+    tag = uuid.uuid4().hex[:8]
+    async with session_scope() as db:
+        for i in range(3):
+            audit.record(
+                db, audit.GROUP_CHANGED, actor_id=None, target=f"chain:{tag}", payload={"i": i}
+            )
+        await db.commit()
+        rows = list(
+            await db.scalars(
+                select(AuditLog).where(AuditLog.target == f"chain:{tag}").order_by(AuditLog.seq)
+            )
+        )
+        assert [r.prev_hash for r in rows[1:]] == [r.hash for r in rows[:-1]]
+        assert (await audit_chain.verify(db)).ok
+    middle, last = rows[1], (await _last_seq())
+
+    async def tampered(*sql: str) -> audit_chain.ChainReport:
+        async with session_scope() as db:
+            await db.execute(text("ALTER TABLE audit_log DISABLE TRIGGER USER"))
+            for s in sql:
+                await db.execute(text(s))
+            report = await audit_chain.verify(db)
+            await db.rollback()
+            return report
+
+    r = await tampered(f"UPDATE audit_log SET note = 'tampered' WHERE id = {middle.id}")
+    assert (r.ok, r.reason, r.broken_seq) == (False, "hash_mismatch", middle.seq)
+    r = await tampered(f"DELETE FROM audit_log WHERE id = {middle.id}")
+    assert (r.ok, r.reason, r.broken_seq) == (False, "link_broken", middle.seq + 1)
+    r = await tampered(f"DELETE FROM audit_log WHERE seq = {last}")
+    assert (r.ok, r.reason) == (False, "tail_missing")
+    r = await tampered(
+        "INSERT INTO audit_log (event, payload) VALUES ('security.group_changed', '{}')"
+    )
+    assert (r.ok, r.reason) == (False, "unchained")
+    # 되돌린 뒤에는 정상이고, 관리 API 도 같은 결과를 낸다.
+    await _admin(client, make_user)
+    got = (await client.get("/api/v1/admin/audit-chain")).json()
+    assert got["ok"] is True and got["rows"] >= 3
+
+
+async def _last_seq() -> int:
+    async with session_scope() as db:
+        return int(await db.scalar(text("SELECT max(seq) FROM audit_log")) or 0)

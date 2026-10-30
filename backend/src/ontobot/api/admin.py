@@ -20,7 +20,7 @@ from ontobot.config import app_version, get_settings
 from ontobot.db.models.chat import Trace
 from ontobot.evaluation import targets
 from ontobot.ontology import registry
-from ontobot.security import admin, audit
+from ontobot.security import admin, audit, audit_chain
 from ontobot.security.rbac import ROLE_ADMIN
 
 router = APIRouter(tags=["admin"])
@@ -401,6 +401,30 @@ async def set_group_permissions(
             )
         )
     )
+
+
+class AuditChainOut(BaseModel):
+    ok: bool
+    rows: int
+    last_seq: int
+    broken_seq: int | None
+    broken_id: int | None
+    # hash_mismatch / link_broken / gap / head_missing / unchained / tail_missing
+    reason: str | None
+
+
+@router.get("/admin/audit-chain", response_model=AuditChainOut)
+async def audit_chain_check(db: Db, me: Admin) -> AuditChainOut:
+    """감사 로그 해시 체인을 지금 검증한다(PRD 5.5). 매일 작업(``audit_verify``)도 같은 검증."""
+    report = await audit_chain.verify(db)
+    audit.record(
+        db,
+        audit.AUDIT_VIEWED,
+        actor_id=me.id,
+        target="audit_chain",
+        payload={"ok": report.ok, "reason": report.reason},
+    )
+    return AuditChainOut(**report.__dict__)
 
 
 @router.get("/audit-logs", response_model=list[AuditLogOut])
