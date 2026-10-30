@@ -81,8 +81,12 @@ class Settings(BaseSettings):
     oidc_client_secret: SecretStr = SecretStr("")  # 공개 클라이언트(PKCE 만)면 비워 둔다
     oidc_redirect_uri: str = "http://localhost:8000/api/v1/auth/callback"
     oidc_scopes: str = "openid profile email"
-    # 처음 로그인한 OIDC 사용자에게 줄 역할. 데이터 읽기 권한은 별도(type_permission)다.
+    # 처음 로그인한 OIDC 사용자에게 줄 역할. 데이터 권한은 별도(데이터 그룹)다.
     oidc_default_roles: list[str] = ["user"]
+    # 데이터 그룹 소속을 SSO 로 맞출 ID 토큰 클레임 이름(예: "groups"). 비우면 끈다 — 그룹 소속은
+    # 관리 화면에서만. 켜면 로그인마다 external_id 가 있는 그룹의 소속을 클레임 값과 정확히
+    # 맞춘다(Phase 14).
+    oidc_groups_claim: str = ""
     oidc_login_ttl_seconds: int = 600
     # 로그인 뒤 돌아갈 화면의 오리진. 운영(백엔드가 프론트를 서빙)은 비워 둔다. 개발은 Vite 주소.
     frontend_base_url: str = ""

@@ -124,14 +124,17 @@ def prepare() -> None:
     run([uv, "run", "--project", "backend", "python", "scripts/seed_domain_pack.py", "--pack", "sample"])
     run([uv, "run", "--project", "backend", "python", "scripts/graph_rebuild.py"])
     cli = [uv, "run", "python", "-m", "ontobot.security.cli"]
+    # 데이터 권한은 그룹(Phase 14) — 역할과 같은 이름의 그룹을 먼저 만들고 사용자를 넣는다.
+    for role in READ_ROLES:
+        for t in TYPES:
+            run([*cli, "grant-type", "--group", role, "--type", t, "--edit"], cwd=BACKEND)
     for username, display, roles in USERS:
         args = [*cli, "create-user", "--username", username, "--display-name", display]
         for r in roles:
             args += ["--role", r]
+            if r in READ_ROLES:
+                args += ["--group", r]
         run(args, cwd=BACKEND, extra={"ONTOBOT_NEW_PASSWORD": password})
-    for role in READ_ROLES:
-        for t in TYPES:
-            run([*cli, "grant-type", "--role", role, "--type", t], cwd=BACKEND)
     print("매뉴얼 환경 준비 완료 — API·워커를 이 환경변수로 다시 띄우세요(env 명령).")
 
 

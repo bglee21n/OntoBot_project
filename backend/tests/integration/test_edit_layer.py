@@ -13,12 +13,12 @@ import pytest
 from sqlalchemy import select
 
 from ontobot.db.models.objects import ObjectEdit, SyncConflict
-from ontobot.db.models.security import AuditLog, Role, TypePermission
+from ontobot.db.models.security import AuditLog, Role
 from ontobot.db.session import session_scope
 from ontobot.objects import edits
 from ontobot.objects.reader import CompiledQuery, existing_values, resolve, run_query
 from ontobot.sync.runner import run_mapping
-from tests.integration.conftest import MakeUser, login
+from tests.integration.conftest import MakeUser, add_group, login
 from tests.integration.test_sync_graph import Source
 
 pytestmark = [pytest.mark.integration, pytest.mark.usefixtures("source_env")]
@@ -232,8 +232,7 @@ async def _user(
         r = Role(name=role, description="테스트")
         db.add(r)
         await db.flush()
-        for t in types:
-            db.add(TypePermission(role_id=r.id, object_type=t, can_read=True))
+        await add_group(db, role, types)
         await db.commit()
     return await make_user(role, *roles)
 

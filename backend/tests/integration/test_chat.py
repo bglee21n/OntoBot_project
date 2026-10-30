@@ -18,7 +18,7 @@ from ontobot.chat import context as chat_context
 from ontobot.chat import pipeline, templates
 from ontobot.config import get_settings
 from ontobot.db.models.chat import Trace
-from ontobot.db.models.security import Role, TypePermission
+from ontobot.db.models.security import Role
 from ontobot.db.session import session_scope
 from ontobot.graph import client as graph
 from ontobot.graph.projector import statement
@@ -27,7 +27,7 @@ from ontobot.llm.config import LlmConfig
 from ontobot.llm.gateway import LLMGateway
 from ontobot.objects.store import upsert_objects
 from ontobot.ontology import importer, registry, versioning
-from tests.integration.conftest import MakeUser, login
+from tests.integration.conftest import MakeUser, add_group, login
 from tests.integration.test_pipeline import CFG, FACILITIES, SAMPLE, Script, _plan
 
 pytestmark = pytest.mark.integration
@@ -237,8 +237,7 @@ async def _reader(make_user: MakeUser, *types: str) -> tuple[str, str, int]:
         r = Role(name=role, description="테스트")
         db.add(r)
         await db.flush()
-        for t in types:
-            db.add(TypePermission(role_id=r.id, object_type=t, can_read=True))
+        await add_group(db, role, types)
         await db.commit()
     return await make_user(role)
 

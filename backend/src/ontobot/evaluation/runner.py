@@ -104,7 +104,8 @@ async def readable_for(
         return published
     if test_role in roles:
         return frozenset(roles[test_role]) & published
-    return await rbac.readable_types_for_role(db, test_role) & published
+    # 팩의 평가 역할이 아니면 같은 이름의 데이터 그룹(Phase 14 — 역할 읽기 권한이 옮겨 간 곳).
+    return await rbac.readable_types_for_group(db, test_role) & published
 
 
 def actions_for(

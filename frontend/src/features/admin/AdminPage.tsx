@@ -4,12 +4,12 @@ import { type FormEvent, useState } from "react";
 import { api } from "../../api/client";
 import type {
   AuditLogOut,
+  GroupOut,
   RoleOut,
   SystemOut,
   TargetOut,
   TraceOut,
   V1MetricsOut,
-  TypeOut,
   UserCreate,
   UserOut,
   UserPatch,
@@ -17,6 +17,7 @@ import type {
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { GroupsPanel } from "./GroupsPanel";
 
 const t = ko.admin;
 type Tab = keyof typeof t.tabs;
@@ -44,7 +45,7 @@ export function AdminPage() {
         ))}
       </nav>
       {tab === "users" && <UsersPanel />}
-      {tab === "permissions" && <PermissionsPanel />}
+      {tab === "permissions" && <GroupsPanel />}
       {tab === "audit" && <AuditPanel />}
       {tab === "trace" && <TracePanel />}
     </section>
@@ -231,6 +232,7 @@ function UsersPanel() {
             <th>{t.displayName}</th>
             <th>{t.auth}</th>
             <th>{t.roles}</th>
+            <th>{t.groupsCol}</th>
             <th>{t.status}</th>
             <th>{t.contacts}</th>
           </tr>
@@ -285,6 +287,7 @@ function UserRow({ u, allRoles, self }: { u: UserOut; allRoles: RoleOut[]; self:
         </div>
         {patch.isError && <ErrorBox error={patch.error} />}
       </td>
+      <td className="muted">{u.groups.join(", ") || "—"}</td>
       <td>
         <span className={`badge ${u.status === "active" ? "succeeded" : "failed"}`}>
           {u.status === "active" ? t.active : t.disabled}
@@ -349,11 +352,12 @@ function ContactsCell({ u }: { u: UserOut }) {
 
 function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<UserCreate>({ username: "", display_name: "", password: "", roles: ["user"] });
+  const [form, setForm] = useState<UserCreate>({ username: "", display_name: "", password: "", roles: ["user"], groups: [] });
+  const groups = useQuery({ queryKey: ["admin", "groups"], queryFn: () => api.get<GroupOut[]>("/admin/groups") });
   const create = useMutation({
     mutationFn: (body: UserCreate) => api.post<UserOut>("/admin/users", body),
     onSuccess: () => {
-      setForm({ username: "", display_name: "", password: "", roles: ["user"] });
+      setForm({ username: "", display_name: "", password: "", roles: ["user"], groups: [] });
       void qc.invalidateQueries({ queryKey: ["admin", "users"] });
     },
   });
@@ -362,6 +366,7 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
     create.mutate(form);
   };
   const roles = form.roles ?? [];
+  const picked = form.groups ?? [];
   return (
     <form className="grid-form" onSubmit={submit}>
       <label>
@@ -402,6 +407,24 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
             {r.name}
           </label>
         ))}
+      </div>
+      <div className="row span-all">
+        <span className="muted">{t.groupsCol}:</span>
+        {(groups.data ?? []).map((g) => (
+          <label key={g.id} className="check">
+            <input
+              type="checkbox"
+              checked={picked.includes(g.name)}
+              onChange={() =>
+                setForm({
+                  ...form,
+                  groups: picked.includes(g.name) ? picked.filter((x) => x !== g.name) : [...picked, g.name],
+                })
+              }
+            />
+            {g.display_name}
+          </label>
+        ))}
         <button type="submit" disabled={create.isPending}>
           {ko.common.add}
         </button>
@@ -412,74 +435,6 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
         </div>
       )}
     </form>
-  );
-}
-
-// ---------------------------------------------------------------- 역할별 읽기 권한
-
-function PermissionsPanel() {
-  const roles = useRoles();
-  const types = useQuery({
-    queryKey: ["admin", "object-types"],
-    queryFn: () => api.get<TypeOut[]>("/admin/object-types"),
-  });
-  if (roles.isError) {
-    return <ErrorBox error={roles.error} />;
-  }
-  if (!roles.data || !types.data) {
-    return <p>{ko.common.loading}</p>;
-  }
-  return (
-    <div className="stack">
-      <p className="muted">{t.permissionsHint}</p>
-      {types.data.length === 0 && <p className="notice">{t.noTypes}</p>}
-      {roles.data.map((r) => (
-        <RolePermissions key={r.id} role={r} types={types.data} />
-      ))}
-    </div>
-  );
-}
-
-function RolePermissions({ role, types }: { role: RoleOut; types: TypeOut[] }) {
-  const qc = useQueryClient();
-  const [picked, setPicked] = useState<string[]>(role.readable_types);
-  const save = useMutation({
-    mutationFn: () =>
-      api.put<RoleOut>(`/admin/roles/${role.id}/permissions`, { readable_types: picked }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin", "roles"] }),
-  });
-  // 게시본에서 빠진 타입에 남은 권한도 보여 준다 — 보이지 않으면 지울 수 없다.
-  const extra = role.readable_types.filter((x) => !types.some((ty) => ty.api_name === x));
-  const changed = [...picked].sort().join() !== [...role.readable_types].sort().join();
-  const toggle = (name: string) =>
-    setPicked((prev) => (prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]));
-  return (
-    <div className="card">
-      <div className="row">
-        <strong>{role.name}</strong>
-        <span className="muted">{role.description}</span>
-        <span className="spacer" />
-        {save.isSuccess && !changed && <span className="ok-text">{t.saved}</span>}
-        <button type="button" disabled={!changed || save.isPending} onClick={() => save.mutate()}>
-          {t.savePermissions}
-        </button>
-      </div>
-      <div className="row">
-        {types.map((ty) => (
-          <label key={ty.api_name} className="check">
-            <input type="checkbox" checked={picked.includes(ty.api_name)} onChange={() => toggle(ty.api_name)} />
-            {ty.display_name} <code>{ty.api_name}</code>
-          </label>
-        ))}
-        {extra.map((x) => (
-          <label key={x} className="check muted">
-            <input type="checkbox" checked={picked.includes(x)} onChange={() => toggle(x)} />
-            <code>{x}</code> {t.unpublished}
-          </label>
-        ))}
-      </div>
-      {save.isError && <ErrorBox error={save.error} />}
-    </div>
   );
 }
 

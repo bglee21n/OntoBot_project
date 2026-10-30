@@ -65,6 +65,7 @@ async def list_action_types(db: Db, user: User) -> list[ActionTypeView]:
     if schema is None:
         return []
     readable = await rbac.readable_types(db, user.id)
+    editable = await rbac.editable_types(db, user.id)
     out = []
     for a in schema.document.action_types:
         t = schema.document.object_type(a.target_type)
@@ -74,7 +75,8 @@ async def list_action_types(db: Db, user: User) -> list[ActionTypeView]:
             ActionTypeView(
                 **a.model_dump(),
                 target_display_name=t.display_name,
-                can_request=rbac.can_request_action(user.roles, a.requester_roles),
+                can_request=rbac.can_request_action(user.roles, a.requester_roles)
+                and t.api_name in editable,
             )
         )
     return out

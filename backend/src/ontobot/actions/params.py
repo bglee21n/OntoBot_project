@@ -38,16 +38,21 @@ _THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
 
 
 def requestable(
-    doc: OntologyDocument, readable: Set[str], roles: Set[str] | None
+    doc: OntologyDocument,
+    readable: Set[str],
+    roles: Set[str] | None,
+    editable: Set[str] | None = None,
 ) -> frozenset[str]:
-    """이 사용자가 요청할 수 있는 Action — 대상 타입을 읽을 수 있고 요청 역할을 가졌다.
+    """이 사용자가 요청할 수 있는 Action — 대상 타입을 읽고 **편집**할 수 있고 요청 역할을 가졌다.
 
-    ``roles`` 가 None 이면 역할을 따지지 않는다(평가의 기본 문항 — 모든 타입을 읽는 것과 같은 뜻).
+    ``roles``·``editable`` 이 None 이면 따지지 않는다(평가의 기본 문항 — 모든 타입을 읽는 것과
+    같은 뜻). 편집 권한은 데이터 그룹이 준다(Phase 14).
     """
     return frozenset(
         a.api_name
         for a in doc.action_types
         if a.target_type in readable
+        and (editable is None or a.target_type in editable)
         and (roles is None or rbac.can_request_action(roles, a.requester_roles))
     )
 

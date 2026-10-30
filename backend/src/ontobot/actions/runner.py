@@ -249,6 +249,9 @@ async def preview(
         raise NotFound("Action 을 찾을 수 없습니다")  # 읽을 수 없는 타입의 Action 은 없는 것과 같다
     if not rbac.can_request_action(actor.roles, a.requester_roles):
         raise Forbidden("이 Action 을 요청할 권한이 없습니다")
+    if t.api_name not in await rbac.editable_types(db, actor.id):
+        # 요청 = 대상 값을 바꾸자는 것 — 대상 타입 편집 권한(데이터 그룹)이 있어야 한다(Phase 14).
+        raise Forbidden("이 타입을 편집할 권한이 없습니다")
     plan = await _plan(db, a, t, target_pk, params, cfg)
     pv = _preview_json(plan)
     run = ActionRun(

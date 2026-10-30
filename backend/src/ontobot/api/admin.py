@@ -41,6 +41,7 @@ class UserOut(BaseModel):
     status: Literal["active", "disabled"]
     auth: Literal["local", "oidc"]
     roles: list[str]
+    groups: list[str]
     created_at: datetime
     email: str | None  # 마스킹
     phone: str | None  # 마스킹
@@ -58,6 +59,8 @@ class UserCreate(BaseModel):
     display_name: str = Field(min_length=1, max_length=128)
     password: str = Field(min_length=1, max_length=256)
     roles: list[str] = Field(default_factory=list)
+    # 데이터 그룹(Phase 14) — 역할은 화면·기능, 데이터 권한은 그룹이 준다.
+    groups: list[str] = Field(default_factory=list)
 
 
 class UserPatch(BaseModel):
@@ -69,11 +72,48 @@ class RoleOut(BaseModel):
     id: int
     name: str
     description: str | None
-    readable_types: list[str]
 
 
-class PermissionsIn(BaseModel):
-    readable_types: list[str] = Field(max_length=500)
+class TypeGrantIO(BaseModel):
+    object_type: str = Field(max_length=64)
+    can_read: bool = False
+    can_create: bool = False
+    can_edit: bool = False
+    can_delete: bool = False
+
+
+class GroupOut(BaseModel):
+    id: int
+    name: str
+    display_name: str
+    description: str | None
+    # SSO(OIDC) 그룹 클레임 값 — 있으면 로그인 때 소속을 이 값으로 맞춘다(정확 일치).
+    external_id: str | None
+    member_ids: list[int]
+    types: list[TypeGrantIO]
+    links: list[str]
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    display_name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=255)
+    external_id: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class GroupPatch(BaseModel):
+    display_name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=255)
+    external_id: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class MembersIn(BaseModel):
+    user_ids: list[int] = Field(max_length=10_000)
+
+
+class GroupPermissionsIn(BaseModel):
+    types: list[TypeGrantIO] = Field(max_length=500)
+    links: list[str] = Field(default_factory=list, max_length=500)
 
 
 class AuditLogOut(BaseModel):
@@ -123,6 +163,7 @@ async def create_user(body: UserCreate, db: Db, me: Admin) -> UserOut:
                 display_name=body.display_name,
                 password=body.password,
                 roles=body.roles,
+                groups=body.groups,
             )
         )
     )
@@ -244,19 +285,95 @@ async def object_types(_: Admin) -> list[TypeOut]:
     ]
 
 
+@router.get("/admin/link-types", response_model=list[TypeOut])
+async def link_types(_: Admin) -> list[TypeOut]:
+    """그룹 '연결' 권한 표의 열 — 게시된 버전의 링크 타입. 게시본이 없으면 빈 목록."""
+    schema = registry.current()
+    if schema is None:
+        return []
+    return [
+        TypeOut(api_name=lt.api_name, display_name=lt.display_name)
+        for lt in schema.document.link_types
+    ]
+
+
 @router.get("/admin/roles", response_model=list[RoleOut])
 async def roles(db: Db, _: Admin) -> list[RoleOut]:
     return [RoleOut.model_validate(r, from_attributes=True) for r in await admin.list_roles(db)]
 
 
-@router.put("/admin/roles/{role_id}/permissions", response_model=RoleOut)
-async def set_permissions(role_id: int, body: PermissionsIn, db: Db, me: Admin) -> RoleOut:
-    view = await _call(
-        admin.set_readable_types(
-            db, actor_id=me.id, role_id=role_id, object_types=body.readable_types
+# ---------------------------------------------------------------- 데이터 그룹(Phase 14)
+
+
+def _group(v: admin.GroupView) -> GroupOut:
+    return GroupOut.model_validate(v, from_attributes=True)
+
+
+@router.get("/admin/groups", response_model=list[GroupOut])
+async def groups(db: Db, _: Admin) -> list[GroupOut]:
+    return [_group(g) for g in await admin.list_groups(db)]
+
+
+@router.post("/admin/groups", response_model=GroupOut, status_code=201)
+async def create_group(body: GroupCreate, db: Db, me: Admin) -> GroupOut:
+    return _group(
+        await _call(
+            admin.create_group(
+                db,
+                actor_id=me.id,
+                name=body.name,
+                display_name=body.display_name,
+                description=body.description,
+                external_id=body.external_id,
+            )
         )
     )
-    return RoleOut.model_validate(view, from_attributes=True)
+
+
+@router.patch("/admin/groups/{group_id}", response_model=GroupOut)
+async def update_group(group_id: int, body: GroupPatch, db: Db, me: Admin) -> GroupOut:
+    return _group(
+        await _call(
+            admin.update_group(
+                db,
+                actor_id=me.id,
+                group_id=group_id,
+                display_name=body.display_name,
+                description=body.description,
+                external_id=body.external_id,
+            )
+        )
+    )
+
+
+@router.delete("/admin/groups/{group_id}", status_code=204)
+async def delete_group(group_id: int, db: Db, me: Admin) -> None:
+    await _call(admin.delete_group(db, actor_id=me.id, group_id=group_id))
+
+
+@router.put("/admin/groups/{group_id}/members", response_model=GroupOut)
+async def set_members(group_id: int, body: MembersIn, db: Db, me: Admin) -> GroupOut:
+    return _group(
+        await _call(
+            admin.set_members(
+                db, actor_id=me.id, group_id=group_id, user_ids=body.user_ids, via="admin"
+            )
+        )
+    )
+
+
+@router.put("/admin/groups/{group_id}/permissions", response_model=GroupOut)
+async def set_group_permissions(
+    group_id: int, body: GroupPermissionsIn, db: Db, me: Admin
+) -> GroupOut:
+    grants = [admin.TypeGrant(**t.model_dump()) for t in body.types]
+    return _group(
+        await _call(
+            admin.set_permissions(
+                db, actor_id=me.id, group_id=group_id, types=grants, links=body.links
+            )
+        )
+    )
 
 
 @router.get("/audit-logs", response_model=list[AuditLogOut])

@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.21                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.22                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -202,7 +202,7 @@ v0.13 (Phase 9 구현):
 | `user_session`      | `token_hash`(SHA-256 — 원문은 쿠키에만), `user_id`, `expires_at`, `revoked_at`, `auth_method`(local/oidc) |
 | `auth_request`      | 진행 중인 OIDC 로그인: `state_hash`, `nonce`, `code_verifier`, `return_to`(같은 사이트 상대 경로만), `expires_at` — 콜백에서 한 번만 꺼내 지운다 |
 | `role`, `user_role` |                                                                                                                             |
-| `type_permission`   | `role_id`, `object_type`, `can_read` — MVP는 타입 단위(PRD 5.5). 속성 단위는 P1                                             |
+| `data_group`·`group_member`·`group_type_permission`·`group_link_permission` | 데이터 권한(v0.22, 17.6) — 그룹 × 타입 {읽기·생성·편집·삭제}, 그룹 × 링크 {연결}, 사용자 ↔ 그룹. MVP 의 `type_permission`(역할 × 타입 읽기)은 마이그레이션 0012 에서 같은 이름의 그룹으로 옮기고 지웠다 |
 | `audit_log`         | `ts`, `actor_id`, `event`, `target`, `payload`(마스킹) — 앱 DB 계정에 **INSERT·SELECT만** 허용. 해시 체인(`prev_hash`)은 P1 |
 
 ### 6.7 평가·워크숍·작업
@@ -737,6 +737,41 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 
 **성공 지표 목표**(v0.21, 사용자 결정 — "제안값은 관리자 설정에서 관리"): 표 `ops_target(key 유일, value, updated_by, updated_at)`(마이그레이션 0011), `GET·PUT /admin/targets`(관리자, `evaluation.targets`). 행이 없으면 측정 근거가 있는 제안값(정답률 0.9·추정 비율 0.2·Action 파라미터 정확도 0.9 — 게이트 가안, P95 25초·동시 8명 — ADR-0011), 근거 없는 지표는 미정(`null`). `PUT` 의 `null` 은 설정을 지워 제안값으로, 비율은 0~1, 감사 `ops.targets_changed`. 측정값: 품질은 마지막 **녹화 재생이 아닌** 평가 실행, 조회 실패율·P95·주간 활성 사용자는 트레이스(실패율 분자는 장애성 실패 `execution_error`·`timeout`·`graph_unavailable`·`llm_unavailable`·`too_broad` 만, P95 는 단계별 지연 합의 95 백분위), Action 실행 성공률은 위 지표. **평가 게이트(`gate.yaml`)는 이 값을 읽지 않는다** — CI 에서 DB 없이 같은 기준이어야 하고 불변식을 설정으로 느슨하게 할 수 없어야 한다.
 
+### 17.6 데이터 그룹 권한 (v0.22, Phase 14a)
+
+사용자 결정(2026-10-30, 그래프 편집 제안서): **역할 = 화면·기능, 그룹 = 데이터 권한**. 진행 순서는 14a 그룹 →
+14b 속성 숨김·행 정책(읽기·쓰기) → 14c 감사 해시 체인. 속성 권한 기본값은 "타입을 읽으면 모두 보임, 지정한 것만
+숨김", 기존 권한은 역할마다 같은 이름 그룹으로 자동 이전.
+
+| 표 | 주요 컬럼 |
+| --- | --- |
+| `data_group` | `name`(유일, 소문자 식별자), `display_name`, `description`, `external_id`(유일 — SSO 그룹 클레임 값) |
+| `group_member` | `(group_id, user_id)` |
+| `group_type_permission` | `group_id`, `object_type`, `can_read`·`can_create`·`can_edit`·`can_delete` — 유일 `(group, type)` |
+| `group_link_permission` | `group_id`, `link_type`, `can_link` — 유일 `(group, link)` |
+
+- **판정**(`security.rbac`만): 소속 그룹 권한의 **합집합**(허용만, 거부 규칙 없음). `readable_types`(시그니처 그대로)·
+  `editable_types`·`readable_types_for_group`(평가 `test_role` 이 팩의 평가 역할이 아니면 같은 이름 그룹). 역할 판정
+  (`has_role`)은 API 접근 제어로 그대로.
+- **Action**: 요청 = 대상 타입 읽기 + **편집**(+ 요청 역할). 채팅 요약의 요청 가능 Action·`GET /action-types` 의
+  `can_request`·`actions.runner.preview` 가 같은 판정. 승인은 Action 의 승인 역할(+ 대상 읽기)이 정한다.
+  생성·삭제·연결은 저장만 하고 데이터 그래프 편집(Phase 15 이후)이 쓴다.
+- **이전**(마이그레이션 0012): 읽기 권한이 있던 역할마다 같은 이름 그룹, 그 역할 사용자 = 구성원, 읽던 타입 =
+  **읽기·편집**(그전에는 읽으면 Action 을 요청할 수 있었으므로 — 업그레이드 뒤 동작 같음). 내림은 그룹 읽기를 같은
+  이름 역할로 되돌린다. 평가 DB 에서 올림·내림 왕복 확인.
+- **관리**: `GET·POST /admin/groups`, `PATCH·DELETE /admin/groups/{id}`, `PUT /admin/groups/{id}/members`(교체),
+  `PUT /admin/groups/{id}/permissions`(교체 — 플래그 없는 행은 남기지 않음, 이름 형식만 검사), `GET /admin/link-types`,
+  `POST /admin/users` 의 `groups`, `UserOut.groups`. `GET /admin/roles` 는 역할만(`readable_types` 제거),
+  `PUT /admin/roles/{id}/permissions` 는 없앴다. 감사 `security.group_changed`·`group_members_changed`·
+  `permission_changed`(target `group:<name>`). 권한 변경은 세션을 폐기하지 않는다(요청마다 다시 읽는다).
+- **SSO**: 설정 `oidc_groups_claim`(기본 빈 값 = 꺼짐). 켜면 로그인마다 `external_id` 가 있는 그룹의 소속을 클레임
+  값과 **정확히** 맞춘다(없는 값은 빠지고, `external_id` 없는 그룹은 건드리지 않는다, 감사 `via: oidc`).
+- **도구**: `security.cli grant-type --group G --type T [--edit]`(그룹이 없으면 만든다, `--role` 은 같은 이름의 그룹),
+  `create-user --group G`, `seed_domain_pack.py --grant-read G|--grant-edit G`, `ontobotctl install` 은
+  `--grant-edit user --grant-edit admin` 과 관리자 `--group admin`.
+- **화면**: 관리 → **데이터 그룹** 탭(그룹 카드: 구성원 체크, 타입 × 읽기·생성·편집·삭제 표, 링크 연결, SSO ID),
+  사용자 표의 그룹 칸·계정 추가의 그룹 선택.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -819,6 +854,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |
 | v0.21 | 2026-10-30 | 성공 지표 목표를 관리자 설정으로(17.5 — `ops_target`·`/admin/targets`, 마이그레이션 0011, 측정값 출처: 평가는 재생 제외·운영은 트레이스, 게이트와 분리), 스키마 그래프 옆 패널의 Action·Function 편집 |
 | v0.20 | 2026-10-30 | Phase 13 — 17.5 v1 운영 지표(`GET /admin/metrics`, 성공률·거부율 정의, 요청자 거둠 분리), 근거 이벤트 `citations[].values`(집계·Function 행의 대조 값 — 근거 카드), Function 문제 배지 위치, `job` 기한은 DB 시계로만(간헐 실패 원인) |
 | v0.19 | 2026-10-30 | Phase 12 Function(17.4) — `FunctionDef`(인자·집계 내부 조회·식 트리·결과)를 정의 문서에, `function_type` 표(마이그레이션 0010), 게시 전 검사(연산자 표 `OPS_BY_TYPE` 를 계획 검증과 공유), 요약에 실을 조건(내부 타입 모두 읽기), 플래너 `kind: function`(`FunctionPlannerOutput` — Function 이 없으면 스키마·프롬프트 그대로), 바인드·권한(`forbidden`)·인자 ↔ 질문 두 방향 대조, 실행기 공유·실패 전파, 그룹 키 맞춤·`Decimal` 계산·서버 반올림, 근거 행(내부 조회 값·결과·입력 조건), 조건 문장, API·화면. 17절 표의 5.10 행 갱신 |

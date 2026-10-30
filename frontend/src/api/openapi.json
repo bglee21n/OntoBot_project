@@ -3038,6 +3038,188 @@
         "title": "GraphStatus",
         "type": "object"
       },
+      "GroupCreate": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "display_name"
+        ],
+        "title": "GroupCreate",
+        "type": "object"
+      },
+      "GroupOut": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "member_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Member Ids",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/TypeGrantIO"
+            },
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "display_name",
+          "description",
+          "external_id",
+          "member_ids",
+          "types",
+          "links"
+        ],
+        "title": "GroupOut",
+        "type": "object"
+      },
+      "GroupPatch": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "GroupPatch",
+        "type": "object"
+      },
+      "GroupPermissionsIn": {
+        "properties": {
+          "links": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Links",
+            "type": "array"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/TypeGrantIO"
+            },
+            "maxItems": 500,
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "types"
+        ],
+        "title": "GroupPermissionsIn",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4160,6 +4342,23 @@
         "title": "Me",
         "type": "object"
       },
+      "MembersIn": {
+        "properties": {
+          "user_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 10000,
+            "title": "User Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "title": "MembersIn",
+        "type": "object"
+      },
       "MessageMeta": {
         "properties": {
           "action": {
@@ -4659,23 +4858,6 @@
           "param"
         ],
         "title": "ParamRef",
-        "type": "object"
-      },
-      "PermissionsIn": {
-        "properties": {
-          "readable_types": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 500,
-            "title": "Readable Types",
-            "type": "array"
-          }
-        },
-        "required": [
-          "readable_types"
-        ],
-        "title": "PermissionsIn",
         "type": "object"
       },
       "PreviewChange": {
@@ -5267,20 +5449,12 @@
           "name": {
             "title": "Name",
             "type": "string"
-          },
-          "readable_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Readable Types",
-            "type": "array"
           }
         },
         "required": [
           "id",
           "name",
-          "description",
-          "readable_types"
+          "description"
         ],
         "title": "RoleOut",
         "type": "object"
@@ -6310,6 +6484,40 @@
         "title": "TurnOut",
         "type": "object"
       },
+      "TypeGrantIO": {
+        "properties": {
+          "can_create": {
+            "default": false,
+            "title": "Can Create",
+            "type": "boolean"
+          },
+          "can_delete": {
+            "default": false,
+            "title": "Can Delete",
+            "type": "boolean"
+          },
+          "can_edit": {
+            "default": false,
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_read": {
+            "default": false,
+            "title": "Can Read",
+            "type": "boolean"
+          },
+          "object_type": {
+            "maxLength": 64,
+            "title": "Object Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_type"
+        ],
+        "title": "TypeGrantIO",
+        "type": "object"
+      },
       "TypeOut": {
         "properties": {
           "api_name": {
@@ -6335,6 +6543,13 @@
             "minLength": 1,
             "title": "Display Name",
             "type": "string"
+          },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Groups",
+            "type": "array"
           },
           "password": {
             "maxLength": 256,
@@ -6393,6 +6608,13 @@
             ],
             "title": "Email"
           },
+          "groups": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -6442,6 +6664,7 @@
           "status",
           "auth",
           "roles",
+          "groups",
           "created_at",
           "email",
           "phone"
@@ -7189,6 +7412,285 @@
         ]
       }
     },
+    "/api/v1/admin/groups": {
+      "get": {
+        "operationId": "groups_api_v1_admin_groups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GroupOut"
+                  },
+                  "title": "Response Groups Api V1 Admin Groups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Groups",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_group_api_v1_admin_groups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Group",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/groups/{group_id}": {
+      "delete": {
+        "operationId": "delete_group_api_v1_admin_groups__group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Group",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_group_api_v1_admin_groups__group_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Group",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/groups/{group_id}/members": {
+      "put": {
+        "operationId": "set_members_api_v1_admin_groups__group_id__members_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembersIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Members",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/groups/{group_id}/permissions": {
+      "put": {
+        "operationId": "set_group_permissions_api_v1_admin_groups__group_id__permissions_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "group_id",
+            "required": true,
+            "schema": {
+              "title": "Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupPermissionsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Group Permissions",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/link-types": {
+      "get": {
+        "description": "그룹 '연결' 권한 표의 열 — 게시된 버전의 링크 타입. 게시본이 없으면 빈 목록.",
+        "operationId": "link_types_api_v1_admin_link_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TypeOut"
+                  },
+                  "title": "Response Link Types Api V1 Admin Link Types Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Link Types",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/metrics": {
       "get": {
         "description": "PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율, 확인되지 않은 편집 충돌.",
@@ -7281,58 +7783,6 @@
           }
         },
         "summary": "Roles",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/v1/admin/roles/{role_id}/permissions": {
-      "put": {
-        "operationId": "set_permissions_api_v1_admin_roles__role_id__permissions_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "role_id",
-            "required": true,
-            "schema": {
-              "title": "Role Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PermissionsIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Set Permissions",
         "tags": [
           "admin"
         ]

@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from pathlib import Path
 
 import asyncpg
@@ -22,10 +22,17 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from ontobot.config import get_settings
-from ontobot.db.models.security import AppUser, Role, UserRole
+from ontobot.db.models.security import (
+    AppUser,
+    DataGroup,
+    GroupMember,
+    GroupTypePermission,
+    Role,
+    UserRole,
+)
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.ontology import importer, registry, versioning
 from ontobot.security.auth import hash_password
@@ -95,6 +102,10 @@ def make_user() -> MakeUser:
             for name in roles:
                 role_id = await db.scalar(select(Role.id).where(Role.name == name))
                 db.add(UserRole(user_id=user.id, role_id=role_id))
+                # 역할과 같은 이름의 데이터 그룹이 있으면 구성원으로(마이그레이션 0012 와 같다).
+                group_id = await db.scalar(select(DataGroup.id).where(DataGroup.name == name))
+                if group_id is not None:
+                    db.add(GroupMember(group_id=group_id, user_id=user.id))
             await db.commit()
             return username, password, user.id
         raise AssertionError("unreachable")
@@ -153,3 +164,17 @@ async def source_connect() -> asyncpg.Connection:
         password=s.db_password.get_secret_value(),
         database=SOURCE_DB,
     )
+
+
+async def add_group(db: AsyncSession, name: str, types: Iterable[str], *, edit: bool = True) -> int:
+    """테스트용 데이터 그룹 — ``types`` 읽기(와 편집) 권한.
+
+    역할과 같은 이름이면 ``make_user`` 가 그 역할 사용자를 구성원으로 넣는다.
+    """
+    g = DataGroup(name=name, display_name=name)
+    db.add(g)
+    await db.flush()
+    for t in types:
+        db.add(GroupTypePermission(group_id=g.id, object_type=t, can_read=True, can_edit=edit))
+    await db.flush()
+    return g.id

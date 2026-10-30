@@ -202,7 +202,7 @@ DB·Neo4j 비밀번호는 무작위로 만들어 `/opt/ontobot/.env` 에 저장�
 | --- | --- | --- | --- | --- |
 | 1 | HTTPS 적용(권장), `app.env` 의 `ONTOBOT_DEPLOYER_URL` 을 실제 주소로 | 운영자 | 서버 설정 | 13·14절 |
 | 2 | 사용자 계정 만들기, 역할 주기 | 관리자 | 화면 '관리' | 6절 |
-| 3 | 역할별로 읽을 수 있는 데이터 종류 정하기 | 관리자 | 화면 '관리 → 역할별 읽기 권한' | 6.3 |
+| 3 | 데이터 그룹을 만들고 데이터 권한 정하기 | 관리자 | 화면 '관리 → 데이터 그룹' | 6.3 |
 | 4 | 온톨로지(데이터 설계도) 게시 | 모델러 | 화면 '온톨로지' | 사용자 매뉴얼 7장 |
 | 5 | 데이터 소스 연결·동기화 | 모델러 + 운영자 | 화면 '데이터 소스' + `app.env` | 7절 |
 | 6 | 메일·SMS 발송 설정(Action 알림을 쓸 때만) | 운영자 | `config/notify.yaml` | 8절 |
@@ -239,7 +239,7 @@ Action 의 승인·요청 권한은 역할과 별도로 **Action 정의마다** 
 **서버 명령으로(화면에 들어갈 수 없을 때, 예: 관리자 비밀번호 분실):** 관리자 PowerShell 에서
 
 ```powershell
-wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -it migrate python -m ontobot.security.cli create-user --username 홍길동 --display-name 홍길동 --role admin --role modeler"
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -it migrate python -m ontobot.security.cli create-user --username 홍길동 --display-name 홍길동 --role admin --role modeler --group admin"
 ```
 
 비밀번호를 두 번 묻습니다. 역할은 `--role` 을 여러 번 써서 여러 개 줄 수 있습니다.
@@ -250,9 +250,17 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -i
 로컬 계정을 막으려면 `ONTOBOT_LOCAL_AUTH_ENABLED=false`. 단 **배포 콘솔 로그인은 로컬 관리자 계정(비밀번호)이
 필요**하니, 배포 담당 관리자 계정 하나는 비밀번호를 남겨 두세요.
 
-### 6.3 역할별로 읽을 수 있는 데이터 정하기
+### 6.3 데이터 그룹으로 데이터 권한 정하기
 
-관리 → **역할별 읽기 권한** 탭에서 역할마다 읽을 수 있는 객체 타입(예: 시설, 조직)을 체크하고 저장합니다.
+**역할은 화면·기능, 데이터 권한은 그룹**이 줍니다. 관리 → **데이터 그룹** 탭에서 그룹을 만들고(예: 강남지사·
+안전관리팀) 구성원을 넣은 뒤, 객체 타입마다 **읽기·생성·편집·삭제** 와 링크 **연결** 을 체크해 저장합니다. 사용자의
+권한은 속한 그룹 권한의 합입니다. 자세한 화면은 사용자 매뉴얼 21장.
+
+- 업그레이드하면 예전 역할별 읽기 권한이 **같은 이름의 그룹**(구성원·읽기·편집 그대로)으로 옮겨집니다.
+- SSO 를 쓰면 `app.env` 의 `ONTOBOT_OIDC_GROUPS_CLAIM=groups`(ID 토큰의 그룹 클레임 이름)로 켜고, 그룹의 **SSO 그룹
+  ID** 칸에 클레임 값을 적습니다. 로그인할 때마다 그 그룹들의 소속을 클레임과 정확히 맞춥니다(SSO ID 가 없는 그룹은
+  건드리지 않음). 기본은 꺼짐입니다.
+- **Action 을 요청하려면 대상 타입의 '편집'** 권한이 필요합니다.
 
 - 읽을 수 없는 타입은 그 사람의 챗봇에게 **존재 자체가 보이지 않습니다.** 물어봐도 "조회 권한이 없는
   정보입니다" 또는 "질문 해석 실패"로 나옵니다.
@@ -511,7 +519,7 @@ PRD 7절의 목표 수치(정답률·P95·동시 사용자 등)는 OntoBot **관
 | 로그인이 안 됨 | 비밀번호 오류, 계정 정지 | 관리 화면에서 계정 상태 확인. 관리자 본인이면 6.2 의 명령으로 새 관리자 계정 |
 | 모든 질문이 "답변 모델에 연결하지 못해 실패" | ollama 컨테이너 문제 | 12.3 의 `restart ollama` |
 | 관계 질문만 "관계 정보를 조회할 수 없습니다" | neo4j 컨테이너 문제 | 12.3 의 `restart neo4j` 뒤 그래프 투영 패널에서 '지금 대사' |
-| 모든 질문이 "조회 권한이 없는 정보입니다" | 역할별 읽기 권한 미설정 | 6.3 대로 권한 저장 |
+| 모든 질문이 "조회 권한이 없는 정보입니다" | 데이터 그룹 미소속·읽기 권한 없음 | 6.3 대로 그룹·권한 저장 |
 | "게시된 온톨로지가 없어 조회할 수 없습니다" | 온톨로지 미게시 | 모델러가 온톨로지 게시 |
 | 답이 예전 데이터 | 동기화 실패·worker 멈춤 | 데이터 소스 화면 최근 실행, 현황의 worker 상태 |
 | 답이 매우 느림 | 사용자 몰림, GPU 미사용 | 현황의 GPU 칸이 '없음'이면 개발팀 문의(드라이버·WSL GPU) |
@@ -633,8 +641,8 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose restart api
 # 관리자 계정 새로 만들기(화면에 들어갈 수 없을 때 — 비밀번호를 묻는다)
 wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -it migrate python -m ontobot.security.cli create-user --username admin2 --display-name 관리자2 --role admin --role modeler"
 
-# 역할에 데이터 종류 읽기 권한 주기(화면 대신)
-wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm migrate python -m ontobot.security.cli grant-type --role user --type Facility"
+# 데이터 그룹에 데이터 종류 읽기 권한 주기(화면 대신 — 그룹이 없으면 만든다)
+wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm migrate python -m ontobot.security.cli grant-type --group user --type Facility"
 
 # 관계 저장소 비교·재구축(화면의 '지금 대사'·'재구축'과 같음)
 wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose run --rm -w /app migrate python scripts/graph_rebuild.py --check"

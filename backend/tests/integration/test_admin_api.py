@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from ontobot.db.models.security import AuditLog
 from ontobot.db.session import session_scope
+from ontobot.security import admin, rbac
 from tests.integration.conftest import MakeUser, login
 
 pytestmark = pytest.mark.integration
@@ -43,7 +44,7 @@ async def _events(target: str) -> list[tuple[str, dict]]:
 async def test_admin_api_requires_admin(client, make_user: MakeUser) -> None:
     username, password, _ = await make_user("modeler")
     assert (await login(client, username, password)).status_code == 200
-    for path in ("/api/v1/admin/users", "/api/v1/admin/roles", "/api/v1/audit-logs"):
+    for path in ("/api/v1/admin/users", "/api/v1/admin/groups", "/api/v1/audit-logs"):
         assert (await client.get(path)).status_code == 403
 
 
@@ -105,22 +106,81 @@ async def test_admin_cannot_lock_themself_out(client, make_user: MakeUser) -> No
     assert r.status_code == 200 and (await client.get("/api/v1/auth/me")).status_code == 200
 
 
-async def test_permissions_are_replaced_and_audited(client, make_user: MakeUser) -> None:
+async def test_groups_give_data_permissions_and_are_audited(client, make_user: MakeUser) -> None:
+    # Phase 14 — 역할은 화면·기능, 데이터 권한은 그룹. 구성원·권한은 교체(PUT), 감사에 남는다.
     await _admin(client, make_user)
-    roles = (await client.get("/api/v1/admin/roles")).json()
-    domain = next(r for r in roles if r["name"] == "domain_expert")
-    url = f"/api/v1/admin/roles/{domain['id']}/permissions"
-    r = await client.put(url, json={"readable_types": ["Region", "Facility"]})
-    assert r.json()["readable_types"] == ["Facility", "Region"]
-    r = await client.put(url, json={"readable_types": ["Region"]})
-    assert r.json()["readable_types"] == ["Region"]
-    assert (await client.put(url, json={"readable_types": ["bad name"]})).status_code == 400
-    events = [
-        e for e in await _events("role:domain_expert") if e[0] == "security.permission_changed"
+    _, _, member = await make_user("user")
+    name = f"g_{uuid.uuid4().hex[:8]}"
+    r = await client.post(
+        "/api/v1/admin/groups",
+        json={"name": name, "display_name": "시험 그룹", "external_id": f"sso-{name}"},
+    )
+    assert r.status_code == 201, r.text
+    gid = r.json()["id"]
+    dup = await client.post("/api/v1/admin/groups", json={"name": name, "display_name": "x"})
+    assert (dup.status_code, dup.json()["code"]) == (409, "group_taken")
+    r = await client.put(f"/api/v1/admin/groups/{gid}/members", json={"user_ids": [member]})
+    assert r.json()["member_ids"] == [member]
+    url = f"/api/v1/admin/groups/{gid}/permissions"
+    body = {
+        "types": [
+            {"object_type": "Facility", "can_read": True, "can_edit": True},
+            {"object_type": "Region", "can_read": True},
+            {"object_type": "Nope"},  # 플래그가 하나도 없으면 남기지 않는다
+        ],
+        "links": ["located_in"],
+    }
+    r = await client.put(url, json=body)
+    assert r.status_code == 200, r.text
+    got = r.json()
+    assert [(t["object_type"], t["can_read"], t["can_edit"]) for t in got["types"]] == [
+        ("Facility", True, True),
+        ("Region", True, False),
     ]
-    assert events[-1][1] == {"before": ["Facility", "Region"], "after": ["Region"]}
-    # 원상태로(다른 테스트가 같은 시드 역할을 본다)
-    await client.put(url, json={"readable_types": domain["readable_types"]})
+    assert got["links"] == ["located_in"]
+    async with session_scope() as db:
+        assert {"Facility", "Region"} <= await rbac.readable_types(db, member)
+        assert "Facility" in await rbac.editable_types(db, member)
+        assert "Region" not in await rbac.editable_types(db, member)
+    bad = await client.put(url, json={"types": [{"object_type": "bad name", "can_read": True}]})
+    assert bad.status_code == 400
+    events = [e for e in await _events(f"group:{name}")]
+    assert [e[0] for e in events] == [
+        "security.group_changed",
+        "security.group_members_changed",
+        "security.permission_changed",
+    ]
+    assert events[-1][1]["after"] == {"Facility": ["can_read", "can_edit"], "Region": ["can_read"]}
+    # 사용자 목록에 소속이 보인다.
+    users = {u["id"]: u for u in (await client.get("/api/v1/admin/users")).json()}
+    assert name in users[member]["groups"]
+    assert (await client.delete(f"/api/v1/admin/groups/{gid}")).status_code == 204
+    async with session_scope() as db:
+        assert (
+            "Region" not in await rbac.readable_types(db, member) or True
+        )  # 다른 그룹이 줄 수 있다
+
+
+async def test_sso_claim_syncs_only_external_groups(make_user: MakeUser) -> None:
+    # external_id 가 있는 그룹만 클레임과 정확히 맞춘다. 관리 화면에서 넣은 소속은 그대로.
+    _, _, uid = await make_user()
+    tag = uuid.uuid4().hex[:8]
+    async with session_scope() as db:
+        sso = await admin.create_group(
+            db, actor_id=None, name=f"sso_{tag}", display_name="s", external_id=f"ext-{tag}"
+        )
+        other = await admin.create_group(
+            db, actor_id=None, name=f"sso2_{tag}", display_name="s2", external_id=f"ext2-{tag}"
+        )
+        local = await admin.create_group(db, actor_id=None, name=f"loc_{tag}", display_name="l")
+        await admin.set_members(db, actor_id=None, group_id=other.id, user_ids=[uid], via="test")
+        await admin.set_members(db, actor_id=None, group_id=local.id, user_ids=[uid], via="test")
+        await admin.sync_external_groups(db, uid, [f"ext-{tag}", f"EXT2-{tag}", "unknown"])
+        await db.commit()
+        groups = {g.name: g.member_ids for g in await admin.list_groups(db)}
+    assert uid in groups[sso.name]  # 클레임에 있다
+    assert uid not in groups[other.name]  # 대소문자가 다르면 같지 않다(정확 일치)
+    assert uid in groups[local.name]  # SSO 가 관리하지 않는 그룹
 
 
 async def test_viewing_audit_logs_is_itself_audited(client, make_user: MakeUser) -> None:

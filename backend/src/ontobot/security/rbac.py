@@ -1,20 +1,28 @@
 """권한 판정 — 권한을 계산하는 코드는 이 파일에만 둔다(TRD 16.3-6).
 
-MVP는 타입 단위 읽기 권한이다(PRD 5.5). 판정 지점 셋(플래너 컨텍스트·검증기·실행기, TRD 9.1)이
-모두 ``readable_types`` 의 결과를 받아 쓴다 — 각자 계산하면 조용히 갈라진다.
+데이터 권한은 **데이터 그룹**이 준다(Phase 14 — 역할은 화면·기능, 그룹은 데이터).
+사용자의 권한은 소속 그룹 권한의 합집합이다. 판정 지점 셋(플래너 컨텍스트·검증기·실행기,
+TRD 9.1)이 모두 ``readable_types`` 의 결과를 받아 쓴다 — 각자 계산하면 조용히 갈라진다.
 
-역할 판정(``has_role``)은 API 접근 제어용이고, 데이터 읽기 권한과는 다른 축이다.
-관리자라도 ``type_permission`` 이 없으면 객체를 읽지 못한다.
+역할 판정(``has_role``)은 API 접근 제어용이고, 데이터 권한과는 다른 축이다.
+관리자라도 그룹 권한이 없으면 객체를 읽지 못한다.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ontobot.db.models.security import Role, TypePermission, UserRole
+from ontobot.db.models.security import (
+    DataGroup,
+    GroupMember,
+    GroupTypePermission,
+    Role,
+    UserRole,
+)
 
 # 역할 이름의 정본은 마이그레이션 0001 의 시드다. 코드는 이 상수로만 비교한다.
 ROLE_USER = "user"
@@ -41,23 +49,43 @@ def has_role(roles: Iterable[str], *required: str) -> bool:
 
 
 async def readable_types(db: AsyncSession, user_id: int) -> frozenset[str]:
-    rows = await db.scalars(
-        select(TypePermission.object_type)
-        .join(UserRole, UserRole.role_id == TypePermission.role_id)
-        .where(UserRole.user_id == user_id, TypePermission.can_read.is_(True))
+    """읽을 수 있는 객체 타입 — 소속 데이터 그룹 읽기 권한의 합집합(Phase 14)."""
+    return await _types_with(db, GroupTypePermission.can_read, user_id=user_id)
+
+
+async def editable_types(db: AsyncSession, user_id: int) -> frozenset[str]:
+    """편집할 수 있는 객체 타입.
+
+    Action(편집 레이어)을 요청하려면 대상 타입을 읽고 **편집**할 수 있어야 한다.
+    """
+    return await _types_with(db, GroupTypePermission.can_edit, user_id=user_id)
+
+
+async def readable_types_for_group(db: AsyncSession, group: str) -> frozenset[str]:
+    """그룹 하나의 읽기 권한.
+
+    평가 문항의 ``test_role`` 이 팩의 평가 역할이 아니면 같은 이름의 데이터 그룹으로 파이프라인을
+    돌린다(TRD 13.1). 역할 읽기 권한은 마이그레이션 0012 에서 같은 이름의 그룹으로 옮겼다.
+    """
+    return await _types_with(db, GroupTypePermission.can_read, group=group)
+
+
+async def _types_with(
+    db: AsyncSession, flag: Any, *, user_id: int | None = None, group: str | None = None
+) -> frozenset[str]:
+    q = (
+        select(GroupTypePermission.object_type)
+        .join(DataGroup, DataGroup.id == GroupTypePermission.group_id)
+        .where(flag.is_(True))
         .distinct()
     )
-    return frozenset(rows)
-
-
-async def readable_types_for_role(db: AsyncSession, role: str) -> frozenset[str]:
-    """역할 하나의 읽기 권한 — 평가 문항의 ``test_role`` 로 파이프라인을 돌릴 때 쓴다(TRD 13.1)."""
-    rows = await db.scalars(
-        select(TypePermission.object_type)
-        .join(Role, Role.id == TypePermission.role_id)
-        .where(Role.name == role, TypePermission.can_read.is_(True))
-    )
-    return frozenset(rows)
+    if user_id is not None:
+        q = q.join(GroupMember, GroupMember.group_id == DataGroup.id).where(
+            GroupMember.user_id == user_id
+        )
+    if group is not None:
+        q = q.where(DataGroup.name == group)
+    return frozenset(await db.scalars(q))
 
 
 # ---------------------------------------------------------------- Action(PRD 5.3, TRD 17.1)

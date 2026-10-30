@@ -45,15 +45,63 @@ class UserRole(Base):
     )
 
 
-class TypePermission(IdMixin, Base):
-    """MVP는 타입 단위 읽기 권한만 둔다(PRD 5.5). 속성·행 단위는 P1."""
+class DataGroup(IdMixin, Base):
+    """데이터 권한 그룹(Phase 14) — 역할은 화면·기능, 그룹은 데이터 권한이다.
 
-    __tablename__ = "type_permission"
-    __table_args__ = (Index("uq_type_permission_role_type", "role_id", "object_type", unique=True),)
+    사용자의 데이터 권한은 소속 그룹 권한의 **합집합**이다(허용만, 거부 규칙 없음).
+    ``external_id`` 가 있으면 SSO(OIDC) 그룹 클레임과 **정확히** 같은 값으로 소속을 맞춘다
+    (설정 ``oidc_groups_claim``).
+    """
 
-    role_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("role.id", ondelete="CASCADE"))
+    __tablename__ = "data_group"
+
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    display_name: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str | None] = mapped_column(String(255))
+    external_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+
+
+class GroupMember(Base):
+    __tablename__ = "group_member"
+
+    group_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("data_group.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("app_user.id", ondelete="CASCADE"), primary_key=True
+    )
+
+
+class GroupTypePermission(IdMixin, Base):
+    """그룹 × 객체 타입 — 읽기·생성·편집·삭제. 판정은 ``security.rbac`` 에서만 한다.
+
+    편집은 Action(편집 레이어)이 쓰고, 생성·삭제는 데이터 그래프 편집(Phase 15 이후)이 쓴다.
+    """
+
+    __tablename__ = "group_type_permission"
+    __table_args__ = (Index("uq_group_type_permission", "group_id", "object_type", unique=True),)
+
+    group_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("data_group.id", ondelete="CASCADE")
+    )
     object_type: Mapped[str] = mapped_column(String(64))
-    can_read: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    can_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    can_create: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    can_edit: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    can_delete: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
+
+class GroupLinkPermission(IdMixin, Base):
+    """그룹 × 링크 타입 — 연결(링크를 만들고 끊기). 데이터 그래프 편집(Phase 15 이후)이 쓴다."""
+
+    __tablename__ = "group_link_permission"
+    __table_args__ = (Index("uq_group_link_permission", "group_id", "link_type", unique=True),)
+
+    group_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("data_group.id", ondelete="CASCADE")
+    )
+    link_type: Mapped[str] = mapped_column(String(64))
+    can_link: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class UserSession(IdMixin, Base):

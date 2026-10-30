@@ -15,13 +15,13 @@ from typing import Any
 
 import httpx
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from ontobot.actions import runner
 from ontobot.api import actions as actions_api
 from ontobot.db.models.actions import ActionRun, Notification, NotificationDelivery
 from ontobot.db.models.jobs import Job
-from ontobot.db.models.security import AppUser, AuditLog, Role, TypePermission
+from ontobot.db.models.security import AppUser, AuditLog, DataGroup, GroupTypePermission, Role
 from ontobot.db.session import session_scope
 from ontobot.notify import channels, delivery
 from ontobot.notify.config import NotifyConfig
@@ -29,7 +29,7 @@ from ontobot.objects.reader import resolve
 from ontobot.objects.store import upsert_objects
 from ontobot.ontology import registry
 from ontobot.ontology.models import ActionTypeDef
-from tests.integration.conftest import MakeUser, login
+from tests.integration.conftest import MakeUser, add_group, login
 
 pytestmark = [pytest.mark.integration, pytest.mark.usefixtures("source_env")]
 
@@ -95,7 +95,7 @@ class World:
                 r = Role(name=name, description="테스트")
                 db.add(r)
                 await db.flush()
-                db.add(TypePermission(role_id=r.id, object_type="Facility", can_read=True))
+                await add_group(db, name, ["Facility"])
             await upsert_objects(
                 db,
                 "Facility",
@@ -310,6 +310,33 @@ async def test_who_may_request_approve_and_reject(tmp_path, make_user, install) 
                 request_id=uuid.uuid4().hex,
                 cfg=w.cfg,
             )
+
+    # 요청 역할이 있어도 대상 타입 편집 권한(데이터 그룹)이 없으면 요청할 수 없다(Phase 14).
+    async with session_scope() as db:
+        gid = await db.scalar(select(DataGroup.id).where(DataGroup.name == w.requester_role))
+        await db.execute(
+            update(GroupTypePermission)
+            .where(GroupTypePermission.group_id == gid)
+            .values(can_edit=False)
+        )
+        await db.commit()
+    async with session_scope() as db:
+        with pytest.raises(runner.Forbidden, match="편집할 권한"):
+            await runner.preview(
+                db,
+                w.requester,
+                action=w.action,
+                target_pk=w.pk,
+                params={"grade": 4},
+                request_id=uuid.uuid4().hex,
+                cfg=w.cfg,
+            )
+        await db.execute(
+            update(GroupTypePermission)
+            .where(GroupTypePermission.group_id == gid)
+            .values(can_edit=True)
+        )
+        await db.commit()
 
     run = await _preview(w)
     async with session_scope() as db:

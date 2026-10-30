@@ -134,7 +134,12 @@ async def _answer(
                 )
                 llm = LLMGateway(load_llm_config(settings.llm_config_path))
                 actions = (
-                    action_params.requestable(schema.document, readable, user.roles)
+                    action_params.requestable(
+                        schema.document,
+                        readable,
+                        user.roles,
+                        await rbac.editable_types(db, user.id),
+                    )
                     if schema is not None
                     else frozenset()
                 )

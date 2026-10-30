@@ -1,4 +1,4 @@
-"""관리 기능의 업무 규칙(TRD 14.1 관리 묶음) — 사용자·역할·타입 권한·감사 로그 조회.
+"""관리 기능의 업무 규칙(TRD 14.1 관리 묶음) — 사용자·역할·데이터 그룹·감사 로그 조회.
 
 라우터(``api/admin.py``)는 검증과 위임만 한다. 여기 규칙:
 
@@ -8,20 +8,32 @@
 - 계정 정지·역할 변경은 그 사용자의 세션을 폐기한다. 역할은 요청마다 다시 읽지만, 정지된 계정이
   열어 둔 세션이 남아 있으면 안 된다.
 - 감사 로그 조회도 감사 대상이다(TRD 9.3).
+- 데이터 권한은 **그룹**이 준다(Phase 14). 그룹 권한·구성원을 바꿔도 세션은 그대로다 — 권한은
+  요청마다 다시 읽는다. SSO 가 관리하는 소속(``external_id`` 가 있는 그룹)은 로그인 때 클레임으로
+  다시 맞춘다.
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ontobot.db.models.security import AppUser, AuditLog, Role, TypePermission, UserRole
-from ontobot.ontology.models import IDENT_TYPE_RE
+from ontobot.db.models.security import (
+    AppUser,
+    AuditLog,
+    DataGroup,
+    GroupLinkPermission,
+    GroupMember,
+    GroupTypePermission,
+    Role,
+    UserRole,
+)
+from ontobot.ontology.models import IDENT_MEMBER_RE, IDENT_TYPE_RE
 from ontobot.security import audit
 from ontobot.security.auth import hash_password, revoke_user_sessions
 from ontobot.security.pii import mask_contact
@@ -44,6 +56,7 @@ class UserView:
     auth: str  # local / oidc
     roles: list[str]
     created_at: datetime
+    groups: list[str] = field(default_factory=list)
     # Action 알림 연락처 — 화면에는 마스킹해서만 낸다(PII).
     email: str | None = None
     phone: str | None = None
@@ -59,6 +72,16 @@ async def _roles_of(db: AsyncSession, user_id: int) -> list[str]:
     return list(rows)
 
 
+async def _groups_of(db: AsyncSession, user_id: int) -> list[str]:
+    rows = await db.scalars(
+        select(DataGroup.name)
+        .join(GroupMember, GroupMember.group_id == DataGroup.id)
+        .where(GroupMember.user_id == user_id)
+        .order_by(DataGroup.name)
+    )
+    return list(rows)
+
+
 async def _view(db: AsyncSession, u: AppUser) -> UserView:
     return UserView(
         id=u.id,
@@ -68,6 +91,7 @@ async def _view(db: AsyncSession, u: AppUser) -> UserView:
         auth="oidc" if u.oidc_sub else "local",
         roles=await _roles_of(db, u.id),
         created_at=u.created_at,
+        groups=await _groups_of(db, u.id),
         email=mask_contact(u.email) if u.email else None,
         phone=mask_contact(u.phone) if u.phone else None,
     )
@@ -126,6 +150,7 @@ async def create_local_user(
     display_name: str,
     password: str,
     roles: Sequence[str],
+    groups: Sequence[str] = (),
 ) -> UserView:
     if await db.scalar(select(AppUser.id).where(AppUser.username == username)):
         raise AdminError("이미 있는 사용자 이름입니다", code="username_taken", status=409)
@@ -134,17 +159,25 @@ async def create_local_user(
     except ValueError as e:
         raise AdminError(str(e), code="weak_password") from e
     ids = await _role_ids(db, roles)
+    group_ids = await _group_ids(db, groups)
     user = AppUser(username=username, display_name=display_name, password_hash=password_hash)
     db.add(user)
     await db.flush()
     for rid in ids.values():
         db.add(UserRole(user_id=user.id, role_id=rid))
+    for gid in group_ids.values():
+        db.add(GroupMember(group_id=gid, user_id=user.id))
     audit.record(
         db,
         audit.USER_CREATED,
         actor_id=actor_id,
         target=f"app_user:{user.id}",
-        payload={"username": username, "roles": sorted(roles), "via": "admin"},
+        payload={
+            "username": username,
+            "roles": sorted(roles),
+            "groups": sorted(groups),
+            "via": "admin",
+        },
     )
     await db.flush()
     return await _view(db, user)
@@ -199,59 +232,351 @@ async def update_user(
 
 @dataclass(frozen=True)
 class RoleView:
+    """역할 — 화면·기능 권한. 데이터 권한은 그룹이 준다(``GroupView``)."""
+
     id: int
     name: str
     description: str | None
-    readable_types: list[str]
 
 
 async def list_roles(db: AsyncSession) -> list[RoleView]:
-    roles = list(await db.scalars(select(Role).order_by(Role.id)))
-    perms = await db.execute(
-        select(TypePermission.role_id, TypePermission.object_type).where(
-            TypePermission.can_read.is_(True)
-        )
+    roles = await db.scalars(select(Role).order_by(Role.id))
+    return [RoleView(r.id, r.name, r.description) for r in roles]
+
+
+# ---------------------------------------------------------------- 데이터 그룹(Phase 14)
+
+TYPE_FLAGS = ("can_read", "can_create", "can_edit", "can_delete")
+
+
+@dataclass(frozen=True)
+class TypeGrant:
+    object_type: str
+    can_read: bool = False
+    can_create: bool = False
+    can_edit: bool = False
+    can_delete: bool = False
+
+    def flags(self) -> list[str]:
+        return [f for f in TYPE_FLAGS if getattr(self, f)]
+
+
+@dataclass(frozen=True)
+class GroupView:
+    id: int
+    name: str
+    display_name: str
+    description: str | None
+    external_id: str | None
+    member_ids: list[int]
+    types: list[TypeGrant]
+    links: list[str]  # 연결할 수 있는 링크 타입
+
+
+async def _group_ids(db: AsyncSession, names: Sequence[str]) -> dict[str, int]:
+    rows = await db.execute(
+        select(DataGroup.name, DataGroup.id).where(DataGroup.name.in_(list(names)))
     )
-    by_role: dict[int, list[str]] = {}
-    for p in perms:
-        by_role.setdefault(p.role_id, []).append(p.object_type)
-    return [RoleView(r.id, r.name, r.description, sorted(by_role.get(r.id, []))) for r in roles]
+    found = {r.name: r.id for r in rows}
+    unknown = sorted(set(names) - found.keys())
+    if unknown:
+        raise AdminError(f"알 수 없는 그룹: {', '.join(unknown)}", code="unknown_group")
+    return found
 
 
-async def set_readable_types(
-    db: AsyncSession, *, actor_id: int | None, role_id: int, object_types: Sequence[str]
-) -> RoleView:
-    """역할의 읽기 권한을 주어진 타입 집합으로 **바꾼다**(더하기가 아니라 교체).
+async def _group(db: AsyncSession, group_id: int) -> DataGroup:
+    g = await db.get(DataGroup, group_id)
+    if g is None:
+        raise AdminError("그룹을 찾을 수 없습니다", code="group_not_found", status=404)
+    return g
 
-    ``actor_id`` 가 None 이면 설치·시드 스크립트가 바꾼 것이다(감사 로그에 행위자 없이 남는다).
+
+async def _group_view(db: AsyncSession, g: DataGroup) -> GroupView:
+    members = await db.scalars(
+        select(GroupMember.user_id)
+        .where(GroupMember.group_id == g.id)
+        .order_by(GroupMember.user_id)
+    )
+    types = await db.scalars(
+        select(GroupTypePermission)
+        .where(GroupTypePermission.group_id == g.id)
+        .order_by(GroupTypePermission.object_type)
+    )
+    links = await db.scalars(
+        select(GroupLinkPermission.link_type)
+        .where(GroupLinkPermission.group_id == g.id, GroupLinkPermission.can_link.is_(True))
+        .order_by(GroupLinkPermission.link_type)
+    )
+    grants = [
+        TypeGrant(t.object_type, t.can_read, t.can_create, t.can_edit, t.can_delete) for t in types
+    ]
+    return GroupView(
+        g.id,
+        g.name,
+        g.display_name,
+        g.description,
+        g.external_id,
+        list(members),
+        [x for x in grants if x.flags()],
+        list(links),
+    )
+
+
+async def list_groups(db: AsyncSession) -> list[GroupView]:
+    return [
+        await _group_view(db, g)
+        for g in await db.scalars(select(DataGroup).order_by(DataGroup.name))
+    ]
+
+
+async def create_group(
+    db: AsyncSession,
+    *,
+    actor_id: int | None,
+    name: str,
+    display_name: str,
+    description: str | None = None,
+    external_id: str | None = None,
+) -> GroupView:
+    if not IDENT_MEMBER_RE.match(name):
+        raise AdminError(
+            "그룹 이름은 영문 소문자로 시작하는 a-z0-9_ 입니다", code="invalid_group_name"
+        )
+    if await db.scalar(select(DataGroup.id).where(DataGroup.name == name)):
+        raise AdminError("이미 있는 그룹 이름입니다", code="group_taken", status=409)
+    await _check_external_id(db, external_id, None)
+    g = DataGroup(
+        name=name, display_name=display_name, description=description, external_id=external_id
+    )
+    db.add(g)
+    await db.flush()
+    audit.record(
+        db,
+        audit.GROUP_CHANGED,
+        actor_id=actor_id,
+        target=f"group:{name}",
+        payload={"op": "create", "display_name": display_name, "external_id": external_id},
+    )
+    return await _group_view(db, g)
+
+
+async def _check_external_id(
+    db: AsyncSession, external_id: str | None, group_id: int | None
+) -> None:
+    if external_id is None:
+        return
+    other = await db.scalar(select(DataGroup.id).where(DataGroup.external_id == external_id))
+    if other is not None and other != group_id:
+        raise AdminError(
+            "다른 그룹이 같은 SSO 그룹 ID 를 씁니다", code="external_id_taken", status=409
+        )
+
+
+async def update_group(
+    db: AsyncSession,
+    *,
+    actor_id: int,
+    group_id: int,
+    display_name: str,
+    description: str | None,
+    external_id: str | None,
+) -> GroupView:
+    g = await _group(db, group_id)
+    await _check_external_id(db, external_id, g.id)
+    before = {"display_name": g.display_name, "external_id": g.external_id}
+    g.display_name, g.description, g.external_id = display_name, description, external_id
+    await db.flush()
+    audit.record(
+        db,
+        audit.GROUP_CHANGED,
+        actor_id=actor_id,
+        target=f"group:{g.name}",
+        payload={
+            "op": "update",
+            "before": before,
+            "after": {"display_name": display_name, "external_id": external_id},
+        },
+    )
+    return await _group_view(db, g)
+
+
+async def delete_group(db: AsyncSession, *, actor_id: int, group_id: int) -> None:
+    g = await _group(db, group_id)
+    view = await _group_view(db, g)
+    await db.delete(g)
+    await db.flush()
+    audit.record(
+        db,
+        audit.GROUP_CHANGED,
+        actor_id=actor_id,
+        target=f"group:{g.name}",
+        payload={
+            "op": "delete",
+            "members": view.member_ids,
+            "types": {t.object_type: t.flags() for t in view.types},
+        },
+    )
+
+
+async def set_members(
+    db: AsyncSession, *, actor_id: int | None, group_id: int, user_ids: Sequence[int], via: str
+) -> GroupView:
+    """구성원을 주어진 사용자 집합으로 **바꾼다**(교체)."""
+    g = await _group(db, group_id)
+    wanted = set(user_ids)
+    known = set(await db.scalars(select(AppUser.id).where(AppUser.id.in_(list(wanted)))))
+    if wanted - known:
+        raise AdminError(f"알 수 없는 사용자: {sorted(wanted - known)}", code="user_not_found")
+    current = set(await db.scalars(select(GroupMember.user_id).where(GroupMember.group_id == g.id)))
+    if current != wanted:
+        await db.execute(
+            delete(GroupMember).where(
+                GroupMember.group_id == g.id, GroupMember.user_id.in_(list(current - wanted))
+            )
+        )
+        for uid in sorted(wanted - current):
+            db.add(GroupMember(group_id=g.id, user_id=uid))
+        await db.flush()
+        audit.record(
+            db,
+            audit.GROUP_MEMBERS_CHANGED,
+            actor_id=actor_id,
+            target=f"group:{g.name}",
+            payload={
+                "added": sorted(wanted - current),
+                "removed": sorted(current - wanted),
+                "via": via,
+            },
+        )
+    return await _group_view(db, g)
+
+
+async def set_permissions(
+    db: AsyncSession,
+    *,
+    actor_id: int | None,
+    group_id: int,
+    types: Sequence[TypeGrant],
+    links: Sequence[str],
+) -> GroupView:
+    """그룹의 타입·링크 권한을 주어진 것으로 **바꾼다**(교체).
+
+    이름 형식만 보고, 게시본에 없는 이름도 받는다 — 권한은 스키마 버전과 따로 산다(게시 전 draft 의
+    타입에 미리 줄 수 있다).
     """
-    role = await db.get(Role, role_id)
-    if role is None:
-        raise AdminError("역할을 찾을 수 없습니다", code="role_not_found", status=404)
-    bad = [t for t in object_types if not IDENT_TYPE_RE.match(t)]
+    g = await _group(db, group_id)
+    bad = [t.object_type for t in types if not IDENT_TYPE_RE.match(t.object_type)]
+    bad += [lk for lk in links if not IDENT_MEMBER_RE.match(lk)]
     if bad:
-        raise AdminError(f"타입 이름 형식이 아닙니다: {bad}", code="invalid_type")
-    current = {
-        p.object_type: p
-        for p in await db.scalars(select(TypePermission).where(TypePermission.role_id == role_id))
-    }
-    before = sorted(t for t, p in current.items() if p.can_read)
-    after = sorted(set(object_types))
-    if before != after:
-        for t, p in current.items():
-            p.can_read = t in after
-        for t in after:
-            if t not in current:
-                db.add(TypePermission(role_id=role_id, object_type=t, can_read=True))
+        raise AdminError(f"이름 형식이 아닙니다: {bad}", code="invalid_type")
+    before = await _group_view(db, g)
+    await db.execute(delete(GroupTypePermission).where(GroupTypePermission.group_id == g.id))
+    await db.execute(delete(GroupLinkPermission).where(GroupLinkPermission.group_id == g.id))
+    for t in {x.object_type: x for x in types}.values():
+        if t.flags():
+            db.add(
+                GroupTypePermission(
+                    group_id=g.id,
+                    object_type=t.object_type,
+                    can_read=t.can_read,
+                    can_create=t.can_create,
+                    can_edit=t.can_edit,
+                    can_delete=t.can_delete,
+                )
+            )
+    for lk in sorted(set(links)):
+        db.add(GroupLinkPermission(group_id=g.id, link_type=lk, can_link=True))
+    await db.flush()
+    after = await _group_view(db, g)
+    if (before.types, before.links) != (after.types, after.links):
         audit.record(
             db,
             audit.PERMISSION_CHANGED,
             actor_id=actor_id,
-            target=f"role:{role.name}",
-            payload={"before": before, "after": after},
+            target=f"group:{g.name}",
+            payload={
+                "before": {t.object_type: t.flags() for t in before.types},
+                "after": {t.object_type: t.flags() for t in after.types},
+                "links_before": before.links,
+                "links_after": after.links,
+            },
         )
+    return after
+
+
+async def grant_read(
+    db: AsyncSession, group_name: str, object_type: str, *, via: str, edit: bool = False
+) -> None:
+    """설치·시드 스크립트용 — 그룹이 없으면 만들고 그 타입 읽기 권한을 더한다(있던 권한 유지)."""
+    gid = await db.scalar(select(DataGroup.id).where(DataGroup.name == group_name))
+    if gid is None:
+        gid = (await create_group(db, actor_id=None, name=group_name, display_name=group_name)).id
+    g = await _group(db, gid)
+    row = await db.scalar(
+        select(GroupTypePermission).where(
+            GroupTypePermission.group_id == g.id, GroupTypePermission.object_type == object_type
+        )
+    )
+    if row is None:
+        db.add(
+            GroupTypePermission(
+                group_id=g.id, object_type=object_type, can_read=True, can_edit=edit
+            )
+        )
+    elif not row.can_read or (edit and not row.can_edit):
+        row.can_read = True
+        row.can_edit = row.can_edit or edit
+    else:
+        return
+    await db.flush()
+    audit.record(
+        db,
+        audit.PERMISSION_CHANGED,
+        actor_id=None,
+        target=f"group:{group_name}",
+        payload={"object_type": object_type, "can_read": True, "can_edit": edit, "via": via},
+    )
+
+
+async def sync_external_groups(db: AsyncSession, user_id: int, claim: Sequence[str]) -> None:
+    """SSO 로그인 — ``external_id`` 가 있는 그룹의 소속을 클레임 값과 **정확히** 맞춘다.
+
+    ``external_id`` 가 없는 그룹(관리 화면에서 직접 넣은 소속)은 건드리지 않는다.
+    """
+    wanted = set(claim)
+    managed = {
+        g.id: g
+        for g in await db.scalars(select(DataGroup).where(DataGroup.external_id.is_not(None)))
+    }
+    current = set(
+        await db.scalars(
+            select(GroupMember.group_id).where(
+                GroupMember.user_id == user_id, GroupMember.group_id.in_(list(managed))
+            )
+        )
+    )
+    should = {gid for gid, g in managed.items() if g.external_id in wanted}
+    for gid in should - current:
+        db.add(GroupMember(group_id=gid, user_id=user_id))
+    if current - should:
+        await db.execute(
+            delete(GroupMember).where(
+                GroupMember.user_id == user_id, GroupMember.group_id.in_(list(current - should))
+            )
+        )
+    if should != current:
         await db.flush()
-    return RoleView(role.id, role.name, role.description, after)
+        audit.record(
+            db,
+            audit.GROUP_MEMBERS_CHANGED,
+            actor_id=user_id,
+            target=f"app_user:{user_id}",
+            payload={
+                "added": sorted(managed[g].name for g in should - current),
+                "removed": sorted(managed[g].name for g in current - should),
+                "via": "oidc",
+            },
+        )
 
 
 async def audit_logs(

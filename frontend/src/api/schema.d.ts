@@ -138,6 +138,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Groups */
+        get: operations["groups_api_v1_admin_groups_get"];
+        put?: never;
+        /** Create Group */
+        post: operations["create_group_api_v1_admin_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Group */
+        delete: operations["delete_group_api_v1_admin_groups__group_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Group */
+        patch: operations["update_group_api_v1_admin_groups__group_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/groups/{group_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Members */
+        put: operations["set_members_api_v1_admin_groups__group_id__members_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/groups/{group_id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Group Permissions */
+        put: operations["set_group_permissions_api_v1_admin_groups__group_id__permissions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/link-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Link Types
+         * @description 그룹 '연결' 권한 표의 열 — 게시된 버전의 링크 타입. 게시본이 없으면 빈 목록.
+         */
+        get: operations["link_types_api_v1_admin_link_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/metrics": {
         parameters: {
             query?: never;
@@ -188,23 +278,6 @@ export interface paths {
         /** Roles */
         get: operations["roles_api_v1_admin_roles_get"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/roles/{role_id}/permissions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Set Permissions */
-        put: operations["set_permissions_api_v1_admin_roles__role_id__permissions_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2378,6 +2451,52 @@ export interface components {
             /** Projection Lag Seconds */
             projection_lag_seconds: number;
         };
+        /** GroupCreate */
+        GroupCreate: {
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** External Id */
+            external_id?: string | null;
+            /** Name */
+            name: string;
+        };
+        /** GroupOut */
+        GroupOut: {
+            /** Description */
+            description: string | null;
+            /** Display Name */
+            display_name: string;
+            /** External Id */
+            external_id: string | null;
+            /** Id */
+            id: number;
+            /** Links */
+            links: string[];
+            /** Member Ids */
+            member_ids: number[];
+            /** Name */
+            name: string;
+            /** Types */
+            types: components["schemas"]["TypeGrantIO"][];
+        };
+        /** GroupPatch */
+        GroupPatch: {
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** External Id */
+            external_id?: string | null;
+        };
+        /** GroupPermissionsIn */
+        GroupPermissionsIn: {
+            /** Links */
+            links?: string[];
+            /** Types */
+            types: components["schemas"]["TypeGrantIO"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2722,6 +2841,11 @@ export interface components {
             /** Roles */
             roles: string[];
         };
+        /** MembersIn */
+        MembersIn: {
+            /** User Ids */
+            user_ids: number[];
+        };
         /** MessageMeta */
         MessageMeta: {
             action?: components["schemas"]["ActionPreviewData"] | null;
@@ -2873,11 +2997,6 @@ export interface components {
         ParamRef: {
             /** Param */
             param: string;
-        };
-        /** PermissionsIn */
-        PermissionsIn: {
-            /** Readable Types */
-            readable_types: string[];
         };
         /** PreviewChange */
         PreviewChange: {
@@ -3083,8 +3202,6 @@ export interface components {
             id: number;
             /** Name */
             name: string;
-            /** Readable Types */
-            readable_types: string[];
         };
         /** SessionCreate */
         SessionCreate: {
@@ -3396,6 +3513,31 @@ export interface components {
             /** Warnings */
             warnings: string[];
         };
+        /** TypeGrantIO */
+        TypeGrantIO: {
+            /**
+             * Can Create
+             * @default false
+             */
+            can_create: boolean;
+            /**
+             * Can Delete
+             * @default false
+             */
+            can_delete: boolean;
+            /**
+             * Can Edit
+             * @default false
+             */
+            can_edit: boolean;
+            /**
+             * Can Read
+             * @default false
+             */
+            can_read: boolean;
+            /** Object Type */
+            object_type: string;
+        };
         /** TypeOut */
         TypeOut: {
             /** Api Name */
@@ -3407,6 +3549,8 @@ export interface components {
         UserCreate: {
             /** Display Name */
             display_name: string;
+            /** Groups */
+            groups?: string[];
             /** Password */
             password: string;
             /** Roles */
@@ -3430,6 +3574,8 @@ export interface components {
             display_name: string;
             /** Email */
             email: string | null;
+            /** Groups */
+            groups: string[];
             /** Id */
             id: number;
             /** Phone */
@@ -3788,6 +3934,213 @@ export interface operations {
             };
         };
     };
+    groups_api_v1_admin_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"][];
+                };
+            };
+        };
+    };
+    create_group_api_v1_admin_groups_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_group_api_v1_admin_groups__group_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_group_api_v1_admin_groups__group_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_members_api_v1_admin_groups__group_id__members_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_group_permissions_api_v1_admin_groups__group_id__permissions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupPermissionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_types_api_v1_admin_link_types_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TypeOut"][];
+                };
+            };
+        };
+    };
     metrics_api_v1_admin_metrics_get: {
         parameters: {
             query?: {
@@ -3855,41 +4208,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoleOut"][];
-                };
-            };
-        };
-    };
-    set_permissions_api_v1_admin_roles__role_id__permissions_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                role_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PermissionsIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

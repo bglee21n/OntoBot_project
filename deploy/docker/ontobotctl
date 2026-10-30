@@ -283,7 +283,7 @@ EOF
   compose run --rm --pull never migrate
   if ((seed)); then
     step "샘플 도메인 팩(합성 데이터)·그래프 재구축"
-    compose run --rm --pull never -w /app migrate python scripts/seed_domain_pack.py --pack sample --grant-read user --grant-read admin
+    compose run --rm --pull never -w /app migrate python scripts/seed_domain_pack.py --pack sample --grant-edit user --grant-edit admin
     compose run --rm --pull never -w /app migrate python scripts/graph_rebuild.py
   fi
   if [[ -n $admin ]]; then
@@ -293,7 +293,7 @@ EOF
       read -r -s -p "관리자 비밀번호(12자 이상): " ONTOBOT_NEW_PASSWORD; echo
     fi
     compose run --rm --pull never -e ONTOBOT_NEW_PASSWORD="$ONTOBOT_NEW_PASSWORD" migrate \
-      python -m ontobot.security.cli create-user --username "$admin" --display-name 관리자 --role admin --role modeler
+      python -m ontobot.security.cli create-user --username "$admin" --display-name 관리자 --role admin --role modeler --group admin
   fi
   step "앱 기동(api·worker)"
   compose up -d --pull never

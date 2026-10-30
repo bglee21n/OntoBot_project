@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.config import Settings
 from ontobot.db.models.security import AppUser, AuthRequest, Role, UserRole
+from ontobot.security import admin
 
 _ALLOWED_ALGS = ["RS256", "RS384", "RS512", "ES256", "ES384", "PS256"]
 _CACHE_TTL_S = 3600
@@ -188,6 +189,10 @@ async def complete(db: AsyncSession, settings: Settings, code: str, state: str) 
     user, created = await _find_or_create_user(db, settings, claims)
     if user.status != "active":
         raise OidcError("user disabled")
+    if settings.oidc_groups_claim:
+        raw = claims.get(settings.oidc_groups_claim)
+        values = [raw] if isinstance(raw, str) else [str(v) for v in raw or [] if v is not None]
+        await admin.sync_external_groups(db, user.id, values)
     return Completed(user=user, return_to=row.return_to, created=created)
 
 
