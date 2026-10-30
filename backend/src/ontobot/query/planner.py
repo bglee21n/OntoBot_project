@@ -7,6 +7,10 @@ LLM 은 SQL 도 Cypher 도 쓰지 않는다(TRD 5.3). 권한으로 거른 스키
 Action 규칙(``ACTION_RULES``)은 요약에 ``action_types`` 가 있을 때만 붙인다 — Action 이 없는 배포의
 프롬프트는 측정한 그대로다. 예시의 키 순서는 ``PlannerOutput``·``ActionProposal`` 필드 순서와 같다
 (구조화 출력은 스키마 순서대로 생성된다 — 순서가 어긋나면 앞 필드를 비운 채 지나간다).
+
+Function 도 같다. 요약에 ``functions`` 가 있을 때만 ``FUNCTION_RULES`` 를 붙이고 구조화 출력 스키마를
+``FunctionPlannerOutput``(``kind: function``)으로 바꾼다. 없으면 스키마·프롬프트 모두 측정한 그대로다.
+호출부는 언제나 ``FunctionPlannerOutput`` 을 받는다(없을 때는 ``PlannerOutput`` 을 옮겨 담는다).
 """
 
 from __future__ import annotations
@@ -14,14 +18,23 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
+from pydantic import BaseModel
+
 from ontobot.llm.types import Message
-from ontobot.query.plan import AGG_VALUE, DEFAULT_LIMIT, MAX_LIMIT, MAX_TRAVERSE, PlannerOutput
+from ontobot.query.plan import (
+    AGG_VALUE,
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    MAX_TRAVERSE,
+    FunctionPlannerOutput,
+    PlannerOutput,
+)
 
 
 class StructuredLLM(Protocol):
-    async def structured(
-        self, role: str, messages: list[Message], schema: type[PlannerOutput]
-    ) -> PlannerOutput: ...
+    async def structured[M: BaseModel](
+        self, role: str, messages: list[Message], schema: type[M]
+    ) -> M: ...
 
 
 SYSTEM = f"""너는 사용자 질문을 데이터 조회 계획(JSON)으로 바꾸는 플래너다.
@@ -98,6 +111,32 @@ close_ticket: 대상 Ticket, params resolution:enum[fixed,wontfix](필수)):
 """
 
 
+FUNCTION_RULES = """
+Function(정의된 계산 — 비율·지표처럼 조회 하나로 나오지 않는 값):
+- 질문이 <schema> 의 functions 중 하나가 계산하는 값을 물으면 kind 를 "function" 으로 하고 function 에 name·args 를
+  넣는다(plan 은 쓰지 않는다). 목록·개수·합계·평균처럼 plan 하나로 표현되는 질문에는 function 을 쓰지 않는다.
+- name 은 functions 의 name 그대로 쓴다. args 의 name 은 그 Function 의 params 이름이다.
+  value 는 질문에 있는 값만 넣는다(int·decimal 은 숫자, enum 은 목록의 값 그대로). 질문에 없는 선택 인자는
+  넣지 않는다 — 기본값(default)이 쓰인다. 필수 인자의 값이 질문에 없으면 cannot_answer 를 낸다.
+- function 을 고르기 전에 질문의 조건(지역·조직·이름·기간·유형 등)을 모두 찾고, 조건마다 그 Function 의 params 중
+  받을 것이 있는지 본다. 하나라도 받을 params 가 없으면 그 Function 을 쓰지 않는다 — 조건을 빼고 부르면 다른 질문의
+  답이 된다. 그 조건을 받는 다른 Function 도, plan 으로도 표현할 수 없으면 cannot_answer 를 낸다.
+
+예시(가상의 Function — close_rate: 팀별 종료 비율, params min_priority:int(선택, 기본 1) /
+team_backlog: 팀 미처리 지표, params team:string(필수)):
+질문: "팀별 티켓 종료 비율 알려줘"
+{"kind":"function","function":{"name":"close_rate","args":[]}}
+질문: "우선순위 3 이상 티켓의 팀별 종료 비율은?"
+{"kind":"function","function":{"name":"close_rate","args":[{"name":"min_priority","value":3}]}}
+질문: "결제팀 미처리 지표 보여줘"
+{"kind":"function","function":{"name":"team_backlog","args":[{"name":"team","value":"결제팀"}]}}
+질문: "지난달 팀별 티켓 종료 비율은?"
+{"kind":"cannot_answer","reason":"close_rate 에 기간 인자가 없음"}
+질문: "부산 사무소 티켓의 팀별 종료 비율은?"
+{"kind":"cannot_answer","reason":"close_rate 에 사무소 인자가 없음"}
+"""
+
+
 def _context_block(context: list[dict[str, str]]) -> str:
     lines = [f"{c['type']}/{c['pk']} — {c.get('title') or c['pk']}" for c in context]
     return "<context>\n직전 답의 객체(type/pk — 제목):\n" + "\n".join(lines) + "\n</context>"
@@ -111,6 +150,7 @@ def messages(
 ) -> list[Message]:
     schema = json.dumps(summary, ensure_ascii=False)
     system = SYSTEM + (ACTION_RULES if summary.get("action_types") else "")
+    system += FUNCTION_RULES if summary.get("functions") else ""
     system += f"\n<schema>\n{schema}\n</schema>"
     if context:
         # 맥락은 식별자와 (지금 다시 읽은) 제목뿐이다 — 값은 조회 단계에서 다시 읽는다(TRD 7.1 1단계).
@@ -133,7 +173,8 @@ async def plan(
     question: str,
     errors: list[str] | None = None,
     context: list[dict[str, str]] | None = None,
-) -> PlannerOutput:
-    return await llm.structured(
-        "planner", messages(summary, question, errors, context), PlannerOutput
-    )
+) -> FunctionPlannerOutput:
+    msgs = messages(summary, question, errors, context)
+    if summary.get("functions"):
+        return await llm.structured("planner", msgs, FunctionPlannerOutput)
+    return FunctionPlannerOutput.lift(await llm.structured("planner", msgs, PlannerOutput))

@@ -102,7 +102,7 @@ source_modules = [
     "ontobot.query", "ontobot.grounding", "ontobot.chat", "ontobot.llm",
     "ontobot.security", "ontobot.workshop", "ontobot.evaluation",
     "ontobot.tracing", "ontobot.jobs", "ontobot.db", "ontobot.config", "ontobot.health",
-    "ontobot.actions", "ontobot.notify",
+    "ontobot.actions", "ontobot.notify", "ontobot.functions",
 ]
 forbidden_modules = ["ontobot.api"]
 
@@ -123,7 +123,7 @@ source_modules = [
     "ontobot.query", "ontobot.grounding", "ontobot.chat", "ontobot.llm",
     "ontobot.security", "ontobot.workshop", "ontobot.evaluation",
     "ontobot.tracing", "ontobot.jobs", "ontobot.db", "ontobot.config", "ontobot.main",
-    "ontobot.health", "ontobot.actions", "ontobot.notify",
+    "ontobot.health", "ontobot.actions", "ontobot.notify", "ontobot.functions",
 ]
 forbidden_modules = ["neo4j"]
 # graph.client 를 거쳐 쓰는 것은 허용한다 — 규칙은 "직접 import 는 graph 안에서만"이다.
@@ -137,7 +137,7 @@ source_modules = [
     "ontobot.sync", "ontobot.query", "ontobot.grounding", "ontobot.chat",
     "ontobot.security", "ontobot.workshop", "ontobot.evaluation",
     "ontobot.tracing", "ontobot.jobs", "ontobot.db", "ontobot.config", "ontobot.main",
-    "ontobot.health", "ontobot.actions", "ontobot.notify",
+    "ontobot.health", "ontobot.actions", "ontobot.notify", "ontobot.functions",
 ]
 forbidden_modules = ["anthropic", "openai", "ollama"]
 allow_indirect_imports = true

@@ -842,6 +842,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ontology/versions/{version_id}/functions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Function */
+        post: operations["create_function_api_v1_ontology_versions__version_id__functions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ontology/versions/{version_id}/functions/{function_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Function */
+        put: operations["replace_function_api_v1_ontology_versions__version_id__functions__function_id__put"];
+        post?: never;
+        /** Delete Function */
+        delete: operations["delete_function_api_v1_ontology_versions__version_id__functions__function_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ontology/versions/{version_id}/import": {
         parameters: {
             query?: never;
@@ -1643,7 +1678,7 @@ export interface components {
              * Element
              * @enum {string}
              */
-            element: "object_type" | "property" | "link_type" | "action_type";
+            element: "object_type" | "property" | "link_type" | "action_type" | "function";
             /**
              * Kind
              * @enum {string}
@@ -1997,6 +2032,48 @@ export interface components {
             /** Target Pk */
             target_pk?: string | null;
         };
+        /**
+         * Expr
+         * @description 식 트리의 마디.
+         *
+         *     ``query``·``param`` 은 ``name``, ``const`` 는 ``value``, ``round`` 는 ``digits`` 를 쓴다.
+         */
+        "Expr-Input": {
+            /** Args */
+            args?: components["schemas"]["Expr-Input"][];
+            /** Digits */
+            digits?: number | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "query" | "param" | "const" | "add" | "sub" | "mul" | "div" | "round" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "and" | "or" | "not" | "if";
+            /** Value */
+            value?: string | number | boolean | null;
+        };
+        /**
+         * Expr
+         * @description 식 트리의 마디.
+         *
+         *     ``query``·``param`` 은 ``name``, ``const`` 는 ``value``, ``round`` 는 ``digits`` 를 쓴다.
+         */
+        "Expr-Output": {
+            /** Args */
+            args?: components["schemas"]["Expr-Output"][];
+            /** Digits */
+            digits?: number | null;
+            /** Name */
+            name?: string | null;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "query" | "param" | "const" | "add" | "sub" | "mul" | "div" | "round" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "and" | "or" | "not" | "if";
+            /** Value */
+            value?: string | number | boolean | null;
+        };
         /** FieldOut */
         FieldOut: {
             /** Display Name */
@@ -2006,6 +2083,139 @@ export interface components {
             name: string;
             /** Value */
             value: string;
+        };
+        /** FnAggregate */
+        FnAggregate: {
+            /**
+             * Fn
+             * @enum {string}
+             */
+            fn: "count" | "sum" | "avg" | "min" | "max";
+            /** Group By */
+            group_by?: string[];
+            /** Property */
+            property?: string | null;
+        };
+        /** FnFilter */
+        FnFilter: {
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "contains" | "between" | "is_null";
+            /** Property */
+            property: string;
+            /** Value */
+            value?: string | number | boolean | (string | number | boolean | null)[] | components["schemas"]["ParamRef"] | null;
+        };
+        /** FnTraverse */
+        FnTraverse: {
+            /**
+             * Direction
+             * @default out
+             * @enum {string}
+             */
+            direction: "out" | "in";
+            /** Filters */
+            filters?: components["schemas"]["FnFilter"][];
+            /** Link */
+            link: string;
+            /** To */
+            to: string;
+        };
+        /** FunctionDef */
+        FunctionDef: {
+            /** Api Name */
+            api_name: string;
+            body: components["schemas"]["Expr-Input"];
+            /**
+             * Decimals
+             * @default 2
+             */
+            decimals: number;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Params */
+            params?: components["schemas"]["FunctionParamDef"][];
+            /** Queries */
+            queries: components["schemas"]["FunctionQuery"][];
+            /** Result Label */
+            result_label: string;
+            /**
+             * Result Type
+             * @default decimal
+             * @enum {string}
+             */
+            result_type: "int" | "decimal" | "bool";
+        };
+        /** FunctionOut */
+        FunctionOut: {
+            /** Api Name */
+            api_name: string;
+            body: components["schemas"]["Expr-Output"];
+            /**
+             * Decimals
+             * @default 2
+             */
+            decimals: number;
+            /** Description */
+            description?: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: number;
+            /** Params */
+            params?: components["schemas"]["FunctionParamDef"][];
+            /** Queries */
+            queries: components["schemas"]["FunctionQuery"][];
+            /** Result Label */
+            result_label: string;
+            /**
+             * Result Type
+             * @default decimal
+             * @enum {string}
+             */
+            result_type: "int" | "decimal" | "bool";
+        };
+        /** FunctionParamDef */
+        FunctionParamDef: {
+            /** Api Name */
+            api_name: string;
+            /**
+             * Data Type
+             * @enum {string}
+             */
+            data_type: "string" | "int" | "decimal" | "bool" | "date" | "datetime" | "enum";
+            /** Default */
+            default?: string | number | boolean | null;
+            /** Display Name */
+            display_name: string;
+            /** Enum Values */
+            enum_values?: string[] | null;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+        };
+        /**
+         * FunctionQuery
+         * @description 내부 조회 하나 — 언제나 집계다(결과가 값이거나 그룹별 값). 근거 행에 그 값이 함께 실린다.
+         */
+        FunctionQuery: {
+            aggregate: components["schemas"]["FnAggregate"];
+            /** Api Name */
+            api_name: string;
+            /** Display Name */
+            display_name: string;
+            /** Filters */
+            filters?: components["schemas"]["FnFilter"][];
+            /** Target */
+            target: string;
+            /** Traverse */
+            traverse?: components["schemas"]["FnTraverse"][];
         };
         /** GateCheckOut */
         GateCheckOut: {
@@ -2607,6 +2817,11 @@ export interface components {
             /** Title Property */
             title_property?: string | null;
         };
+        /** ParamRef */
+        ParamRef: {
+            /** Param */
+            param: string;
+        };
         /** PermissionsIn */
         PermissionsIn: {
             /** Readable Types */
@@ -3198,6 +3413,8 @@ export interface components {
             created_by: number | null;
             /** Created By Name */
             created_by_name: string | null;
+            /** Functions */
+            functions: components["schemas"]["FunctionOut"][];
             /** Id */
             id: number;
             /** Issues */
@@ -4843,6 +5060,107 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_function_api_v1_ontology_versions__version_id__functions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FunctionDef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FunctionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_function_api_v1_ontology_versions__version_id__functions__function_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+                function_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FunctionDef"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FunctionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_function_api_v1_ontology_versions__version_id__functions__function_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+                function_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -8,6 +8,10 @@
 Action 은 호출부가 넘긴 **요청할 수 있는** 것(``actions``) 중 대상 타입을 읽을 수 있는 것만 싣는다.
 하나도 없으면 ``action_types`` 키 자체를 싣지 않는다 — 플래너 프롬프트가 Action 이 없는 배포에서
 측정한 그대로 남는다(ADR-0004).
+
+Function 은 내부에서 조회하는 타입을 **모두** 읽을 수 있고 건너는 링크가 보일 때만 싣는다. 하나라도
+못 읽으면 이름조차 싣지 않는다(호출하면 검증기가 ``forbidden`` 으로 막는다). 하나도 없으면
+``functions`` 키를 싣지 않는다 — Action 과 같은 이유다.
 """
 
 from __future__ import annotations
@@ -91,4 +95,29 @@ def schema_summary(
     ]
     if action_types:
         out["action_types"] = action_types
+    link_names = {link.api_name for link in visible_links}
+    functions = [
+        {
+            "name": f.api_name,
+            "display_name": f.display_name,
+            "description": f.description,
+            "result": f.result_label,
+            **({"group_by": f.group_by()} if f.group_by() else {}),
+            "params": [
+                {
+                    "name": p.api_name,
+                    "display_name": p.display_name,
+                    "type": p.data_type,
+                    **({"enum": p.enum_values} if p.enum_values else {}),
+                    "required": p.required,
+                    **({"default": p.default} if p.default is not None else {}),
+                }
+                for p in f.params
+            ],
+        }
+        for f in doc.functions
+        if f.types() <= set(readable) and f.links() <= link_names
+    ]
+    if functions:
+        out["functions"] = functions
     return out

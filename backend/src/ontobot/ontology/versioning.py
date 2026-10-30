@@ -15,6 +15,7 @@ from sqlalchemy.orm import selectinload
 
 from ontobot.db.models.ontology import (
     ActionType,
+    FunctionType,
     LinkType,
     ObjectType,
     OntologyLayout,
@@ -23,6 +24,7 @@ from ontobot.db.models.ontology import (
 )
 from ontobot.ontology.models import (
     ActionTypeDef,
+    FunctionDef,
     Issue,
     LinkSource,
     LinkTypeDef,
@@ -81,6 +83,7 @@ async def get_version(db: AsyncSession, version_id: int) -> OntologyVersion:
             selectinload(OntologyVersion.object_types).selectinload(ObjectType.properties),
             selectinload(OntologyVersion.link_types),
             selectinload(OntologyVersion.action_types),
+            selectinload(OntologyVersion.functions),
         )
         .execution_options(populate_existing=True)
     )
@@ -121,6 +124,7 @@ def to_document(version: OntologyVersion) -> OntologyDocument:
             for lt in version.link_types
         ],
         action_types=[action_def(a) for a in version.action_types],
+        functions=[function_def(f) for f in version.functions],
     )
 
 
@@ -135,6 +139,20 @@ def _action_type_row(a: ActionTypeDef) -> ActionType:
         api_name=a.api_name,
         display_name=a.display_name,
         definition=a.model_dump(mode="json", exclude={"api_name", "display_name"}),
+    )
+
+
+def function_def(f: FunctionType) -> FunctionDef:
+    return FunctionDef.model_validate(
+        {"api_name": f.api_name, "display_name": f.display_name, **f.definition}
+    )
+
+
+def _function_row(f: FunctionDef) -> FunctionType:
+    return FunctionType(
+        api_name=f.api_name,
+        display_name=f.display_name,
+        definition=f.model_dump(mode="json", exclude={"api_name", "display_name"}),
     )
 
 
@@ -174,6 +192,7 @@ async def create_draft(
         object_types=[_object_type_row(t) for t in doc.object_types],
         link_types=[_link_type_row(lt) for lt in doc.link_types],
         action_types=[_action_type_row(a) for a in doc.action_types],
+        functions=[_function_row(f) for f in doc.functions],
     )
     db.add(version)
     await db.flush()
@@ -202,6 +221,7 @@ async def replace_document(
     version.object_types.clear()
     version.link_types.clear()
     version.action_types.clear()
+    version.functions.clear()
     await db.flush()
     _write_document(version, doc)
     await db.flush()
@@ -223,6 +243,8 @@ def _write_document(version: OntologyVersion, doc: OntologyDocument) -> None:
         version.link_types.append(_link_type_row(lt))
     for a in doc.action_types:
         version.action_types.append(_action_type_row(a))
+    for f in doc.functions:
+        version.functions.append(_function_row(f))
 
 
 def _object_type_row(t: ObjectTypeDef) -> ObjectType:
@@ -458,6 +480,48 @@ async def delete_action_type(
     version.action_types.remove(row)
     await db.flush()
     _edited(db, actor_id, version_id, "action_type.delete", row.api_name)
+
+
+async def add_function(
+    db: AsyncSession, version_id: int, f: FunctionDef, *, actor_id: int
+) -> FunctionType:
+    version = await _draft(db, version_id)
+    if any(x.api_name == f.api_name for x in version.functions):
+        raise ElementConflict(f.api_name)
+    row = _function_row(f)
+    version.functions.append(row)
+    await db.flush()
+    _edited(db, actor_id, version_id, "function.create", f.api_name)
+    return row
+
+
+async def replace_function(
+    db: AsyncSession, version_id: int, function_id: int, f: FunctionDef, *, actor_id: int
+) -> FunctionType:
+    version = await _draft(db, version_id)
+    row = next((x for x in version.functions if x.id == function_id), None)
+    if row is None:
+        raise ElementNotFound(f"function:{function_id}")
+    if row.api_name != f.api_name:
+        raise ElementConflict("Function api_name 은 바꿀 수 없습니다")
+    new = _function_row(f)
+    row.display_name = new.display_name
+    row.definition = new.definition
+    await db.flush()
+    _edited(db, actor_id, version_id, "function.update", f.api_name)
+    return row
+
+
+async def delete_function(
+    db: AsyncSession, version_id: int, function_id: int, *, actor_id: int
+) -> None:
+    version = await _draft(db, version_id)
+    row = next((x for x in version.functions if x.id == function_id), None)
+    if row is None:
+        raise ElementNotFound(f"function:{function_id}")
+    version.functions.remove(row)
+    await db.flush()
+    _edited(db, actor_id, version_id, "function.delete", row.api_name)
 
 
 # ---------------------------------------------------------------- 그래프 배치(정의 밖 — 감사 없음)

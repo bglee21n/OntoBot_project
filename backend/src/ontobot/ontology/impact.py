@@ -17,9 +17,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ontobot.db.models.evaluation import GoldenItem
 from ontobot.db.models.sync import DataSource, Mapping
 from ontobot.objects import reader
-from ontobot.ontology.models import Issue, OntologyDocument
+from ontobot.ontology.models import FunctionDef, Issue, OntologyDocument
 
 ElementKind = Literal["object_type", "property", "link_type"]
+
+
+def _function_props(fn: FunctionDef, type_name: str) -> set[str]:
+    """Function 이 ``type_name`` 에서 쓰는 속성(조건·집계·그룹·탐색 끝 조건)."""
+    used: set[str] = set()
+    for q in fn.queries:
+        if q.target == type_name:
+            used.update(f.property for f in q.filters)
+            used.update(q.aggregate.group_by)
+            if q.aggregate.property:
+                used.add(q.aggregate.property)
+        for tr in q.traverse:
+            if tr.to == type_name:
+                used.update(f.property for f in tr.filters)
+    return used
 
 
 def references(
@@ -41,6 +56,17 @@ def references(
             if a.target_type == name:
                 out.append(
                     Issue(f"action_types.{a.api_name}", f"Action '{a.api_name}' 의 대상 타입")
+                )
+        for fn in doc.functions:
+            if name in fn.types():
+                out.append(
+                    Issue(f"functions.{fn.api_name}", f"Function '{fn.api_name}' 이 조회하는 타입")
+                )
+    elif kind == "link_type":
+        for fn in doc.functions:
+            if name in fn.links():
+                out.append(
+                    Issue(f"functions.{fn.api_name}", f"Function '{fn.api_name}' 이 건너는 링크")
                 )
     elif kind == "property":
         t = doc.object_type(type_name or "")
@@ -71,6 +97,11 @@ def references(
                     Issue(
                         f"action_types.{a.api_name}", f"Action '{a.api_name}' 의 {'·'.join(uses)}"
                     )
+                )
+        for fn in doc.functions:
+            if name in _function_props(fn, t.api_name):
+                out.append(
+                    Issue(f"functions.{fn.api_name}", f"Function '{fn.api_name}' 이 쓰는 속성")
                 )
     return out
 

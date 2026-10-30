@@ -58,6 +58,9 @@ class OntologyVersion(IdMixin, Base):
     action_types: Mapped[list[ActionType]] = relationship(
         back_populates="version", cascade="all, delete-orphan", order_by="ActionType.id"
     )
+    functions: Mapped[list[FunctionType]] = relationship(
+        back_populates="version", cascade="all, delete-orphan", order_by="FunctionType.id"
+    )
 
 
 class ObjectType(IdMixin, Base):
@@ -144,6 +147,25 @@ class ActionType(IdMixin, Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
     version: Mapped[OntologyVersion] = relationship(back_populates="action_types")
+
+
+class FunctionType(IdMixin, Base):
+    """Function 정의(PRD 5.10). Action 과 같이 버전에 묶여 함께 게시되고 게시본은 불변이다.
+
+    정의 본문은 ``ontology.models.FunctionDef`` 를 그대로 담는다(이름·표시 이름 밖의 전부).
+    """
+
+    __tablename__ = "function_type"
+    __table_args__ = (Index("uq_function_type_version_api", "version_id", "api_name", unique=True),)
+
+    version_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("ontology_version.id", ondelete="CASCADE")
+    )
+    api_name: Mapped[str] = mapped_column(String(64))
+    display_name: Mapped[str] = mapped_column(String(128))
+    definition: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+    version: Mapped[OntologyVersion] = relationship(back_populates="functions")
 
 
 class OntologyLayout(IdMixin, Base):

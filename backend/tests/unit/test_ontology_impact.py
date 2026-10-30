@@ -22,10 +22,19 @@ def test_type_references_are_links_and_actions() -> None:
         "link_types.located_in",
         "action_types.adjust_risk_grade",
         "action_types.request_inspection",
+        "functions.high_risk_ratio",
+        "functions.region_high_risk_ratio",
     ]
-    assert paths(doc, "object_type", "Region") == ["link_types.located_in"]
+    assert paths(doc, "object_type", "Region") == [
+        "link_types.located_in",
+        "functions.region_high_risk_ratio",
+    ]
     msgs = [i.message for i in references(doc, "object_type", "Region")]
-    assert msgs == ["링크 'located_in' 의 도착 타입"]
+    assert msgs == [
+        "링크 'located_in' 의 도착 타입",
+        "Function 'region_high_risk_ratio' 이 조회하는 타입",
+    ]
+    assert paths(doc, "link_type", "located_in") == ["functions.region_high_risk_ratio"]
 
 
 def test_property_references_cover_pk_fk_and_action_uses() -> None:
@@ -36,6 +45,14 @@ def test_property_references_cover_pk_fk_and_action_uses() -> None:
     assert [i.path for i in risk] == [
         "action_types.adjust_risk_grade",
         "action_types.request_inspection",
+        "functions.high_risk_ratio",
+        "functions.region_high_risk_ratio",
+    ]
+    # 그룹 열도 Function 이 쓰는 속성이다.
+    assert paths(doc, "property", "facility_type", "Facility") == ["functions.high_risk_ratio"]
+    assert paths(doc, "property", "name", "Region") == [
+        "object_types.Region",
+        "functions.region_high_risk_ratio",
     ]
     assert "바꿀 속성" in risk[0].message and "사전 조건" in risk[1].message
     # 같은 이름이라도 다른 타입의 속성은 아니다(정확 일치).
@@ -66,4 +83,6 @@ def test_deprecated_action_target_is_an_issue() -> None:
     assert {i.path for i in check_document(dep)} == {
         "action_types.adjust_risk_grade",
         "action_types.request_inspection",
+        "functions.high_risk_ratio",
+        "functions.region_high_risk_ratio",
     }

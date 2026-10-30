@@ -7,6 +7,7 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ActionTypesSection } from "./ActionTypes";
+import { FunctionsSection } from "./Functions";
 import { LinkTypeForm, ObjectTypeForm } from "./forms";
 import { SchemaGraph } from "./graph/SchemaGraph";
 import { ObjectTypeCard } from "./ObjectTypeCard";
@@ -153,6 +154,7 @@ function ListView({ v, editable }: { v: VersionDetail; editable: boolean }) {
       )}
 
       <ActionTypesSection v={v} editable={editable} />
+      <FunctionsSection v={v} editable={editable} />
     </>
   );
 }

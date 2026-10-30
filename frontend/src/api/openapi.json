@@ -968,7 +968,8 @@
               "object_type",
               "property",
               "link_type",
-              "action_type"
+              "action_type",
+              "function"
             ],
             "title": "Element",
             "type": "string"
@@ -2016,6 +2017,180 @@
         "title": "ExpectedAction",
         "type": "object"
       },
+      "Expr-Input": {
+        "additionalProperties": false,
+        "description": "식 트리의 마디.\n\n``query``·``param`` 은 ``name``, ``const`` 는 ``value``, ``round`` 는 ``digits`` 를 쓴다.",
+        "properties": {
+          "args": {
+            "items": {
+              "$ref": "#/components/schemas/Expr-Input"
+            },
+            "title": "Args",
+            "type": "array"
+          },
+          "digits": {
+            "anyOf": [
+              {
+                "maximum": 6.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digits"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "op": {
+            "enum": [
+              "query",
+              "param",
+              "const",
+              "add",
+              "sub",
+              "mul",
+              "div",
+              "round",
+              "eq",
+              "ne",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "and",
+              "or",
+              "not",
+              "if"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "title": "Expr",
+        "type": "object"
+      },
+      "Expr-Output": {
+        "additionalProperties": false,
+        "description": "식 트리의 마디.\n\n``query``·``param`` 은 ``name``, ``const`` 는 ``value``, ``round`` 는 ``digits`` 를 쓴다.",
+        "properties": {
+          "args": {
+            "items": {
+              "$ref": "#/components/schemas/Expr-Output"
+            },
+            "title": "Args",
+            "type": "array"
+          },
+          "digits": {
+            "anyOf": [
+              {
+                "maximum": 6.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digits"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "op": {
+            "enum": [
+              "query",
+              "param",
+              "const",
+              "add",
+              "sub",
+              "mul",
+              "div",
+              "round",
+              "eq",
+              "ne",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "and",
+              "or",
+              "not",
+              "if"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "title": "Expr",
+        "type": "object"
+      },
       "FieldOut": {
         "properties": {
           "display_name": {
@@ -2047,6 +2222,444 @@
           "value"
         ],
         "title": "FieldOut",
+        "type": "object"
+      },
+      "FnAggregate": {
+        "additionalProperties": false,
+        "properties": {
+          "fn": {
+            "enum": [
+              "count",
+              "sum",
+              "avg",
+              "min",
+              "max"
+            ],
+            "title": "Fn",
+            "type": "string"
+          },
+          "group_by": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+              "type": "string"
+            },
+            "title": "Group By",
+            "type": "array"
+          },
+          "property": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property"
+          }
+        },
+        "required": [
+          "fn"
+        ],
+        "title": "FnAggregate",
+        "type": "object"
+      },
+      "FnFilter": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "enum": [
+              "eq",
+              "ne",
+              "gt",
+              "gte",
+              "lt",
+              "lte",
+              "in",
+              "contains",
+              "between",
+              "is_null"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "property": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Property",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/components/schemas/ParamRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "property",
+          "op"
+        ],
+        "title": "FnFilter",
+        "type": "object"
+      },
+      "FnTraverse": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "default": "out",
+            "enum": [
+              "out",
+              "in"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/FnFilter"
+            },
+            "title": "Filters",
+            "type": "array"
+          },
+          "link": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Link",
+            "type": "string"
+          },
+          "to": {
+            "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$",
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "link",
+          "to"
+        ],
+        "title": "FnTraverse",
+        "type": "object"
+      },
+      "FunctionDef": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "body": {
+            "$ref": "#/components/schemas/Expr-Input"
+          },
+          "decimals": {
+            "default": 2,
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionParamDef"
+            },
+            "title": "Params",
+            "type": "array"
+          },
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionQuery"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Queries",
+            "type": "array"
+          },
+          "result_label": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Label",
+            "type": "string"
+          },
+          "result_type": {
+            "default": "decimal",
+            "enum": [
+              "int",
+              "decimal",
+              "bool"
+            ],
+            "title": "Result Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "queries",
+          "body",
+          "result_label"
+        ],
+        "title": "FunctionDef",
+        "type": "object"
+      },
+      "FunctionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "body": {
+            "$ref": "#/components/schemas/Expr-Output"
+          },
+          "decimals": {
+            "default": 2,
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionParamDef"
+            },
+            "title": "Params",
+            "type": "array"
+          },
+          "queries": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionQuery"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Queries",
+            "type": "array"
+          },
+          "result_label": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Label",
+            "type": "string"
+          },
+          "result_type": {
+            "default": "decimal",
+            "enum": [
+              "int",
+              "decimal",
+              "bool"
+            ],
+            "title": "Result Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "queries",
+          "body",
+          "result_label",
+          "id"
+        ],
+        "title": "FunctionOut",
+        "type": "object"
+      },
+      "FunctionParamDef": {
+        "additionalProperties": false,
+        "properties": {
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "data_type": {
+            "enum": [
+              "string",
+              "int",
+              "decimal",
+              "bool",
+              "date",
+              "datetime",
+              "enum"
+            ],
+            "title": "Data Type",
+            "type": "string"
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "enum_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum Values"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "data_type"
+        ],
+        "title": "FunctionParamDef",
+        "type": "object"
+      },
+      "FunctionQuery": {
+        "additionalProperties": false,
+        "description": "내부 조회 하나 — 언제나 집계다(결과가 값이거나 그룹별 값). 근거 행에 그 값이 함께 실린다.",
+        "properties": {
+          "aggregate": {
+            "$ref": "#/components/schemas/FnAggregate"
+          },
+          "api_name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Api Name",
+            "type": "string"
+          },
+          "display_name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/components/schemas/FnFilter"
+            },
+            "title": "Filters",
+            "type": "array"
+          },
+          "target": {
+            "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$",
+            "title": "Target",
+            "type": "string"
+          },
+          "traverse": {
+            "items": {
+              "$ref": "#/components/schemas/FnTraverse"
+            },
+            "title": "Traverse",
+            "type": "array"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "target",
+          "aggregate"
+        ],
+        "title": "FunctionQuery",
         "type": "object"
       },
       "GateCheckOut": {
@@ -3996,6 +4609,21 @@
         "title": "ObjectTypePatch",
         "type": "object"
       },
+      "ParamRef": {
+        "additionalProperties": false,
+        "properties": {
+          "param": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Param",
+            "type": "string"
+          }
+        },
+        "required": [
+          "param"
+        ],
+        "title": "ParamRef",
+        "type": "object"
+      },
       "PermissionsIn": {
         "properties": {
           "readable_types": {
@@ -5824,6 +6452,13 @@
             ],
             "title": "Created By Name"
           },
+          "functions": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionOut"
+            },
+            "title": "Functions",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -5898,6 +6533,7 @@
           "object_types",
           "link_types",
           "action_types",
+          "functions",
           "issues"
         ],
         "title": "VersionDetail",
@@ -8273,6 +8909,161 @@
           }
         },
         "summary": "Export Document",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/functions": {
+      "post": {
+        "operationId": "create_function_api_v1_ontology_versions__version_id__functions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionDef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Function",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/functions/{function_id}": {
+      "delete": {
+        "operationId": "delete_function_api_v1_ontology_versions__version_id__functions__function_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Function",
+        "tags": [
+          "ontology"
+        ]
+      },
+      "put": {
+        "operationId": "replace_function_api_v1_ontology_versions__version_id__functions__function_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "function_id",
+            "required": true,
+            "schema": {
+              "title": "Function Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionDef"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Function",
         "tags": [
           "ontology"
         ]

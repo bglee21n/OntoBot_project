@@ -234,3 +234,32 @@ items:
     expected_status: failed
     answerable: false
     note: 대상 타입을 못 읽는 역할 — Action 도 없는 것과 같다(a01 과 같은 질문)
+
+  # ---- Phase 12: Function — 정의된 계산. 결과·내부 조회 값이 q:N 근거, 조건 문장에 Function 이름·인자
+  - id: fn01
+    question: 시설 유형별 고위험 시설 비율 알려줘
+    expected_status: ok
+    required_values: ["30", "70", "40"]
+    required_conditions: ["고위험 시설 비율(기준 위험등급 = 4(기본값))"]
+    note: 그룹 Function + 기본값 인자(변전소 3/10·철탑 7/10·전주 4/10)
+
+  - id: fn02
+    question: 위험등급 3 이상을 고위험으로 볼 때 시설 유형별 고위험 시설 비율은?
+    expected_status: ok
+    required_values: ["40", "80", "60"]
+    required_conditions: ["기준 위험등급 = 3"]
+    note: 질문의 값이 인자로(기본값 4 로 두면 숫자 대조가 재계획시킨다)
+
+  - id: fn03
+    question: 대구 지역의 고위험 시설 비율은?
+    expected_status: ok
+    required_values: ["57.1"]
+    required_conditions: ["지역 고위험 시설 비율(지역명 = 대구)"]
+    note: 필수 문자열 인자 + 내부 조회의 링크 탐색(4/7)
+
+  - id: fn04
+    question: 대구 지역의 고위험 시설 비율은?
+    test_role: eval_facility_only
+    expected_status: failed
+    answerable: false
+    note: 지역을 못 읽는 역할 — 지역을 조회하는 Function 은 요약에 없고, 불러도 forbidden(fn03 과 같은 질문)

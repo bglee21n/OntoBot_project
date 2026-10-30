@@ -13,7 +13,7 @@ ChangeKind = Literal["added", "removed", "changed"]
 @dataclass(frozen=True)
 class Change:
     kind: ChangeKind
-    element: Literal["object_type", "property", "link_type", "action_type"]
+    element: Literal["object_type", "property", "link_type", "action_type", "function"]
     path: str
     before: dict[str, Any] | None
     after: dict[str, Any] | None
@@ -67,4 +67,13 @@ def diff(base: OntologyDocument, target: OntologyDocument) -> list[Change]:
             continue
         kind = "added" if ba is None else "removed" if ta is None else "changed"
         changes.append(Change(kind, "action_type", name, ba, ta))
+
+    b_fns = {f.api_name: f.model_dump(mode="json") for f in base.functions}
+    t_fns = {f.api_name: f.model_dump(mode="json") for f in target.functions}
+    for name in sorted(b_fns.keys() | t_fns.keys()):
+        bf, tf = b_fns.get(name), t_fns.get(name)
+        if bf == tf:
+            continue
+        kind = "added" if bf is None else "removed" if tf is None else "changed"
+        changes.append(Change(kind, "function", name, bf, tf))
     return changes

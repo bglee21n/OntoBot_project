@@ -145,3 +145,37 @@
 
 재현: 평가 DB(`task.py eval-prepare`) 를 가리킨 채 `scripts/spike_plan.py --models gemma4:e4b`.
 
+
+## Phase 12 보강 — Function (2026-10-30)
+
+요약에 Function 이 있을 때만 프롬프트에 `FUNCTION_RULES` 를 붙이고 구조화 출력 스키마를 `FunctionPlannerOutput`
+(`kind: function`, `FunctionCall{name, args[{name, value}]}`)으로 바꾼다(TRD 17.4). Function 이 없는 배포는
+스키마(`PlannerOutput`)와 프롬프트 모두 위에서 잰 그대로다 — 단위 테스트가 스키마 모양을 고정한다. 예시는 가상의
+Function(`close_rate`·`team_backlog`)으로 들고, 인자 없이 부르는 예시와 **인자로 받을 수 없는 조건이 있어 부르지
+않는**(`cannot_answer`) 예시를 넣었다. 예시 키 순서는 스키마 필드 순서와 같다(단위 테스트).
+
+샘플 팩에 Function 2개(`high_risk_ratio` — 시설 유형별, 선택 인자 기준 위험등급 기본 4 / `region_high_risk_ratio`
+— 지역명 필수, 내부 조회가 링크 탐색)와 골든 4문항(기본값·인자·탐색, 권한 1)을 더해 gemma4:e4b 로 쟀다.
+
+| 측정 | 전체 정답 | Function 정답 | 첫 계획 무효 | 최종 plan_invalid | p50 | 근거 |
+|---|---|---|---|---|---|---|
+| spike(장애·권한 문항 제외 28문항) | **28/28** | 3/3 | 3 | 2 | 1.2초 | `data/0004-spike-20261030T092556Z.json` |
+| 평가 게이트(record, 36문항) | 정답률 1.0·인용률 1.0 | — | — | — | p95 8.8초 | `domain-packs/sample/llm_cassette.json` |
+
+- **조용히 틀리는 경로를 하나 더 막았다.** 첫 녹화에서 `fn04`(지역을 못 읽는 역할의 "대구 지역의 고위험 시설
+  비율은?")가 ①로 나갔다. 지역 Function 은 요약에 없으니 플래너가 시설 유형별 Function 을 부르면서 질문에 없는
+  기본값 `min_grade: 4` 를 채워 넣었고, 답변은 "대구 지역의 고위험 시설 비율은 …"이라며 전국 유형별 값을 늘어놓았다
+  (지역 조건 누락). 프롬프트 규칙("인자로 받을 수 없는 조건이 있으면 부르지 않는다")과 예시만으로는 바뀌지
+  않았다(플래너 단독 재기 2/2 같음). 그래서 **넣은 인자 값은 질문에 그대로 있어야 한다**는 결정론적 대조를 더했다
+  (Action 값 파라미터와 같은 규칙, enum·bool 제외). 오류 문구에 "받을 수 없는 조건이 있으면 cannot_answer" 를
+  함께 실어 1회 재계획하면 `failed(plan_invalid)` 가 됐다 — 게이트 통과.
+- 반대 방향(질문의 숫자가 인자에 없음)은 기존 `query.coverage` 를 인자·내부 조건 값으로 넓혀 쓴다 — "위험등급 3
+  이상을 고위험으로 볼 때"가 기본값 4 로 불리면 재계획된다.
+- 이전 Phase 의 틀린 1건(`u01`, 스키마에 없는 속성)도 이번엔 `plan_invalid` 로 맞았다. 기존 조회·Action 문항의
+  회귀는 없었다.
+- 한계: Function 인자로 받지 않는 조건 중 **숫자도 인자 값도 아닌 것**(지역 이름 등)을 플래너가 빼고 부르면서 인자를
+  하나도 넣지 않으면 결정론적으로 잡지 못한다(조회 계획의 조건 누락과 같은 한계, 골든 `required_conditions` 로
+  감시). 조건 문장에 Function 이름·인자가 그대로 보여 사용자가 해석을 확인할 수 있다.
+
+재현: 평가 DB(`task.py eval-prepare`) 를 가리킨 채 `scripts/spike_plan.py --models gemma4:e4b`, 게이트는
+`task.py eval-record`.

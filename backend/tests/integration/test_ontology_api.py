@@ -203,3 +203,58 @@ async def test_export_round_trips_to_the_same_definition(client, modeler: int) -
     assert exported.status_code == 200
     original = importer.parse(SAMPLE.read_text(encoding="utf-8"), "yaml")
     assert importer.parse(exported.text, "json").content_hash() == original.content_hash()
+
+
+async def test_functions_are_edited_in_draft_and_versioned(client, modeler: int) -> None:
+    # Function 은 정의 문서에 산다(TRD 17.1-2): 임포트·draft 편집·게시 전 검사·버전 비교·복사.
+    detail = await _import_sample(client)
+    assert [f["api_name"] for f in detail["functions"]] == [
+        "high_risk_ratio",
+        "region_high_risk_ratio",
+    ]
+    vid = detail["id"]
+    base = {k: v for k, v in detail["functions"][0].items() if k != "id"}
+    new = {**base, "api_name": "high_risk_ratio_3", "display_name": "위험 비율(3)"}
+    res = await client.post(f"{V}/{vid}/functions", json=new)
+    assert res.status_code == 201, res.text
+    fid = res.json()["id"]
+    # 형식 오류(식 마디 인자 수)는 422, 교차 오류(없는 속성)는 게시 전 검사로 보인다.
+    bad = {**new, "api_name": "broken", "body": {"op": "add", "args": []}}
+    assert (await client.post(f"{V}/{vid}/functions", json=bad)).status_code == 422
+    wrong = {
+        **new,
+        "queries": [
+            {**new["queries"][0], "aggregate": {"fn": "count", "group_by": ["nope"]}},
+            new["queries"][1],
+        ],
+    }
+    res = await client.put(f"{V}/{vid}/functions/{fid}", json=wrong)
+    assert res.status_code == 200, res.text
+    got = (await client.get(f"{V}/{vid}")).json()
+    assert any(
+        i["path"] == "functions.high_risk_ratio_3" and "그룹 속성 'nope'" in i["message"]
+        for i in got["issues"]
+    )
+    assert (await client.post(f"{V}/{vid}/publish")).status_code == 422
+    # 이름은 바꿀 수 없다.
+    renamed = {**new, "api_name": "other"}
+    assert (await client.put(f"{V}/{vid}/functions/{fid}", json=renamed)).status_code == 409
+    assert (await client.delete(f"{V}/{vid}/functions/{fid}")).status_code == 204
+    assert (await client.post(f"{V}/{vid}/publish")).status_code == 200
+
+    child = (await client.post(V, json={"parent_id": vid})).json()
+    assert [f["api_name"] for f in child["functions"]] == [
+        "high_risk_ratio",
+        "region_high_risk_ratio",
+    ]
+    fid = child["functions"][1]["id"]
+    assert (await client.delete(f"{V}/{child['id']}/functions/{fid}")).status_code == 204
+    changes = (await client.get(f"{V}/{child['id']}/diff", params={"base": vid})).json()
+    assert [(c["kind"], c["element"], c["path"]) for c in changes] == [
+        ("removed", "function", "region_high_risk_ratio")
+    ]
+    # 영향 분석: Region 을 지우면 그 Function 이 함께 보인다.
+    refs = (
+        await client.get(f"{V}/{vid}/references", params={"kind": "object_type", "name": "Region"})
+    ).json()
+    assert "functions.region_high_risk_ratio" in [r["path"] for r in refs["in_document"]]

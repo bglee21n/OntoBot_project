@@ -10,6 +10,9 @@
 Action 요청 말(플래너 ``kind: action``)은 조회하지 않는다. 제안을 ``actions.params`` 로 대조해
 ``action_preview`` 상태로 돌려준다(등급 없음). 실행 기록(미리보기)을 만드는 것은 저장하는 호출부다
 (``api.chat`` → ``actions.runner.preview``) — 승인·실행은 Action API 가 한다(TRD 17.1-5).
+
+Function 을 부르는 말(``kind: function``)은 ``functions.binding`` 으로 인자·내부 조회를 검증하고
+(호출자 권한), 내부 조회를 **같은 실행기**로 돌려 식을 계산한다. 결과는 집계와 같이 ``q:N`` 근거다.
 """
 
 from __future__ import annotations
@@ -24,24 +27,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.actions import params as action_params
 from ontobot.chat import answerer, templates
+from ontobot.functions import binding as fn_binding
+from ontobot.functions import evaluator as fn_evaluator
+from ontobot.functions import runner as fn_runner
 from ontobot.graph import client as graph
 from ontobot.graph.projector import LAG_WARN_SECONDS, lag
-from ontobot.grounding.grader import grade
+from ontobot.grounding.grader import GradeResult, grade
 from ontobot.grounding.types import Evidence, GroundingContext
 from ontobot.llm.gateway import LLMGateway, LlmUnavailable
 from ontobot.llm.structured import StructuredOutputError
 from ontobot.ontology.registry import PublishedSchema
 from ontobot.ontology.summary import schema_summary
 from ontobot.query import conditions, planner, records
-from ontobot.query.coverage import coverage_errors
+from ontobot.query.coverage import coverage_errors, uncovered_in
 from ontobot.query.executor import ExecResult, execute_plan
-from ontobot.query.plan import PlannerOutput
+from ontobot.query.plan import FunctionCall, FunctionPlannerOutput
 from ontobot.query.references import (
     check_raw_references,
     check_references,
     rewrite_fk_names,
 )
-from ontobot.query.validator import PlanInvalid, ValidatedPlan, validate
+from ontobot.query.validator import CheckedFilter, PlanInvalid, ValidatedPlan, validate
 
 Status = Literal["ok", "empty", "failed", "not_query", "action_preview"]
 Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
@@ -107,9 +113,13 @@ def _failed(res: PipelineResult, reason: str) -> PipelineResult:
     return res
 
 
+def _all_filters(vp: ValidatedPlan) -> list[CheckedFilter]:
+    return [*vp.filters, *(f for h in vp.hops for f in h.filters)]
+
+
 def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
     terms: set[str] = set()
-    for f in (*vp.filters, *(f for h in vp.hops for f in h.filters)):
+    for f in _all_filters(vp):
         values = f.value if isinstance(f.value, tuple) else (f.value,)
         for v in values:
             if isinstance(v, bool):
@@ -120,10 +130,54 @@ def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
     return frozenset(terms)
 
 
+def _function_terms(vf: fn_binding.ValidatedFunction) -> frozenset[str]:
+    """Function 의 조건 값 — 내부 조회 조건 값과 인자(조건 문장에 있는 값은 사실이 아니다)."""
+    terms: set[str] = set()
+    for b in vf.queries:
+        terms |= _condition_terms(b.plan)
+    for v in vf.args.values():
+        if v is not None and not isinstance(v, bool):
+            terms.update({str(v), records.display(None, v)})
+    return frozenset(terms)
+
+
+def _function_coverage(
+    question: str, call: FunctionCall, vf: fn_binding.ValidatedFunction
+) -> list[str]:
+    """인자 ↔ 질문 대조(결정론적). 두 방향을 본다.
+
+    - 질문의 숫자가 인자·내부 조건 어디에도 없다 → 그 값을 쓰는 인자가 빠졌다
+      (``query.coverage``).
+    - 넣은 인자 값이 질문에 없다 → 지어낸 값이다(Action 값 파라미터와 같은 규칙,
+      ``actions.params``). enum·bool 은 닫힌 집합이라 보지 않는다. 기본값을 그대로 적어 넣은
+      것도 막는다 — 측정에서 플래너가 "대구 지역의 고위험 비율"(지역 인자 없음)에 기본값 4 를
+      채워 지역 조건을 뺀 채 불렀다.
+    """
+    errors: list[str] = []
+    for a in call.args:
+        p = vf.fn.param(a.name)
+        if p is None or p.data_type in {"enum", "bool"} or a.value is None:
+            continue
+        if not action_params.in_question(question, a.value):
+            errors.append(
+                f"인자 '{a.name}' 의 값 {a.value} 이 질문에 없습니다 — 질문에 없는 값은 넣지 "
+                "마세요(선택 인자는 기본값이 쓰입니다). 질문의 조건 중 이 Function 의 params 로 "
+                "받을 수 없는 것이 있으면 cannot_answer 를 내세요"
+            )
+    missing = uncovered_in(question, fn_binding.input_values(vf))
+    if missing:
+        errors.append(
+            f"질문의 값 {missing} 이 Function 인자 어디에도 없습니다. 그 값을 쓰는 인자를 "
+            "빼지 말고 args 에 넣으세요. 이 Function 의 인자로 표현할 수 없으면 cannot_answer 를 "
+            "내세요"
+        )
+    return errors
+
+
 def _pii_values(vp: ValidatedPlan, rs: records.RecordSet | None = None) -> list[str]:
     """이번 요청에서 PII 인 값 — ``pii_kind`` 속성에 건 조건 값과 결과 레코드의 그 속성 값."""
     out: list[str] = []
-    for f in (*vp.filters, *(f for h in vp.hops for f in h.filters)):
+    for f in _all_filters(vp):
         if f.prop.pii_kind and not isinstance(f.value, bool):
             out += [str(v) for v in (f.value if isinstance(f.value, tuple) else (f.value,))]
     if rs is not None:
@@ -167,7 +221,7 @@ async def _plan_and_validate(
     context: list[dict[str, str]],
     res: PipelineResult,
     actions: Set[str],
-) -> ValidatedPlan | action_params.ProposalCheck | PipelineResult:
+) -> ValidatedPlan | fn_binding.ValidatedFunction | action_params.ProposalCheck | PipelineResult:
     # 계획은 폐기되지 않은 요소로만 세운다 — 폐기 타입은 '없는 것'이라 재계획 대상이다
     # (권한 없음이 아니다).
     doc = schema.document.active()
@@ -178,7 +232,7 @@ async def _plan_and_validate(
     for _ in range(2):  # 최초 + 검증 오류를 붙인 재계획 1회(TRD 7.1 3단계)
         proposal = None
         try:
-            out: PlannerOutput = await planner.plan(llm, summary, question, errors, context)
+            out: FunctionPlannerOutput = await planner.plan(llm, summary, question, errors, context)
         except StructuredOutputError as e:
             res.plan_attempts.append({"structured_ok": False, "errors": e.errors})
             return _failed(res, "plan_invalid")
@@ -212,6 +266,35 @@ async def _plan_and_validate(
                 errors = proposal.errors
                 continue
             return proposal
+        if out.kind == "function":
+            if out.function is None:
+                errors = ["kind 가 function 이면 function 이 있어야 합니다"]
+                res.plan_attempts.append({"structured_ok": True, "errors": errors})
+                continue
+            res.plan = {"function": out.function.model_dump(mode="json")}
+            try:
+                vf = fn_binding.bind(doc, readable, out.function)
+            except PlanInvalid as e:
+                res.plan_attempts.append(
+                    {"structured_ok": True, "function": True, "errors": e.errors}
+                )
+                if e.forbidden:
+                    return _failed(res, "forbidden")
+                errors = e.errors
+                continue
+            ref_errors = [
+                f"Function '{vf.fn.api_name}' 의 조회 '{b.query.api_name}' 에서 참조 값이 실재하지 "
+                "않습니다 — 인자에는 질문에 적힌 값(코드·식별자)을 그대로 넣으세요"
+                for b in vf.queries
+                if await check_references(db, doc, b.plan)
+            ] + _function_coverage(question, out.function, vf)
+            res.plan_attempts.append(
+                {"structured_ok": True, "function": True, "errors": ref_errors}
+            )
+            if ref_errors:
+                errors = ref_errors
+                continue
+            return vf
         if out.plan is None:
             errors = ["kind 가 query 이면 plan 이 있어야 합니다"]
             res.plan_attempts.append({"structured_ok": True, "errors": errors})
@@ -297,6 +380,20 @@ async def run(
             return planned
         if isinstance(planned, action_params.ProposalCheck):
             return _action(res, planned)
+        if isinstance(planned, fn_binding.ValidatedFunction):
+            return await _run_function(
+                db,
+                llm,
+                planned,
+                readable,
+                question,
+                res,
+                timer,
+                emit,
+                executor,
+                graph_driver,
+                grade2_enabled=grade2_enabled,
+            )
         vp = planned
         llm.protect(_pii_values(vp))
         res.conditions = conditions.describe(vp)
@@ -332,8 +429,17 @@ async def run(
     except LlmUnavailable:
         return _failed(res, "llm_unavailable")
 
+    _finish(res, g, rs)
+    if vp.aggregate is None:
+        res.context_refs = [
+            {"type": r.type, "pk": r.ref.split("/", 1)[1]} for r in rs.records if r.type
+        ]
+    return res
+
+
+def _finish(res: PipelineResult, g: GradeResult, rs: records.RecordSet) -> None:
     res.status, res.grade = "ok", g.grade
-    res.answer = g.text if g.text is not None else templates.ungrounded(res.conditions)
+    res.answer = g.text if g.text is not None else templates.ungrounded(res.conditions or "")
     res.citations = [
         {
             "ref": f"{c.ref}#{c.field}",
@@ -345,8 +451,51 @@ async def run(
     res.removed_citations = [r.__dict__ for r in g.removed]
     res.estimated_sentences = g.estimated_sentences
     res.fact_sentences, res.verified_sentences = g.fact_sentences, g.verified_sentences
-    if vp.aggregate is None:
-        res.context_refs = [
-            {"type": r.type, "pk": r.ref.split("/", 1)[1]} for r in rs.records if r.type
-        ]
+
+
+async def _run_function(
+    db: AsyncSession,
+    llm: LLMGateway,
+    vf: fn_binding.ValidatedFunction,
+    readable: Set[str],
+    question: str,
+    res: PipelineResult,
+    timer: _Timer,
+    emit: Emit,
+    executor: Executor,
+    graph_driver: graph.AsyncDriver | None,
+    *,
+    grade2_enabled: bool,
+) -> PipelineResult:
+    """Function 결과 — 조회와 같은 단계(조건 문장 → 실행 → 답변 → 대조)를 탄다.
+
+    LLM 오류(``LlmUnavailable``)는 호출부의 ``try`` 가 받는다.
+    대화 맥락은 바꾸지 않는다(집계와 같다).
+    """
+    llm.protect([v for b in vf.queries for v in _pii_values(b.plan)])
+    res.conditions = fn_evaluator.describe(vf)
+    await emit("stage", {"stage": "querying"})
+    with timer.stage("querying"):
+        ex = await fn_runner.run(db, graph_driver, vf, executor)
+    res.sql, res.cypher = ex.sql or None, ex.cypher
+    if any(b.plan.hops for b in vf.queries) and ex.failure_reason != "graph_unavailable":
+        lagged = await lag(db)
+        if lagged["projection_lag_seconds"] > LAG_WARN_SECONDS and lagged["oldest_pending_at"]:
+            res.graph_as_of, hhmm = _as_of(lagged["oldest_pending_at"])
+            res.conditions += f" · 관계 정보는 {hhmm} 기준"
+    await emit("conditions", {"text": res.conditions, "graph_as_of": res.graph_as_of})
+    if ex.status == "failed":
+        return _failed(res, ex.failure_reason or "execution_error")
+    if ex.status == "empty":
+        res.status, res.grade, res.answer = "empty", 1, templates.empty(res.conditions)
+        return res
+    rs = fn_evaluator.build(vf, ex.rows)
+    await emit("stage", {"stage": "answering"})
+    with timer.stage("answering"):
+        raw = await answerer.answer(llm, question, res.conditions, records.render_for_llm(rs))
+    res.raw_answer = raw
+    await emit("stage", {"stage": "verifying"})
+    with timer.stage("verifying"):
+        g = grade(raw, _evidence(rs, readable, _function_terms(vf)), grade2_enabled=grade2_enabled)
+    _finish(res, g, rs)
     return res

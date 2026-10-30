@@ -6,6 +6,7 @@ LLM 을 가짜로 두는 이유: 모델 품질이 아니라 **파이프라인 �
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -22,6 +23,8 @@ from ontobot.llm.config import LlmConfig
 from ontobot.llm.gateway import LLMGateway
 from ontobot.objects.store import upsert_objects
 from ontobot.ontology import importer, registry, versioning
+from ontobot.ontology.models import FunctionDef, check_document
+from ontobot.query.executor import ExecResult, execute_plan
 
 pytestmark = pytest.mark.integration
 
@@ -257,3 +260,142 @@ async def test_cannot_answer_is_failed_not_a_dropped_condition(monkeypatch, sche
     assert res.plan_attempts == [
         {"structured_ok": True, "cannot_answer": True, "reason": "지역 이름 조건을 표현할 수 없음"}
     ]
+
+
+# ---------------------------------------------------------------- Function(PRD 5.10, TRD 17.1-7)
+
+PIPE_RATIO = {
+    "api_name": "pipe_ratio",
+    "display_name": "파이프 고위험 비율",
+    "params": [
+        {
+            "api_name": "min_grade",
+            "display_name": "기준 위험등급",
+            "data_type": "int",
+            "required": False,
+            "default": 4,
+        }
+    ],
+    "queries": [
+        {
+            "api_name": "high_risk",
+            "display_name": "고위험 수",
+            "target": "Facility",
+            "filters": [
+                {"property": "name", "op": "contains", "value": "파이프"},
+                {"property": "risk_grade", "op": "gte", "value": {"param": "min_grade"}},
+            ],
+            "aggregate": {"fn": "count", "group_by": ["facility_type"]},
+        },
+        {
+            "api_name": "total",
+            "display_name": "전체 수",
+            "target": "Facility",
+            "filters": [{"property": "name", "op": "contains", "value": "파이프"}],
+            "aggregate": {"fn": "count", "group_by": ["facility_type"]},
+        },
+    ],
+    "body": {
+        "op": "mul",
+        "args": [
+            {
+                "op": "div",
+                "args": [{"op": "query", "name": "high_risk"}, {"op": "query", "name": "total"}],
+            },
+            {"op": "const", "value": 100},
+        ],
+    },
+    "result_label": "고위험 비율(%)",
+    "decimals": 1,
+}
+
+
+def _with_pipe_ratio(schema: registry.PublishedSchema) -> registry.PublishedSchema:
+    # 다른 테스트가 넣은 시설과 섞이지 않게, 이 파일의 시설만 세는 Function 을 문서에 더한다.
+    doc = schema.document
+    fns = [*doc.functions, FunctionDef.model_validate(PIPE_RATIO)]
+    assert not check_document(doc.model_copy(update={"functions": fns}))
+    return dataclasses.replace(schema, document=doc.model_copy(update={"functions": fns}))
+
+
+def _call(name: str, **args: Any) -> dict[str, Any]:
+    return {
+        "kind": "function",
+        "function": {"name": name, "args": [{"name": k, "value": v} for k, v in args.items()]},
+    }
+
+
+async def test_function_result_is_cited_like_an_aggregate(monkeypatch, schema) -> None:
+    script = Script(
+        [_call("pipe_ratio")],
+        "변전소의 고위험 비율은 100%이고, 철탑은 0%입니다. [[q:1#value]] [[q:2#value]]",
+    )
+    res = await _run(monkeypatch, _with_pipe_ratio(schema), script, "파이프 시설 고위험 비율")
+    assert (res.status, res.grade) == ("ok", 1)
+    assert res.plan == {"function": {"name": "pipe_ratio", "args": []}}
+    assert res.conditions is not None
+    assert res.conditions.startswith("파이프 고위험 비율(기준 위험등급 = 4(기본값)) · 고위험 수:")
+    assert [c["ref"] for c in res.citations] == ["q:1#value", "q:2#value"]
+    assert res.context_refs is None  # 집계처럼 대화 맥락을 바꾸지 않는다
+    # 내부 조회 둘(";" 로 이어 붙인다), 조건 값은 바인드다.
+    assert res.sql is not None and len(res.sql.split(";\n")) == 2 and "파이프" not in res.sql
+
+
+async def test_function_inner_values_are_citable(monkeypatch, schema) -> None:
+    # 인자 1 이면 둘 다 고위험 — 계산 근거(내부 조회 값)도 칸마다 인용된다.
+    script = Script(
+        [_call("pipe_ratio", min_grade=1)],
+        "변전소는 1곳 중 1곳으로 100%입니다. [[q:1#high_risk]] [[q:1#total]] [[q:1#value]]",
+    )
+    res = await _run(monkeypatch, _with_pipe_ratio(schema), script, "위험등급 1 이상 비율")
+    assert (res.status, res.grade) == ("ok", 1)
+    assert "(기준 위험등급 = 1) ·" in (res.conditions or "")
+
+
+async def test_wrong_function_value_is_removed(monkeypatch, schema) -> None:
+    script = Script([_call("pipe_ratio")], "변전소의 고위험 비율은 50%입니다. [[q:1#value]]")
+    res = await _run(monkeypatch, _with_pipe_ratio(schema), script, "파이프 시설 고위험 비율")
+    assert (res.status, res.grade) == ("ok", 3)
+
+
+async def test_function_over_unreadable_type_is_forbidden(monkeypatch, schema) -> None:
+    script = Script([_call("region_high_risk_ratio", region="서울")])
+    res = await _run(monkeypatch, schema, script, "서울 고위험 비율", readable={"Facility"})
+    assert (res.status, res.failure_reason) == ("failed", "forbidden")
+    assert script.calls == 1  # 재계획하지 않는다
+
+
+async def test_function_argument_errors_are_replanned(monkeypatch, schema) -> None:
+    # 질문의 3 이 인자에 없다(기본값 4) → 재계획, 필수 인자가 없어도 재계획.
+    script = Script(
+        [_call("pipe_ratio"), _call("pipe_ratio", min_grade=3)],
+        "철탑은 0%입니다. [[q:2#value]]",
+    )
+    res = await _run(monkeypatch, _with_pipe_ratio(schema), script, "위험등급 3 이상 비율")
+    assert "['3']" in res.plan_attempts[0]["errors"][0]
+    assert (res.status, res.grade) == ("ok", 1)
+    script = Script([_call("region_high_risk_ratio"), _call("region_high_risk_ratio")])
+    res = await _run(monkeypatch, schema, script, "지역 고위험 비율")
+    assert (res.status, res.failure_reason) == ("failed", "plan_invalid")
+    assert "필수 인자" in res.plan_attempts[0]["errors"][0]
+
+
+async def test_function_inner_failure_fails_the_whole_function(monkeypatch, schema) -> None:
+    calls: list[str] = []
+
+    async def broken(db, driver, vp):  # type: ignore[no-untyped-def]
+        calls.append(vp.target.api_name)
+        if len(calls) == 2:
+            return ExecResult("failed", failure_reason="timeout", sql="SELECT 1")
+        return await execute_plan(db, driver, vp)
+
+    monkeypatch.setattr(
+        ollama, "transport", httpx.MockTransport(Script([_call("pipe_ratio")]).handler)
+    )
+    async with session_scope() as db:
+        res = await pipeline.run(
+            db, LLMGateway(CFG), _with_pipe_ratio(schema), {"Facility"}, "비율", executor=broken
+        )
+    # 나머지 값으로 계산해 그럴듯한 답을 만들지 않는다.
+    assert (res.status, res.failure_reason, res.grade) == ("failed", "timeout", None)
+    assert calls == ["Facility", "Facility"]

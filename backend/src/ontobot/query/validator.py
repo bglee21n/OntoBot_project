@@ -15,7 +15,14 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from ontobot.ontology.models import LinkTypeDef, ObjectTypeDef, OntologyDocument, PropertyDef
+from ontobot.ontology.models import (
+    OPS_BY_TYPE,
+    ORDERED_TYPES,
+    LinkTypeDef,
+    ObjectTypeDef,
+    OntologyDocument,
+    PropertyDef,
+)
 from ontobot.query.plan import (
     AGG_VALUE,
     DEFAULT_LIMIT,
@@ -30,13 +37,8 @@ from ontobot.query.plan import (
 
 MAX_IN_VALUES = 100
 
-_ORDERED = {"int", "decimal", "date", "datetime"}
-_OPS_BY_TYPE: dict[str, set[Op]] = {
-    "string": {"eq", "ne", "in", "contains", "is_null"},
-    "enum": {"eq", "ne", "in", "is_null"},
-    "bool": {"eq", "ne", "is_null"},
-    **{t: {"eq", "ne", "gt", "gte", "lt", "lte", "in", "between", "is_null"} for t in _ORDERED},
-}
+_ORDERED = ORDERED_TYPES
+_OPS_BY_TYPE = OPS_BY_TYPE
 
 
 @dataclass(frozen=True)

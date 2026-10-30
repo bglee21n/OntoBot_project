@@ -37,7 +37,12 @@ def _plan_values(plan: QueryPlan) -> list[Any]:
 
 
 def uncovered_numbers(question: str, plan: QueryPlan) -> list[str]:
-    values = _plan_values(plan)
+    return uncovered_in(question, _plan_values(plan))
+
+
+def uncovered_in(question: str, values: list[Any]) -> list[str]:
+    """질문의 숫자 중 ``values``(계획·Function 인자의 값) 어디에도 없는 것."""
+    values = [v for v in values if v is not None and not isinstance(v, bool)]
     text = json.dumps([str(v) for v in values], ensure_ascii=False)
     nums: set[Decimal] = set()
     for v in values:

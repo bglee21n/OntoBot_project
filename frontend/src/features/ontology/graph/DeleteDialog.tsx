@@ -50,6 +50,9 @@ export function DeleteDialog({
       } else if (head === "action_types") {
         const a = v.action_types.find((x) => x.api_name === name);
         if (a) await api.del(`${V}/${v.id}/action-types/${a.id}`);
+      } else if (head === "functions") {
+        const f = v.functions.find((x) => x.api_name === name);
+        if (f) await api.del(`${V}/${v.id}/functions/${f.id}`);
       }
     }
     if (target.kind === "object_type" && type) await api.del(`${V}/${v.id}/object-types/${type.id}`);

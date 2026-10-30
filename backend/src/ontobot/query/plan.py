@@ -99,3 +99,38 @@ class PlannerOutput(_Plan):
     plan: QueryPlan | None = None
     action: ActionProposal | None = None
     reason: str | None = None
+
+
+class FunctionArg(_Plan):
+    name: str
+    value: Scalar = None
+
+
+class FunctionCall(_Plan):
+    """정의된 Function 을 부르는 말(PRD 5.10).
+
+    인자는 이름·값 목록이다(``ActionProposal`` 과 같은 이유).
+    """
+
+    name: str
+    args: list[FunctionArg] = Field(default_factory=list)
+
+
+class FunctionPlannerOutput(_Plan):
+    """요약에 Function 이 있을 때의 플래너 출력.
+
+    ``PlannerOutput`` 에 ``kind: function`` 을 더한 것이다.
+
+    따로 둔 이유: Function 이 없는 배포의 구조화 출력 스키마(와 녹화 키)를 측정한 그대로 남긴다.
+    필드 순서가 생성 순서다 — ``function`` 은 ``plan`` 다음이다(프롬프트 예시도 같은 순서).
+    """
+
+    kind: Literal["query", "function", "action", "not_query", "cannot_answer"]
+    plan: QueryPlan | None = None
+    function: FunctionCall | None = None
+    action: ActionProposal | None = None
+    reason: str | None = None
+
+    @classmethod
+    def lift(cls, out: PlannerOutput) -> FunctionPlannerOutput:
+        return cls.model_validate(out.model_dump())

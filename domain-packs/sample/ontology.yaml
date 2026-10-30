@@ -90,3 +90,72 @@ action_types:
         to_roles: [admin, domain_expert]
         template: "'{target}'({target_pk}) {urgency} 점검 요청"
     approval: {roles: [admin]}
+
+# Function(TRD 17.1-7) — 선언형 계산. 내부 조회는 집계이고, 조건 값 자리에 {param: 이름} 을 둔다.
+# 채팅에서 "시설 유형별 고위험 시설 비율"처럼 조회 하나로 나오지 않는 값을 물으면 플래너가 부른다(Phase 12).
+functions:
+  - api_name: high_risk_ratio
+    display_name: 고위험 시설 비율
+    description: 시설 유형별로 위험등급이 기준 이상인 시설의 비율(%)
+    params:
+      - {api_name: min_grade, display_name: 기준 위험등급, data_type: int, required: false, default: 4}
+    queries:
+      - api_name: high_risk
+        display_name: 고위험 시설 수
+        target: Facility
+        filters:
+          - {property: risk_grade, op: gte, value: {param: min_grade}}
+        aggregate: {fn: count, group_by: [facility_type]}
+      - api_name: total
+        display_name: 전체 시설 수
+        target: Facility
+        aggregate: {fn: count, group_by: [facility_type]}
+    body:
+      op: round
+      digits: 1
+      args:
+        - op: mul
+          args:
+            - op: div
+              args: [{op: query, name: high_risk}, {op: query, name: total}]
+            - {op: const, value: 100}
+    result_label: 고위험 비율(%)
+    decimals: 1
+
+  - api_name: region_high_risk_ratio
+    display_name: 지역 고위험 시설 비율
+    description: 한 지역(지역명)의 시설 중 위험등급 4 이상인 시설의 비율(%)
+    params:
+      - {api_name: region, display_name: 지역명, data_type: string}
+    queries:
+      - api_name: high_risk
+        display_name: 고위험 시설 수
+        target: Facility
+        filters:
+          - {property: risk_grade, op: gte, value: 4}
+        traverse:
+          - link: located_in
+            direction: out
+            to: Region
+            filters: [{property: name, op: eq, value: {param: region}}]
+        aggregate: {fn: count}
+      - api_name: total
+        display_name: 전체 시설 수
+        target: Facility
+        traverse:
+          - link: located_in
+            direction: out
+            to: Region
+            filters: [{property: name, op: eq, value: {param: region}}]
+        aggregate: {fn: count}
+    body:
+      op: round
+      digits: 1
+      args:
+        - op: mul
+          args:
+            - op: div
+              args: [{op: query, name: high_risk}, {op: query, name: total}]
+            - {op: const, value: 100}
+    result_label: 고위험 비율(%)
+    decimals: 1

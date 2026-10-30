@@ -15,6 +15,7 @@ from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.ontology import (
     ActionType,
+    FunctionType,
     LinkType,
     ObjectType,
     OntologyVersion,
@@ -26,6 +27,7 @@ from ontobot.ontology import diff as diff_mod
 from ontobot.ontology import impact, importer, registry, versioning
 from ontobot.ontology.models import (
     ActionTypeDef,
+    FunctionDef,
     LinkSource,
     LinkTypeDef,
     ObjectTypeDef,
@@ -71,6 +73,10 @@ class ActionTypeOut(ActionTypeDef):
     id: int
 
 
+class FunctionOut(FunctionDef):
+    id: int
+
+
 class VersionSummary(BaseModel):
     id: int
     version_no: int
@@ -87,13 +93,14 @@ class VersionDetail(VersionSummary):
     object_types: list[ObjectTypeOut]
     link_types: list[LinkTypeOut]
     action_types: list[ActionTypeOut]
+    functions: list[FunctionOut]
     # 게시 전 검사 — draft 를 조각조각 편집하는 동안 무엇이 남았는지 보여 준다.
     issues: list[IssueOut]
 
 
 class ChangeOut(BaseModel):
     kind: Literal["added", "removed", "changed"]
-    element: Literal["object_type", "property", "link_type", "action_type"]
+    element: Literal["object_type", "property", "link_type", "action_type", "function"]
     path: str
     before: dict[str, Any] | None
     after: dict[str, Any] | None
@@ -152,6 +159,10 @@ def _action_out(a: ActionType) -> ActionTypeOut:
     return ActionTypeOut(id=a.id, **versioning.action_def(a).model_dump())
 
 
+def _function_out(f: FunctionType) -> FunctionOut:
+    return FunctionOut(id=f.id, **versioning.function_def(f).model_dump())
+
+
 async def _detail(db: Db, v: OntologyVersion) -> VersionDetail:
     issues = check_document(versioning.to_document(v))
     return VersionDetail(
@@ -159,6 +170,7 @@ async def _detail(db: Db, v: OntologyVersion) -> VersionDetail:
         object_types=[_type_out(t) for t in v.object_types],
         link_types=[_link_out(lt) for lt in v.link_types],
         action_types=[_action_out(a) for a in v.action_types],
+        functions=[_function_out(f) for f in v.functions],
         issues=[IssueOut(path=i.path, message=i.message) for i in issues],
     )
 
@@ -513,3 +525,28 @@ async def replace_action_type(
 async def delete_action_type(version_id: int, action_id: int, db: Db, user: Modeler) -> None:
     with _domain_errors():
         await versioning.delete_action_type(db, version_id, action_id, actor_id=user.id)
+
+
+# ---------------------------------------------------------------- Function(PRD 5.10, TRD 17.1-7)
+
+
+@router.post("/versions/{version_id}/functions", response_model=FunctionOut, status_code=201)
+async def create_function(version_id: int, body: FunctionDef, db: Db, user: Modeler) -> FunctionOut:
+    with _domain_errors():
+        row = await versioning.add_function(db, version_id, body, actor_id=user.id)
+    return _function_out(row)
+
+
+@router.put("/versions/{version_id}/functions/{function_id}", response_model=FunctionOut)
+async def replace_function(
+    version_id: int, function_id: int, body: FunctionDef, db: Db, user: Modeler
+) -> FunctionOut:
+    with _domain_errors():
+        row = await versioning.replace_function(db, version_id, function_id, body, actor_id=user.id)
+    return _function_out(row)
+
+
+@router.delete("/versions/{version_id}/functions/{function_id}", status_code=204)
+async def delete_function(version_id: int, function_id: int, db: Db, user: Modeler) -> None:
+    with _domain_errors():
+        await versioning.delete_function(db, version_id, function_id, actor_id=user.id)

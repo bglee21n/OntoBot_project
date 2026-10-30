@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.18                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.19                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -659,7 +659,7 @@ OntoBot_project/
 | 5.6 (P1)     | 트레이스 뷰·피드백                       | 프론트 `features/traces`, `feedback` 테이블                                                                                                                      |
 | 5.8 (P1)     | 워크숍 확장형                            | 프론트 분할 화면, 샘플 데이터용 격리 스키마, `workshop/merge.py`(정확 일치 후보 제안)                                                                            |
 | 5.9 (P1)     | 객체 탐색                                | 프론트 `features/explorer`, `graph/traversal.py`의 이웃 조회 API                                                                                                 |
-| 5.10 (P1)    | Function                                 | `functions/`(registry, 버전), QueryPlan에 `function` 단계, 결과는 `[[q:n]]`으로 인용                                                                             |
+| 5.10 (P1)    | Function                                 | **구현(Phase 12, 17.4)** — `functions/`(binding·evaluator·runner), 정의는 온톨로지 문서(`function_type`), 플래너 `kind: function`, 결과는 `[[q:n]]`으로 인용          |
 | 5.11 (P1~P3) | REST API 공개 · 메신저 · SDK             | API 키·스코프 / `integrations/messenger/` / OpenAPI 기반 SDK 생성                                                                                                |
 | 5.1 (P2)     | 멀티 소스                                | `sync/identity.py` — 소스 간 같은 객체 식별 규칙                                                                                                                 |
 | 5.4 (P2)     | 에이전트 빌더                            | `agents/` — 도구 = query·functions·actions                                                                                                                       |
@@ -709,6 +709,22 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 - **대조**(`actions.params`, 17.1-5): 대상을 가리키는 말이 질문에 **그대로** 있거나(근거 대조 정규화) 맥락의 pk 여야 한다 — 실재하는 다른 객체를 골라도 지어낸 것이다. 그다음 pk, 없으면 제목과 정확히 같은 객체(`objects.reader.pks_with_value`), 같은 제목이 여럿이면 후보. 값 파라미터(string·int·decimal·date·datetime)는 질문에 그대로 있어야 하고(수는 값 같음), enum·bool 은 자료형 변환만. 질문에 없는 값은 버리고 알린다. 오류는 한꺼번에 붙여 **1회 재계획**, 그래도 남으면 `action_preview` + `ready=false` + `issues`·`candidates`(같은 제목 객체, 없으면 맥락의 같은 타입 객체)로 사용자에게 보인다. 모르는·요청할 수 없는 Action 은 재계획 뒤 `failed(plan_invalid)`.
 - **미리보기**: 파이프라인은 저장하지 않는다. 대조를 통과하면(`ready`) 채팅 API 가 같은 트랜잭션에서 `actions.runner.preview`(`origin=chat`, `request_id = chat-<질문 메시지 id>`)로 실행 기록을 만들고 `run_id` 를 싣는다 — 승인·실행·롤백은 17.2 의 Action API 그대로다. 미리보기 단계에서 막히면(권한 등) `ready=false` 로 돌린다. 화면은 `run_id` 가 있으면 그 기록을 지금 상태로 다시 읽어 보여 주고, 없으면 서버가 확인한 값만 채운 요청 폼(후보는 선택지)을 보여 준다.
 - **기록**: `message.status` 에 `action_preview`(마이그레이션 0008), `message.meta.action` 에 이벤트 데이터. 평가 문항은 `golden_item.expected_action{action_type, target_pk, params, ready}`.
+
+### 17.4 Function (v0.19, Phase 12)
+
+| 표 | 주요 컬럼 |
+| --- | --- |
+| `function_type` | `version_id`, `api_name`, `display_name`, `definition`(jsonb — `FunctionDef` 의 나머지). 유일 `(version_id, api_name)`. 버전과 함께 게시, 게시본 불변(마이그레이션 0010) |
+
+- **정의**(`ontology.models.FunctionDef`, 17.1-7): `params[]`(자료형·enum·필수, 선택이면 `default`), `queries[]`(1~4개 — 각각 `target`·`filters`·`traverse`·`aggregate` 로 QueryPlan 과 같은 모양의 **집계** 조회, 조건 값 자리에 `{param: 이름}`), `body`(식 트리: `query`·`param`·`const` 잎과 `add/sub/mul/div/round/eq/ne/gt/gte/lt/lte/and/or/not/if` — 마디 인자 수 고정, 깊이 8·마디 40 상한), `result_label`·`result_type`(int/decimal/bool)·`decimals`. 사용자 코드는 받지 않는다. Function 이 없는 문서는 정규 표현에서 `functions` 키가 빠져 기존 `content_hash` 가 그대로다.
+- **게시 전 검사**(`check_document`): 대상·끝 타입·링크 실재(폐기면 문제), 속성 자료형별 연산자(`ontology.models.OPS_BY_TYPE` — 계획 검증과 같은 표), 파라미터 ↔ 속성 자료형(int → decimal, string → enum 허용, `in`·`between`·`is_null` 에는 파라미터 금지), 집계 함수 ↔ 속성(min·max 도 숫자만), 그룹이 있는 조회는 모두 같은 `group_by`, 조회 이름이 그룹 열·`value`·`inputs` 와 겹치지 않음, 식 자료형(산술은 숫자, 논리는 참거짓, `if` 는 같은 자료형 두 갈래)과 결과 자료형. 경로는 언제나 `functions.<이름>`(영향 분석 경로와 같다), 조회 문제는 메시지 앞에 조회 이름.
+- **요약·계획**: 스키마 요약의 `functions` 는 내부에서 조회하는 타입을 **모두** 읽을 수 있고 건너는 링크가 보이는 것만(이름·설명·결과 이름·그룹 열·인자). 하나도 없으면 키도, 플래너 `FUNCTION_RULES` 도 없고 구조화 출력 스키마도 `PlannerOutput` 그대로다(측정한 배포의 녹화 키 유지). 있으면 `FunctionPlannerOutput`(`kind: function`, 필드 순서 `kind·plan·function·action·reason`)과 `FunctionCall{name, args: [{name, value}]}`. 폐기 요소를 조회하는 Function 은 활성 문서(`active()`)에서 빠진다.
+- **검증**(`functions.binding.bind`): 없는 Function 은 재계획, 있지만 읽을 수 없는 타입을 조회하면 `forbidden`(재계획 없음 — 이름을 지어 불러도 같다). 인자는 파라미터 자료형으로 변환(`query.validator.coerce`), 값 없는 선택 인자는 기본값, 기본값도 없으면 그 조건을 빼고 조회(조건 문장에 '지정 안 함'). 내부 조회는 `QueryPlan` 으로 바꿔 `validate` 를 그대로 지난다(호출자 권한, 값 바인드). 파이프라인은 내부 조회마다 참조 값 대조(`query.references`)를 하고, 인자 ↔ 질문을 두 방향으로 대조한다: 질문의 숫자가 인자·내부 조건에 없으면 재계획(`query.coverage`), 넣은 인자 값(enum·bool 제외)이 질문에 그대로 없으면 재계획(Action 값 파라미터와 같은 규칙 — 측정에서 플래너가 기본값을 채워 넣으며 질문의 지역 조건을 뺀 채 불렀다). 오류는 한꺼번에 1회 재계획.
+- **실행·계산**(`functions.runner`·`evaluator`): 내부 조회를 파이프라인의 실행기로 차례로 돈다(장애 주입도 같은 실행기). 하나라도 `failed` 면 전체가 같은 사유로 `failed`. 값은 그룹 키로 맞추고(그룹이 있는 조회 키의 합집합, 최대 100개 그룹), 빠진 키는 `count` 0·그 밖 값 없음. 계산은 `Decimal`, 값 없음은 번지고 0 으로 나누면 값 없음, 결과는 서버가 `decimals` 로 반올림. 그룹 결과가 하나도 없으면 `empty`.
+- **인용**(17.1-8): 결과 행은 `q:N` 근거 — 칸은 그룹 열, **내부 조회 값마다 하나**(이름 = 조회 이름, 라벨 = 조회 표시 이름), `value`(라벨 = `result_label`), 인자가 있으면 `inputs`(입력 조건 문장). 답이 "10곳 중 3곳(30%)"처럼 계산 근거를 말해도 칸마다 인용된다. 근거 대조(`grounding`)는 바뀌지 않았다. 조건 값 가리기는 내부 조회 조건 값과 인자 값. 대화 맥락은 바꾸지 않는다(집계와 같다).
+- **조회 조건 문장**: `고위험 시설 비율(기준 위험등급 = 4(기본값)) · 고위험 시설 수: 시설 · 위험등급 ≥ 4 · 시설 유형별 건수 / 전체 시설 수: 시설 · 시설 유형별 건수 · 최대 100개 그룹` — Function 표시 이름·인자(기본값 표시), 내부 조회마다 7.1 5단계 문장(최대 N건 없이).
+- **API**: `POST/PUT/DELETE /ontology/versions/{id}/functions[/{function_id}]`(모델러, draft 만, 이름 변경 409), `VersionDetail.functions`, 버전 비교 요소 `function`, 영향 분석이 Function 참조(조회 타입·건너는 링크·쓰는 속성)를 낸다. 감사는 `ontology.draft_edited`(`function.create/update/delete`).
+- **화면**: 버전 화면의 Function 섹션 — 요약(인자·내부 조회·그룹·결과)과 JSON 편집(형식은 저장 때 422, 교차 검사는 게시 전 검사). 그래프 삭제 창이 함께 지울 Function 을 고를 수 있다.
 
 ## 18. PRD 추적 매트릭스 (P0)
 
@@ -792,6 +808,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.19 | 2026-10-30 | Phase 12 Function(17.4) — `FunctionDef`(인자·집계 내부 조회·식 트리·결과)를 정의 문서에, `function_type` 표(마이그레이션 0010), 게시 전 검사(연산자 표 `OPS_BY_TYPE` 를 계획 검증과 공유), 요약에 실을 조건(내부 타입 모두 읽기), 플래너 `kind: function`(`FunctionPlannerOutput` — Function 이 없으면 스키마·프롬프트 그대로), 바인드·권한(`forbidden`)·인자 ↔ 질문 두 방향 대조, 실행기 공유·실패 전파, 그룹 키 맞춤·`Decimal` 계산·서버 반올림, 근거 행(내부 조회 값·결과·입력 조건), 조건 문장, API·화면. 17절 표의 5.10 행 갱신 |
 | v0.18 | 2026-10-30 | Phase G1 스키마 그래프 편집기 — 정의 문서에 `deprecated`(객체 타입·링크 타입, 거짓이면 정규 표현·내보내기에서 빠져 기존 `content_hash` 유지). 플래너 요약·계획 검증은 폐기 요소를 뺀 문서(`OntologyDocument.active()`)를 본다(폐기 타입 = 없는 것, 권한 없음 아님). 폐기 타입을 대상으로 하는 Action 은 게시 전 검사 문제. `ontology_layout`(그래프 노드 위치 — 정의 밖, 감사 없음, draft 생성 때 부모 배치 복사), `GET/PUT /ontology/versions/{id}/layout`, 영향 분석 `GET /ontology/versions/{id}/references`(`ontology/impact.py` 첫 조각 — 문서 안 참조·매핑·골든 문항 id·데이터 존재만, 설정·본문·값 없음). `VersionSummary.created_by`·`created_by_name`. 마이그레이션 0009 |
 | v0.15 | 2026-10-20 | Phase 11 구현 반영 — 17.3 채팅에서 Action: 플래너 `kind: action`·`ActionProposal`, 요청할 수 있는 Action 만 요약에, 대상·값 대조 규칙(질문·맥락에 그대로, pk → 제목 정확 일치, 후보), 재계획 뒤 확인 사항, 채팅 API 가 미리보기 기록(`origin=chat`). 7.3 상태 `action_preview`, 14.2 SSE `action_preview`, 13.1·13.2 지표 `action_param_accuracy`(가안·optional)·`action_fabrications`(불변식) |
 | v0.14 | 2026-10-20 | Phase 10 구현 반영(ADR-0012) — 17.2 Action 실행: `action_type`·`action_run`·`notification`·`notification_delivery` 표, `app_user` 연락처, 정의 모양과 게시 전 검사, 미리보기 → 승인 = 실행(재검증) → 롤백(정정 발송) 흐름, 권한 판정, 발송 아웃박스(최소 한 번·재시도·채널 꺼짐 = 막힘), API·감사 이벤트. 17.1-4 의 아웃박스 표 이름을 `notification_delivery` 로 정정 |

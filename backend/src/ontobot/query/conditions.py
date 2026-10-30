@@ -39,7 +39,11 @@ def _hop(h: CheckedHop) -> str:
     return f"{name}[{h.to.display_name}{': ' + ', '.join(inner) if inner else ' 있음'}]"
 
 
-def describe(vp: ValidatedPlan) -> str:
+def describe(vp: ValidatedPlan, *, with_limit: bool = True) -> str:
+    """``with_limit`` 이 거짓이면 '최대 N건'을 뺀다.
+
+    Function 내부 조회에 쓴다 — 그룹 상한은 Function 이 밝힌다.
+    """
     parts = [vp.target.display_name]
     if vp.target_pks is not None:
         parts.append(f"직전 결과 {len(vp.target_pks)}건 중")
@@ -55,6 +59,6 @@ def describe(vp: ValidatedPlan) -> str:
         else:
             label = s.key.display_name
         parts.append(f"{label} {'내림차순' if s.desc else '오름차순'}")
-    if a is None or a.group_by:
+    if with_limit and (a is None or a.group_by):
         parts.append(f"최대 {vp.limit}건")
     return " · ".join(parts)
