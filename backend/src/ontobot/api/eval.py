@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 
 from ontobot.api.deps import CurrentUser, Db, SettingsDep, require_role
 from ontobot.api.errors import ProblemError
+from ontobot.chat import feedback as chat_feedback
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
 from ontobot.evaluation import golden, runner
 from ontobot.evaluation.golden import ExpectedAction
@@ -94,8 +95,30 @@ class ItemPatch(BaseModel):
 class ItemOut(ItemFields):
     id: int
     key: str | None
-    source: Literal["manual", "workshop"]
+    source: Literal["manual", "workshop", "feedback"]
     expected_answer: str | None
+
+
+class FeedbackItemOut(BaseModel):
+    id: int
+    message_id: int
+    rating: Literal["up", "down"]
+    comment: str | None
+    status: Literal["open", "promoted", "dismissed"]
+    golden_item_id: int | None
+    question: str | None
+    answer: str
+    answer_status: str | None
+    grade: int | None
+    conditions: str | None
+    trace_id: int | None
+    created_at: datetime
+
+
+class PromoteIn(ItemIn):
+    """기대값은 사람이 적는다 — 피드백은 답이 틀렸다는 신호일 뿐이다."""
+
+    golden_set_id: int
 
 
 class GoldenSetDetail(GoldenSetOut):
@@ -220,6 +243,10 @@ def _domain_errors() -> Iterator[None]:
         raise ProblemError(404, "문항을 찾을 수 없습니다", code="golden_item_not_found") from e
     except golden.NameTaken as e:
         raise ProblemError(409, "같은 이름의 골든셋이 있습니다", code="golden_set_exists") from e
+    except chat_feedback.FeedbackNotFound as e:
+        raise ProblemError(404, "피드백을 찾을 수 없습니다", code="feedback_not_found") from e
+    except chat_feedback.AlreadyHandled as e:
+        raise ProblemError(409, "이미 처리한 피드백입니다", code="feedback_handled") from e
     except golden.InUse as e:
         raise ProblemError(
             409,
@@ -288,6 +315,45 @@ async def delete_item(set_id: int, item_id: int, db: Db, user: Builder) -> Respo
     with _domain_errors():
         gs = await golden.get_set(db, set_id)
         await golden.delete_item(db, await golden.get_item(db, gs, item_id), actor_id=user.id)
+    return Response(status_code=204)
+
+
+# ---------------------------------------------------------------- 피드백 → 골든 후보(Phase 15)
+
+
+def _feedback(v: chat_feedback.FeedbackView) -> FeedbackItemOut:
+    return FeedbackItemOut.model_validate(v, from_attributes=True)
+
+
+@router.get("/feedback")
+async def feedback_list(
+    db: Db,
+    _: Builder,
+    status: chat_feedback.FeedbackStatus | None = "open",
+    rating: chat_feedback.Rating | None = "down",
+) -> list[FeedbackItemOut]:
+    return [_feedback(v) for v in await chat_feedback.listing(db, status=status, rating=rating)]
+
+
+@router.post("/feedback/{feedback_id}/promote", status_code=201)
+async def promote_feedback(feedback_id: int, body: PromoteIn, db: Db, user: Builder) -> ItemOut:
+    with _domain_errors():
+        gs = await golden.get_set(db, body.golden_set_id)
+        item = await golden.promote_feedback(
+            db,
+            gs,
+            feedback_id,
+            body.model_dump(exclude={"key", "golden_set_id"}),
+            actor_id=user.id,
+            key=body.key,
+        )
+    return _item(item)
+
+
+@router.post("/feedback/{feedback_id}/dismiss", status_code=204)
+async def dismiss_feedback(feedback_id: int, db: Db, user: Builder) -> Response:
+    with _domain_errors():
+        await chat_feedback.dismiss(db, feedback_id, actor_id=user.id)
     return Response(status_code=204)
 
 

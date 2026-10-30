@@ -4,7 +4,8 @@
 맞춘다: 있으면 고치고, 없으면 만들고, 팩에서 사라진 문항은 지운다. 이미 평가 결과가 붙은 문항을
 지우면 지난 실행 기록이 깨지므로 그때는 적재를 멈춘다(``GoldenConflict`` — 새 이름으로 적재한다).
 
-워크숍이 만든 문항(``source=workshop``)은 팩과 무관하다 — 적재가 건드리지 않는다.
+워크숍이 만든 문항(``source=workshop``)과 피드백에서 옮긴 문항(``source=feedback``)은 팩과 무관하다
+— 적재가 건드리지 않는다.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ontobot.chat import feedback as chat_feedback
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
 from ontobot.security import audit
 
@@ -268,10 +270,11 @@ async def save_item(
     actor_id: int,
     item: GoldenItem | None = None,
     key: str | None = None,
+    source: Literal["manual", "feedback"] = "manual",
 ) -> GoldenItem:
     """새 문항(``item`` 없음) 또는 일부 필드 고치기. 값 검사는 호출부(API 모델)가 했다."""
     if item is None:
-        item = GoldenItem(golden_set_id=gs.id, key=key, source="manual")
+        item = GoldenItem(golden_set_id=gs.id, key=key, source=source)
         db.add(item)
     for name, value in fields.items():
         if name not in ITEM_FIELDS:
@@ -299,3 +302,20 @@ async def delete_item(db: AsyncSession, item: GoldenItem, *, actor_id: int) -> N
         payload={"op": "delete_item", "golden_set_id": item.golden_set_id},
     )
     await db.delete(item)
+
+
+async def promote_feedback(
+    db: AsyncSession,
+    gs: GoldenSet,
+    feedback_id: int,
+    fields: dict[str, Any],
+    *,
+    actor_id: int,
+    key: str | None = None,
+) -> GoldenItem:
+    """피드백 → 골든 문항(``source=feedback``). 질문·기대값은 사람이 적은 ``fields`` 그대로."""
+    fb = await chat_feedback.get_open(db, feedback_id)
+    item = await save_item(db, gs, fields, actor_id=actor_id, key=key, source="feedback")
+    chat_feedback.mark(db, fb, "promoted", actor_id=actor_id, golden_item_id=item.id)
+    await db.flush()
+    return item

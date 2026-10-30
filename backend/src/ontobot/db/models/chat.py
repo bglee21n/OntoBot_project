@@ -5,7 +5,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer, String, Text, text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -71,3 +80,31 @@ class Trace(IdMixin, Base):
     removed_citations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     stage_latency_ms: Mapped[dict[str, int]] = mapped_column(JSONB, default=dict)
     llm_calls: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+
+
+class Feedback(IdMixin, Base):
+    """답에 대한 사용자 피드백(PRD 5.6 P1, Phase 15). 싫어요는 골든 문항 후보가 된다.
+
+    후보를 골든 문항으로 옮길 때 기대값은 **사람이** 적는다(``evaluation.golden.promote_feedback``)
+    — 답이 틀렸다는 신호일 뿐, 맞는 답이 무엇인지는 모른다. 의견은 마스킹해 저장한다.
+    """
+
+    __tablename__ = "feedback"
+    __table_args__ = (
+        CheckConstraint("rating IN ('up','down')", name="rating"),
+        CheckConstraint("status IN ('open','promoted','dismissed')", name="status"),
+        UniqueConstraint("message_id", "user_id", name="uq_feedback_message_user"),
+    )
+
+    message_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("message.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    rating: Mapped[str] = mapped_column(String(8))
+    comment: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="open", server_default="open")
+    golden_item_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("golden_item.id", ondelete="SET NULL")
+    )
+    handled_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    handled_at: Mapped[datetime | None] = mapped_column(tz())

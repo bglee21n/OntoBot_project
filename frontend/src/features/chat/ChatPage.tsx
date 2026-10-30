@@ -8,6 +8,7 @@ import type { ActionPreviewData, CitationData, ConversationOut, MessageOut } fro
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ActionProposal } from "./ActionProposal";
+import { FeedbackButtons } from "./Feedback";
 import { AnswerView, ObjectCardPanel, type Selection, type Status } from "./AnswerView";
 
 const t = ko.chat;
@@ -159,6 +160,9 @@ export function ChatPage() {
               failureReason={m.meta?.failure_reason ?? null}
               selected={selected}
               onSelect={setSelected}
+              feedback={
+                m.status !== "not_query" && <FeedbackButtons messageId={m.id} rating={m.feedback ?? null} />
+              }
             />
           ),
         )}

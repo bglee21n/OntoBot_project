@@ -85,6 +85,9 @@ a.button { display: block; text-align: center; padding: 0.5rem; border-radius: 4
 .citations { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .citations button { background: #f8fafc; color: var(--fg); border: 1px solid var(--line); font-size: 0.8em; padding: 0.1rem 0.5rem; }
 .citations button.selected { border-color: var(--accent); color: var(--accent); }
+.feedback { display: flex; align-items: center; gap: 0.3rem; font-size: 0.85em; }
+.feedback > button { background: transparent; border: 1px solid var(--line); padding: 0.05rem 0.4rem; opacity: 0.7; }
+.feedback > button.selected { border-color: var(--accent); opacity: 1; }
 .chat-input { display: flex; gap: 0.5rem; }
 .chat-input textarea { font-family: inherit; resize: vertical; min-height: 2.6rem; }
 .stage { color: var(--muted); font-style: italic; }

@@ -22,6 +22,8 @@ export interface AnswerProps {
   failureReason: string | null;
   selected: Selection | null;
   onSelect: (sel: Selection) => void;
+  // 저장된 답에만 — 스트리밍 중인 답은 아직 메시지 id 가 없다.
+  feedback?: ReactNode;
 }
 
 /** 근거 카드로 열 대상 — 객체(또는 집계 행) 하나와 이 답이 그 객체에서 인용한 속성들. */
@@ -99,6 +101,7 @@ export function AnswerView(p: AnswerProps) {
       <div className="answer">
         {p.conditions && <QueryConditions text={p.conditions} graphAsOf={p.graphAsOf} />}
         <FailureNotice reason={p.failureReason} message={p.text} />
+        {p.feedback}
       </div>
     );
   }
@@ -136,6 +139,7 @@ export function AnswerView(p: AnswerProps) {
           </div>
         )}
       </div>
+      {p.feedback}
     </div>
   );
 }

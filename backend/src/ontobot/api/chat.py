@@ -29,6 +29,7 @@ from ontobot.actions import runner
 from ontobot.api.deps import CurrentUser, Db, User
 from ontobot.api.errors import ProblemError
 from ontobot.chat import context as chat_context
+from ontobot.chat import feedback as chat_feedback
 from ontobot.chat import pipeline, stream, templates
 from ontobot.config import get_settings
 from ontobot.db.models.chat import Conversation, Message
@@ -75,7 +76,19 @@ class MessageOut(BaseModel):
     status: Literal["ok", "empty", "failed", "not_query", "action_preview"] | None
     grade: int | None
     meta: MessageMeta | None
+    feedback: Literal["up", "down"] | None = None
     created_at: datetime
+
+
+class FeedbackIn(BaseModel):
+    rating: Literal["up", "down"]
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class FeedbackOut(BaseModel):
+    message_id: int
+    rating: Literal["up", "down"]
+    comment: str | None
 
 
 async def _owned(db: Db, user: CurrentUser, conversation_id: int) -> Conversation:
@@ -261,9 +274,12 @@ async def conversations(db: Db, user: User) -> list[ConversationOut]:
 @router.get("/conversations/{conversation_id}/messages", response_model=list[MessageOut])
 async def messages(conversation_id: int, db: Db, user: User) -> list[MessageOut]:
     await _owned(db, user, conversation_id)
-    rows = await db.scalars(
-        select(Message).where(Message.conversation_id == conversation_id).order_by(Message.id)
+    rows = list(
+        await db.scalars(
+            select(Message).where(Message.conversation_id == conversation_id).order_by(Message.id)
+        )
     )
+    rated = await chat_feedback.mine(db, user.id, [m.id for m in rows if m.role == "assistant"])
     return [
         MessageOut(
             id=m.id,
@@ -272,7 +288,23 @@ async def messages(conversation_id: int, db: Db, user: User) -> list[MessageOut]
             status=m.status,  # type: ignore[arg-type]
             grade=m.grade,
             meta=MessageMeta.model_validate(m.meta) if m.meta else None,
+            feedback=rated.get(m.id),  # type: ignore[arg-type]
             created_at=m.created_at,
         )
         for m in rows
     ]
+
+
+@router.put("/messages/{message_id}/feedback", response_model=FeedbackOut)
+async def put_feedback(message_id: int, body: FeedbackIn, db: Db, user: User) -> FeedbackOut:
+    try:
+        fb = await chat_feedback.submit(
+            db, user_id=user.id, message_id=message_id, rating=body.rating, comment=body.comment
+        )
+    except chat_feedback.MessageNotFound as e:
+        raise ProblemError(404, "답을 찾을 수 없습니다", code="message_not_found") from e
+    return FeedbackOut(
+        message_id=fb.message_id,
+        rating=fb.rating,  # type: ignore[arg-type]
+        comment=fb.comment,
+    )

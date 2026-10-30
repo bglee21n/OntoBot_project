@@ -6,6 +6,7 @@ import { api } from "../../api/client";
 import type { EvalRunDetail, EvalRunOut, GoldenSetDetail, GoldenSetOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { FeedbackPanel } from "./FeedbackPanel";
 import { ItemsTable } from "./ItemsTable";
 import { RunView } from "./RunView";
 
@@ -151,6 +152,7 @@ export function EvalPage() {
                 {t.items} <span className="muted">({detail.data.items})</span>
               </h3>
               <ItemsTable set={detail.data} />
+              <FeedbackPanel set={detail.data} />
             </>
           )}
         </div>

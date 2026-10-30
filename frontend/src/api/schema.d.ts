@@ -606,6 +606,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback List */
+        get: operations["feedback_list_api_v1_feedback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback/{feedback_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Feedback */
+        post: operations["dismiss_feedback_api_v1_feedback__feedback_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback/{feedback_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promote Feedback */
+        post: operations["promote_feedback_api_v1_feedback__feedback_id__promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/golden-sets": {
         parameters: {
             query?: never;
@@ -792,6 +843,23 @@ export interface paths {
         put?: never;
         /** Trigger Sync */
         post: operations["trigger_sync_api_v1_mappings__mapping_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/{message_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Feedback */
+        put: operations["put_feedback_api_v1_messages__message_id__feedback_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2234,6 +2302,66 @@ export interface components {
             /** Value */
             value?: string | number | boolean | null;
         };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Comment */
+            comment?: string | null;
+            /**
+             * Rating
+             * @enum {string}
+             */
+            rating: "up" | "down";
+        };
+        /** FeedbackItemOut */
+        FeedbackItemOut: {
+            /** Answer */
+            answer: string;
+            /** Answer Status */
+            answer_status: string | null;
+            /** Comment */
+            comment: string | null;
+            /** Conditions */
+            conditions: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Golden Item Id */
+            golden_item_id: number | null;
+            /** Grade */
+            grade: number | null;
+            /** Id */
+            id: number;
+            /** Message Id */
+            message_id: number;
+            /** Question */
+            question: string | null;
+            /**
+             * Rating
+             * @enum {string}
+             */
+            rating: "up" | "down";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "promoted" | "dismissed";
+            /** Trace Id */
+            trace_id: number | null;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /** Comment */
+            comment: string | null;
+            /** Message Id */
+            message_id: number;
+            /**
+             * Rating
+             * @enum {string}
+             */
+            rating: "up" | "down";
+        };
         /** FieldOut */
         FieldOut: {
             /** Display Name */
@@ -2648,7 +2776,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "manual" | "workshop";
+            source: "manual" | "workshop" | "feedback";
             /** Test Role */
             test_role?: string | null;
         };
@@ -2904,6 +3032,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Feedback */
+            feedback?: ("up" | "down") | null;
             /** Grade */
             grade: number | null;
             /** Id */
@@ -3111,6 +3241,55 @@ export interface components {
             title: string;
             /** Type */
             type: string;
+        };
+        /**
+         * PromoteIn
+         * @description 기대값은 사람이 적는다 — 피드백은 답이 틀렸다는 신호일 뿐이다.
+         */
+        PromoteIn: {
+            /** Absent Values */
+            absent_values?: string[];
+            /**
+             * Answerable
+             * @default true
+             */
+            answerable: boolean;
+            /** Context */
+            context?: {
+                [key: string]: string;
+            }[];
+            expected_action?: components["schemas"]["ExpectedAction"] | null;
+            /** Expected Failure */
+            expected_failure?: string | null;
+            /** Expected Grade */
+            expected_grade?: (1 | 2 | 3) | null;
+            /**
+             * Expected Status
+             * @enum {string}
+             */
+            expected_status: "ok" | "empty" | "failed" | "not_query" | "action_preview";
+            /**
+             * Fault
+             * @default none
+             * @enum {string}
+             */
+            fault: "none" | "executor_error" | "graph_down" | "timeout";
+            /** Forbidden Values */
+            forbidden_values?: string[];
+            /** Golden Set Id */
+            golden_set_id: number;
+            /** Key */
+            key?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Question */
+            question: string;
+            /** Required Conditions */
+            required_conditions?: string[];
+            /** Required Values */
+            required_values?: string[];
+            /** Test Role */
+            test_role?: string | null;
         };
         /** PropertyDef */
         PropertyDef: {
@@ -4840,6 +5019,102 @@ export interface operations {
             };
         };
     };
+    feedback_list_api_v1_feedback_get: {
+        parameters: {
+            query?: {
+                status?: ("open" | "promoted" | "dismissed") | null;
+                rating?: ("up" | "down") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackItemOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_feedback_api_v1_feedback__feedback_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedback_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_feedback_api_v1_feedback__feedback_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                feedback_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_sets_api_v1_golden_sets_get: {
         parameters: {
             query?: never;
@@ -5280,6 +5555,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Enqueued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_feedback_api_v1_messages__message_id__feedback_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackOut"];
                 };
             };
             /** @description Validation Error */

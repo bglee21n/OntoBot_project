@@ -2287,6 +2287,201 @@
         "title": "Expr",
         "type": "object"
       },
+      "FeedbackIn": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "rating": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Rating",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "FeedbackIn",
+        "type": "object"
+      },
+      "FeedbackItemOut": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "answer_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Status"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "golden_item_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Item Id"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "message_id": {
+            "title": "Message Id",
+            "type": "integer"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "rating": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Rating",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "promoted",
+              "dismissed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          }
+        },
+        "required": [
+          "id",
+          "message_id",
+          "rating",
+          "comment",
+          "status",
+          "golden_item_id",
+          "question",
+          "answer",
+          "answer_status",
+          "grade",
+          "conditions",
+          "trace_id",
+          "created_at"
+        ],
+        "title": "FeedbackItemOut",
+        "type": "object"
+      },
+      "FeedbackOut": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "message_id": {
+            "title": "Message Id",
+            "type": "integer"
+          },
+          "rating": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Rating",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "rating",
+          "comment"
+        ],
+        "title": "FeedbackOut",
+        "type": "object"
+      },
       "FieldOut": {
         "properties": {
           "display_name": {
@@ -3639,7 +3834,8 @@
           "source": {
             "enum": [
               "manual",
-              "workshop"
+              "workshop",
+              "feedback"
             ],
             "title": "Source",
             "type": "string"
@@ -4492,6 +4688,21 @@
             "title": "Created At",
             "type": "string"
           },
+          "feedback": {
+            "anyOf": [
+              {
+                "enum": [
+                  "up",
+                  "down"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
           "grade": {
             "anyOf": [
               {
@@ -5128,6 +5339,166 @@
           "title"
         ],
         "title": "PreviewTarget",
+        "type": "object"
+      },
+      "PromoteIn": {
+        "description": "기대값은 사람이 적는다 — 피드백은 답이 틀렸다는 신호일 뿐이다.",
+        "properties": {
+          "absent_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Absent Values",
+            "type": "array"
+          },
+          "answerable": {
+            "default": true,
+            "title": "Answerable",
+            "type": "boolean"
+          },
+          "context": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Context",
+            "type": "array"
+          },
+          "expected_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExpectedAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_failure": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Failure"
+          },
+          "expected_grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Grade"
+          },
+          "expected_status": {
+            "enum": [
+              "ok",
+              "empty",
+              "failed",
+              "not_query",
+              "action_preview"
+            ],
+            "title": "Expected Status",
+            "type": "string"
+          },
+          "fault": {
+            "default": "none",
+            "enum": [
+              "none",
+              "executor_error",
+              "graph_down",
+              "timeout"
+            ],
+            "title": "Fault",
+            "type": "string"
+          },
+          "forbidden_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Forbidden Values",
+            "type": "array"
+          },
+          "golden_set_id": {
+            "title": "Golden Set Id",
+            "type": "integer"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "question": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "required_conditions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Conditions",
+            "type": "array"
+          },
+          "required_values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Values",
+            "type": "array"
+          },
+          "test_role": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Role"
+          }
+        },
+        "required": [
+          "question",
+          "expected_status",
+          "golden_set_id"
+        ],
+        "title": "PromoteIn",
         "type": "object"
       },
       "PropertyDef": {
@@ -8733,6 +9104,173 @@
         ]
       }
     },
+    "/api/v1/feedback": {
+      "get": {
+        "operationId": "feedback_list_api_v1_feedback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "promoted",
+                    "dismissed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "open",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "up",
+                    "down"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "down",
+              "title": "Rating"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackItemOut"
+                  },
+                  "title": "Response Feedback List Api V1 Feedback Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Feedback List",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/feedback/{feedback_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_feedback_api_v1_feedback__feedback_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "title": "Feedback Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Feedback",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
+    "/api/v1/feedback/{feedback_id}/promote": {
+      "post": {
+        "operationId": "promote_feedback_api_v1_feedback__feedback_id__promote_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "title": "Feedback Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Promote Feedback",
+        "tags": [
+          "eval"
+        ]
+      }
+    },
     "/api/v1/golden-sets": {
       "get": {
         "operationId": "list_sets_api_v1_golden_sets_get",
@@ -9320,6 +9858,58 @@
         "summary": "Trigger Sync",
         "tags": [
           "sync"
+        ]
+      }
+    },
+    "/api/v1/messages/{message_id}/feedback": {
+      "put": {
+        "operationId": "put_feedback_api_v1_messages__message_id__feedback_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Feedback",
+        "tags": [
+          "chat"
         ]
       }
     },

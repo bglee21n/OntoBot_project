@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료(a 그룹·b 속성·행·c 감사 체인) · Phase 13 업그레이드 왕복 남음 · 다음 Phase 15** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 진행 중(a 피드백 완료 — 다음 탐색기·트레이스 화면) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -203,6 +203,10 @@ TRD v0.12 17.1절에 같은 내용이 있다.
   근거 카드 → 객체 상세 이동.
 - `features/traces`(질의 → 계획 → SQL/Cypher → 결과 수 → 근거 판정 → 등급, 관리 화면의 트레이스 상세를 독립 화면으로).
 - `feedback(message_id, user_id, rating, comment)` + 관리 화면 목록, 싫어요 → 골든 문항 후보로 옮기기(기대 답변은 사람이).
+  - **15a 완료(2026-10-31)**: `feedback`(0015, 사용자·답마다 하나, 다시 누르면 고침, 의견 마스킹 저장) — 자기 대화의
+    답에만(`PUT /messages/{id}/feedback`, 남의 답은 404). 목록·옮기기·넘기기는 평가 화면(`bot_builder`·`modeler`,
+    `GET /feedback`·`POST /feedback/{id}/promote|dismiss`, 감사 `eval.feedback_handled`). 옮긴 문항은
+    `source=feedback` — 팩 적재가 건드리지 않는다. 질문만 미리 채우고 기대값은 사람이 적는다.
 - **완료 기준**: 브라우저 확인 — 답 → 근거 카드 → 객체 상세 → 이웃 → 다른 객체, 피드백 → 골든 후보.
 
 ### Phase 16 — 문서 ↔ 객체 연결, 하이브리드 검색 (PRD 5.1·5.2 P1)

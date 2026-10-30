@@ -49,7 +49,7 @@ class GoldenItem(IdMixin, Base):
     __tablename__ = "golden_item"
     __table_args__ = (
         CheckConstraint("fault IN ('none','executor_error','graph_down','timeout')", name="fault"),
-        CheckConstraint("source IN ('manual','workshop')", name="source"),
+        CheckConstraint("source IN ('manual','workshop','feedback')", name="source"),
         UniqueConstraint("golden_set_id", "key", name="uq_golden_item_set_key"),
     )
 
