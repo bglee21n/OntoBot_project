@@ -8,6 +8,7 @@ from ontobot.db.models import (  # noqa: F401
     objects,
     ontology,
     security,
+    settings,
     sync,
     workshop,
 )

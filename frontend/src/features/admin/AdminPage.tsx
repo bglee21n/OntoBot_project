@@ -5,6 +5,8 @@ import { api } from "../../api/client";
 import type {
   AuditChainOut,
   AuditLogOut,
+  ExplorerLimitsIn,
+  ExplorerLimitsOut,
   GroupOut,
   RoleOut,
   SystemOut,
@@ -31,6 +33,7 @@ export function AdminPage() {
       <SystemCard />
       <MetricsCard />
       <TargetsCard />
+      <ExplorerLimitsCard />
       <nav className="row" role="tablist">
         {(Object.keys(t.tabs) as Tab[]).map((k) => (
           <button
@@ -111,6 +114,83 @@ function MetricsCard() {
  * PRD 7절 성공 지표의 목표 — 관리자가 정하고(비우면 제안값), 지금 측정값과 견준다. 평가 게이트 기준(gate.yaml)과는
  * 별개다(게이트는 CI 에서 같은 기준으로 돌아야 한다). 비율은 화면에서 %로 다룬다.
  */
+/** 객체 탐색기 확장 한도 — 서버도 이웃 조회를 같은 노드 상한으로 자른다. */
+function ExplorerLimitsCard() {
+  const qc = useQueryClient();
+  const tl = t.explorerLimits;
+  const q = useQuery({
+    queryKey: ["explorer-limits"],
+    queryFn: () => api.get<ExplorerLimitsOut>("/objects/explorer-limits"),
+  });
+  const [draft, setDraft] = useState<{ depth: string; nodes: string } | null>(null);
+  const save = useMutation({
+    mutationFn: (body: ExplorerLimitsIn) => api.put<ExplorerLimitsIn>("/admin/explorer-limits", body),
+    onSuccess: (data) => {
+      qc.setQueryData(["explorer-limits"], data);
+      setDraft(null);
+    },
+  });
+  if (q.isError) return <ErrorBox error={q.error} />;
+  if (!q.data) return null;
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (draft) save.mutate({ max_depth: Number(draft.depth), max_nodes: Number(draft.nodes) });
+  };
+  return (
+    <form className="card stack" onSubmit={submit}>
+      <div className="row">
+        <strong>{tl.title}</strong>
+        <span className="spacer" />
+        {draft ? (
+          <>
+            <label className="row">
+              {tl.depth}
+              <input
+                aria-label={tl.depth}
+                type="number"
+                min={1}
+                max={5}
+                value={draft.depth}
+                onChange={(e) => setDraft({ ...draft, depth: e.target.value })}
+              />
+            </label>
+            <label className="row">
+              {tl.nodes}
+              <input
+                aria-label={tl.nodes}
+                type="number"
+                min={10}
+                max={1000}
+                value={draft.nodes}
+                onChange={(e) => setDraft({ ...draft, nodes: e.target.value })}
+              />
+            </label>
+            <button type="submit" disabled={save.isPending}>
+              {t.targets.save}
+            </button>
+            <button type="button" className="link" onClick={() => setDraft(null)}>
+              {t.targets.cancel}
+            </button>
+          </>
+        ) : (
+          <>
+            <span>{tl.current(q.data.max_depth, q.data.max_nodes)}</span>
+            <button
+              type="button"
+              className="link"
+              onClick={() => setDraft({ depth: String(q.data.max_depth), nodes: String(q.data.max_nodes) })}
+            >
+              {tl.edit}
+            </button>
+          </>
+        )}
+      </div>
+      <p className="muted">{tl.hint}</p>
+      {save.isError && <ErrorBox error={save.error} />}
+    </form>
+  );
+}
+
 function TargetsCard() {
   const qc = useQueryClient();
   const tt = t.targets;

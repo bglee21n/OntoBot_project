@@ -132,6 +132,36 @@ def compile_scope_check(object_type: str, pks: Sequence[str], scope: Scope) -> C
     )
 
 
+def _like(text: str) -> str:
+    """부분 일치 패턴 — 검색어의 ``%``·``_``·역슬래시는 글자 그대로 찾는다."""
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def compile_search(
+    object_type: str, title_property: str, text: str, scope: Scope | None, limit: int
+) -> CompiledQuery:
+    """객체 탐색기 검색(Phase 15) — pk 또는 제목에 검색어가 들어 있는 객체. 행 정책을 함께 건다.
+
+    사람이 고르는 목록이라 부분 일치를 쓴다(근거 대조·참조 값 대조와 무관하다). 값·키는 바인드다.
+    """
+    b = _Binds()
+    pattern = b.value(_like(text))
+    key = b.value(title_property)
+    where = [
+        f"(o.pk ILIKE {pattern} OR (o.properties ->> CAST({key} AS text)) ILIKE {pattern})",
+        *_scope(b, scope),
+    ]
+    return CompiledQuery(
+        object_type=object_type,
+        declared_properties=(title_property,),
+        where=where,
+        order_by=["o.pk"],
+        limit=limit,
+        params=b.params,
+    )
+
+
 def compile_traverse(
     vp: ValidatedPlan, hop_pks: Sequence[Sequence[str] | None]
 ) -> tuple[str, dict[str, object]]:

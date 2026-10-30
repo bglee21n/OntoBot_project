@@ -310,3 +310,46 @@ async def open_conflict_count(db: AsyncSession) -> int:
     return int(
         await db.scalar(text("SELECT count(*) FROM sync_conflict WHERE status = 'open'")) or 0
     )
+
+
+@dataclass(frozen=True)
+class EditHistory:
+    id: int
+    property: str
+    value: Any
+    base_source_value: Any
+    edited_by_name: str | None
+    edited_at: datetime
+    action_run_id: int | None
+    cleared_at: datetime | None
+
+
+async def history(
+    db: AsyncSession, object_type: str, pk: str, properties: Sequence[str], *, limit: int = 100
+) -> list[EditHistory]:
+    """객체 하나의 편집 이력(해제된 것 포함, 최근 먼저). ``properties`` 밖(숨긴 속성)은 빼고."""
+    if not properties:
+        return []
+    rows = await db.execute(
+        text(
+            "SELECT e.id, e.property, e.value, e.base_source_value, u.display_name AS name, "
+            "e.edited_at, e.action_run_id, e.cleared_at FROM object_edit e "
+            "LEFT JOIN app_user u ON u.id = e.edited_by "
+            "WHERE e.type = :t AND e.pk = :pk AND e.property = ANY(:props) "
+            "ORDER BY e.edited_at DESC, e.id DESC LIMIT :n"
+        ),
+        {"t": object_type, "pk": pk, "props": list(properties), "n": limit},
+    )
+    return [
+        EditHistory(
+            r.id,
+            r.property,
+            r.value,
+            r.base_source_value,
+            r.name,
+            r.edited_at,
+            r.action_run_id,
+            r.cleared_at,
+        )
+        for r in rows
+    ]

@@ -17,11 +17,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal, cast
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
 from ontobot.api.deps import CurrentUser, Db, User, require_role
 from ontobot.api.errors import ProblemError
+from ontobot.explorer import limits as explorer_limits
+from ontobot.explorer import service as explorer
 from ontobot.objects import edits
 from ontobot.objects.lineage import object_lineage
 from ontobot.objects.reader import resolve
@@ -157,6 +159,177 @@ async def card(object_type: str, pk: str, db: Db, user: User) -> ObjectCard:
         if src is not None
         else None,
     )
+
+
+# ---------------------------------------------------------------- 객체 탐색기(Phase 15)
+
+
+class SearchHitOut(BaseModel):
+    type: str
+    type_display_name: str
+    pk: str
+    title: str
+
+
+class NeighborGroupOut(BaseModel):
+    link_type: str
+    link_display_name: str
+    direction: Literal["out", "in"]
+    other_type: str
+    other_display_name: str
+    total: int
+    truncated: bool  # 참이면 total 은 "이상"
+
+
+class NeighborOut(BaseModel):
+    link_type: str
+    direction: Literal["out", "in"]
+    type: str
+    pk: str
+    title: str
+
+
+class NeighborsOut(BaseModel):
+    groups: list[NeighborGroupOut]
+    items: list[NeighborOut]
+
+
+class ExplorerLimitsOut(BaseModel):
+    max_depth: int
+    max_nodes: int
+
+
+class EditHistoryOut(BaseModel):
+    edit_id: int
+    property: str
+    display_name: str
+    value: str
+    source_value: str
+    edited_by: str | None
+    edited_at: datetime
+    action_run_id: int | None
+    cleared_at: datetime | None
+
+
+def _not_found() -> ProblemError:
+    return ProblemError(404, "객체를 찾을 수 없습니다", code="object_not_found")
+
+
+@router.get("/search", response_model=list[SearchHitOut])
+async def search(
+    db: Db,
+    user: User,
+    q: Annotated[str, Query(min_length=1, max_length=100)],
+    object_type: Annotated[str | None, Query(alias="type", max_length=64)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> list[SearchHitOut]:
+    """읽을 수 있는 객체 중 pk·제목에 ``q`` 가 들어 있는 것(행 정책 안에서만)."""
+    schema = registry.current()
+    if schema is None:
+        return []
+    access = await rbac.access(db, user.id)
+    hits = await explorer.search(
+        db, schema.document, access, q, object_type=object_type, limit=limit
+    )
+    return [
+        SearchHitOut(type=h.type, type_display_name=h.type_display_name, pk=h.pk, title=h.title)
+        for h in hits
+    ]
+
+
+@router.get("/explorer-limits", response_model=ExplorerLimitsOut)
+async def explorer_limits_get(db: Db, _: User) -> ExplorerLimitsOut:
+    lim = await explorer_limits.get(db)
+    return ExplorerLimitsOut(max_depth=lim.max_depth, max_nodes=lim.max_nodes)
+
+
+@router.get("/{object_type}/{pk}/neighbors", response_model=NeighborsOut)
+async def neighbors(
+    object_type: str,
+    pk: str,
+    request: Request,
+    db: Db,
+    user: User,
+    link_type: Annotated[str | None, Query(max_length=64)] = None,
+    direction: Annotated[explorer.Direction, Query()] = "both",
+    limit: Annotated[int, Query(ge=1, le=1000)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> NeighborsOut:
+    """1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로."""
+    schema = registry.current()
+    if schema is None:
+        raise _not_found()
+    access = await rbac.access(db, user.id)
+    lim = await explorer_limits.get(db)
+    try:
+        res = await explorer.neighbors(
+            db,
+            getattr(request.app.state, "graph", None),
+            schema.document,
+            access,
+            object_type,
+            pk,
+            link_type=link_type,
+            direction=direction,
+            limit=min(limit, lim.max_nodes),
+            offset=offset,
+        )
+    except explorer.NotFound as e:
+        raise _not_found() from e
+    except explorer.GraphUnavailable as e:
+        raise ProblemError(
+            503,
+            "관계 정보를 지금 볼 수 없습니다",
+            detail="그래프 저장소에 연결할 수 없습니다. 객체 값은 그대로 볼 수 있습니다",
+            code="graph_unavailable",
+        ) from e
+    # 대량으로 훑는 경로라 호출을 남긴다(그래프 편집 제안서 보강 — 데이터 접근 7).
+    audit.record(
+        db,
+        audit.OBJECT_EXPLORED,
+        actor_id=user.id,
+        target=f"object:{object_type}",
+        payload={"link_type": link_type, "direction": direction, "returned": len(res.items)},
+    )
+    return NeighborsOut(
+        groups=[NeighborGroupOut.model_validate(g, from_attributes=True) for g in res.groups],
+        items=[NeighborOut.model_validate(i, from_attributes=True) for i in res.items],
+    )
+
+
+@router.get("/{object_type}/{pk}/edits", response_model=list[EditHistoryOut])
+async def edit_history(object_type: str, pk: str, db: Db, user: User) -> list[EditHistoryOut]:
+    """편집 이력(해제된 것 포함). 숨긴 속성의 편집은 내지 않는다."""
+    schema = registry.current()
+    if schema is None:
+        raise _not_found()
+    access = await rbac.access(db, user.id)
+    try:
+        await explorer.check_start(db, schema.document, access, object_type, pk)
+    except explorer.NotFound as e:
+        raise _not_found() from e
+    doc = schema.document.without_properties(access.hidden())
+    t = doc.object_type(object_type)
+    if t is None:  # check_start 가 확인했다 — 그사이 게시본이 바뀐 경우뿐
+        raise _not_found()
+    rows = await edits.history(db, object_type, pk, [p.api_name for p in t.properties])
+    out = []
+    for r in rows:
+        prop = t.property(r.property)
+        out.append(
+            EditHistoryOut(
+                edit_id=r.id,
+                property=r.property,
+                display_name=prop.display_name if prop else r.property,
+                value=display(prop, r.value),
+                source_value=display(prop, r.base_source_value),
+                edited_by=r.edited_by_name,
+                edited_at=r.edited_at,
+                action_run_id=r.action_run_id,
+                cleared_at=r.cleared_at,
+            )
+        )
+    return out
 
 
 # ---------------------------------------------------------------- 편집 충돌·해제

@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 진행 중(a 피드백 완료 — 다음 탐색기·트레이스 화면) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 진행 중(a 피드백·b 객체 탐색 완료 — 다음 트레이스 화면) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -201,6 +201,12 @@ TRD v0.12 17.1절에 같은 내용이 있다.
 
 - `graph/traversal.py` 이웃 조회 API(권한 필터 후), 프론트 `features/explorer`(검색·상세·편집 이력·계보·인스턴스 그래프).
   근거 카드 → 객체 상세 이동.
+  - **15b 완료(2026-10-31)**: `GET /objects/search`(pk·제목 부분 일치, 행 정책 주입), `GET /objects/{t}/{pk}/neighbors`
+    (1홉만 — 읽을 수 있는 끝 타입의 링크만 Cypher 로 만들고 stub 제외, 제목은 reader, 행 정책 밖은 개수에도 없음,
+    Neo4j 불가면 503 — PG link 대체 없음, 호출마다 감사 `objects.explored`), `GET /objects/{t}/{pk}/edits`(해제 포함,
+    숨긴 속성 제외). 확장 한도는 `app_setting`(0016) 관리자 설정(깊이 3·노드 200 기본, 서버도 노드 수로 자름).
+    화면 `/explore` — 깊이 N 은 화면이 1홉을 너비 우선으로 되풀이, 접기는 확장 출처 기록으로. 근거 카드 → 탐색기는
+    라우터 상태로 넘긴다(URL 에 pk 없음). 그래프에서의 편집(Action)은 제안서 2단계 편집으로 남긴다.
 - `features/traces`(질의 → 계획 → SQL/Cypher → 결과 수 → 근거 판정 → 등급, 관리 화면의 트레이스 상세를 독립 화면으로).
 - `feedback(message_id, user_id, rating, comment)` + 관리 화면 목록, 싫어요 → 골든 문항 후보로 옮기기(기대 답변은 사람이).
   - **15a 완료(2026-10-31)**: `feedback`(0015, 사용자·답마다 하나, 다시 누르면 고침, 의견 마스킹 저장) — 자기 대화의

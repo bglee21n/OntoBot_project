@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { api } from "../../api/client";
 import type { CitationData, FieldOut, MessageOut, ObjectCard } from "../../api/types";
@@ -148,7 +149,17 @@ export function AnswerView(p: AnswerProps) {
  * 근거 카드 — 인용한 객체의 지금 보이는 값과 값 출처(열 때마다 다시 읽는다).
  * 편집된 값은 "편집됨 · 원천 값 ○○"을 함께 보여 준다 — 편집 값이 낡았는지 사람이 판단할 수 있어야 한다.
  */
-export function ObjectCardPanel({ selection, onClose }: { selection: Selection; onClose: () => void }) {
+export function ObjectCardPanel({
+  selection,
+  onClose,
+  explore = true,
+}: {
+  selection: Selection;
+  onClose: () => void;
+  // 탐색기로 가는 단추(탐색기 안에서는 끈다).
+  explore?: boolean;
+}) {
+  const navigate = useNavigate();
   // 대상: o:Type/pk (pk 에 / 가 있을 수 있어 첫 / 만 가른다) 또는 q:n(집계 행)
   const { target, fields } = selection;
   const isObject = target.startsWith("o:");
@@ -194,6 +205,28 @@ export function ObjectCardPanel({ selection, onClose }: { selection: Selection; 
           <div className="muted">
             {card.data.type_display_name} · <code>{card.data.pk}</code>
           </div>
+          {explore && (
+            <button
+              type="button"
+              className="link"
+              onClick={() =>
+                card.data &&
+                navigate("/explore", {
+                  // pk 는 URL 이 아니라 라우터 상태로 넘긴다(개인정보 규칙).
+                  state: {
+                    explore: {
+                      type: card.data.type,
+                      typeDisplayName: card.data.type_display_name,
+                      pk: card.data.pk,
+                      title: card.data.title,
+                    },
+                  },
+                })
+              }
+            >
+              {t.card.explore}
+            </button>
+          )}
           <dl>
             {card.data.fields.map((f) => (
               <FieldRow key={f.name} field={f} cited={fields.includes(f.name)} />

@@ -1491,6 +1491,82 @@
         "title": "DoneData",
         "type": "object"
       },
+      "EditHistoryOut": {
+        "properties": {
+          "action_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Run Id"
+          },
+          "cleared_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleared At"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "edit_id": {
+            "title": "Edit Id",
+            "type": "integer"
+          },
+          "edited_at": {
+            "format": "date-time",
+            "title": "Edited At",
+            "type": "string"
+          },
+          "edited_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edited By"
+          },
+          "property": {
+            "title": "Property",
+            "type": "string"
+          },
+          "source_value": {
+            "title": "Source Value",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "edit_id",
+          "property",
+          "display_name",
+          "value",
+          "source_value",
+          "edited_by",
+          "edited_at",
+          "action_run_id",
+          "cleared_at"
+        ],
+        "title": "EditHistoryOut",
+        "type": "object"
+      },
       "EditOut": {
         "properties": {
           "action_run_id": {
@@ -2111,6 +2187,46 @@
           "action_type"
         ],
         "title": "ExpectedAction",
+        "type": "object"
+      },
+      "ExplorerLimitsIn": {
+        "properties": {
+          "max_depth": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "max_nodes": {
+            "maximum": 1000.0,
+            "minimum": 10.0,
+            "title": "Max Nodes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_depth",
+          "max_nodes"
+        ],
+        "title": "ExplorerLimitsIn",
+        "type": "object"
+      },
+      "ExplorerLimitsOut": {
+        "properties": {
+          "max_depth": {
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "max_nodes": {
+            "title": "Max Nodes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_depth",
+          "max_nodes"
+        ],
+        "title": "ExplorerLimitsOut",
         "type": "object"
       },
       "Expr-Input": {
@@ -4767,6 +4883,114 @@
         "title": "MessageOut",
         "type": "object"
       },
+      "NeighborGroupOut": {
+        "properties": {
+          "direction": {
+            "enum": [
+              "out",
+              "in"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "link_display_name": {
+            "title": "Link Display Name",
+            "type": "string"
+          },
+          "link_type": {
+            "title": "Link Type",
+            "type": "string"
+          },
+          "other_display_name": {
+            "title": "Other Display Name",
+            "type": "string"
+          },
+          "other_type": {
+            "title": "Other Type",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "link_type",
+          "link_display_name",
+          "direction",
+          "other_type",
+          "other_display_name",
+          "total",
+          "truncated"
+        ],
+        "title": "NeighborGroupOut",
+        "type": "object"
+      },
+      "NeighborOut": {
+        "properties": {
+          "direction": {
+            "enum": [
+              "out",
+              "in"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "link_type": {
+            "title": "Link Type",
+            "type": "string"
+          },
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "link_type",
+          "direction",
+          "type",
+          "pk",
+          "title"
+        ],
+        "title": "NeighborOut",
+        "type": "object"
+      },
+      "NeighborsOut": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/NeighborGroupOut"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NeighborOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groups",
+          "items"
+        ],
+        "title": "NeighborsOut",
+        "type": "object"
+      },
       "NodePositionIn": {
         "properties": {
           "kind": {
@@ -5887,6 +6111,34 @@
           "description"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "SearchHitOut": {
+        "properties": {
+          "pk": {
+            "title": "Pk",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "type_display_name": {
+            "title": "Type Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "type_display_name",
+          "pk",
+          "title"
+        ],
+        "title": "SearchHitOut",
         "type": "object"
       },
       "SessionCreate": {
@@ -7906,6 +8158,48 @@
           }
         },
         "summary": "Audit Chain Check",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/explorer-limits": {
+      "put": {
+        "description": "객체 탐색기 확장 한도(최대 깊이·화면 노드 수). 서버도 이웃 조회를 같은 값으로 자른다.",
+        "operationId": "put_explorer_limits_api_v1_admin_explorer_limits_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplorerLimitsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplorerLimitsIn"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Explorer Limits",
         "tags": [
           "admin"
         ]
@@ -9985,6 +10279,105 @@
         ]
       }
     },
+    "/api/v1/objects/explorer-limits": {
+      "get": {
+        "operationId": "explorer_limits_get_api_v1_objects_explorer_limits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplorerLimitsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Explorer Limits Get",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
+    "/api/v1/objects/search": {
+      "get": {
+        "description": "읽을 수 있는 객체 중 pk·제목에 ``q`` 가 들어 있는 것(행 정책 안에서만).",
+        "operationId": "search_api_v1_objects_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SearchHitOut"
+                  },
+                  "title": "Response Search Api V1 Objects Search Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
     "/api/v1/objects/{object_type}/{pk}": {
       "get": {
         "operationId": "card_api_v1_objects__object_type___pk__get",
@@ -10031,6 +10424,169 @@
           }
         },
         "summary": "Card",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
+    "/api/v1/objects/{object_type}/{pk}/edits": {
+      "get": {
+        "description": "편집 이력(해제된 것 포함). 숨긴 속성의 편집은 내지 않는다.",
+        "operationId": "edit_history_api_v1_objects__object_type___pk__edits_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "title": "Pk",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EditHistoryOut"
+                  },
+                  "title": "Response Edit History Api V1 Objects  Object Type   Pk  Edits Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit History",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
+    "/api/v1/objects/{object_type}/{pk}/neighbors": {
+      "get": {
+        "description": "1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로 자른다.",
+        "operationId": "neighbors_api_v1_objects__object_type___pk__neighbors_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "title": "Pk",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "link_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Link Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "both",
+              "enum": [
+                "out",
+                "in",
+                "both"
+              ],
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NeighborsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Neighbors",
         "tags": [
           "objects"
         ]

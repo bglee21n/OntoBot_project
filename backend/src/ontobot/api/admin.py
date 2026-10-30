@@ -19,6 +19,7 @@ from ontobot.api.errors import ProblemError
 from ontobot.config import app_version, get_settings
 from ontobot.db.models.chat import Trace
 from ontobot.evaluation import targets
+from ontobot.explorer import limits as explorer_limits
 from ontobot.ontology import registry
 from ontobot.security import admin, audit, audit_chain
 from ontobot.security.rbac import ROLE_ADMIN
@@ -278,6 +279,20 @@ async def put_targets(body: TargetsIn, db: Db, user: Admin) -> list[TargetOut]:
     except targets.UnknownTarget as e:
         raise ProblemError(422, str(e), code="invalid_target") from e
     return [_target_out(t) for t in await targets.load(db)]
+
+
+class ExplorerLimitsIn(BaseModel):
+    max_depth: int = Field(ge=explorer_limits.DEPTH_RANGE[0], le=explorer_limits.DEPTH_RANGE[1])
+    max_nodes: int = Field(ge=explorer_limits.NODES_RANGE[0], le=explorer_limits.NODES_RANGE[1])
+
+
+@router.put("/admin/explorer-limits", response_model=ExplorerLimitsIn)
+async def put_explorer_limits(body: ExplorerLimitsIn, db: Db, user: Admin) -> ExplorerLimitsIn:
+    """객체 탐색기 확장 한도(최대 깊이·화면 노드 수). 서버도 이웃 조회를 같은 값으로 자른다."""
+    lim = await explorer_limits.put(
+        db, explorer_limits.Limits(body.max_depth, body.max_nodes), actor_id=user.id
+    )
+    return ExplorerLimitsIn(max_depth=lim.max_depth, max_nodes=lim.max_nodes)
 
 
 @router.get("/admin/object-types", response_model=list[TypeOut])

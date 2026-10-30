@@ -158,6 +158,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/explorer-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Explorer Limits
+         * @description 객체 탐색기 확장 한도(최대 깊이·화면 노드 수). 서버도 이웃 조회를 같은 값으로 자른다.
+         */
+        put: operations["put_explorer_limits_api_v1_admin_explorer_limits_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/groups": {
         parameters: {
             query?: never;
@@ -923,6 +943,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/objects/explorer-limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Explorer Limits Get */
+        get: operations["explorer_limits_get_api_v1_objects_explorer_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/objects/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description 읽을 수 있는 객체 중 pk·제목에 ``q`` 가 들어 있는 것(행 정책 안에서만).
+         */
+        get: operations["search_api_v1_objects_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/objects/{object_type}/{pk}": {
         parameters: {
             query?: never;
@@ -932,6 +989,46 @@ export interface paths {
         };
         /** Card */
         get: operations["card_api_v1_objects__object_type___pk__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/objects/{object_type}/{pk}/edits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Edit History
+         * @description 편집 이력(해제된 것 포함). 숨긴 속성의 편집은 내지 않는다.
+         */
+        get: operations["edit_history_api_v1_objects__object_type___pk__edits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/objects/{object_type}/{pk}/neighbors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Neighbors
+         * @description 1홉 이웃(그래프). 읽을 수 없는 이웃은 개수에도 없다. ``limit`` 은 관리자 노드 상한으로 자른다.
+         */
+        get: operations["neighbors_api_v1_objects__object_type___pk__neighbors_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2046,6 +2143,30 @@ export interface components {
             /** Trace Id */
             trace_id: number;
         };
+        /** EditHistoryOut */
+        EditHistoryOut: {
+            /** Action Run Id */
+            action_run_id: number | null;
+            /** Cleared At */
+            cleared_at: string | null;
+            /** Display Name */
+            display_name: string;
+            /** Edit Id */
+            edit_id: number;
+            /**
+             * Edited At
+             * Format: date-time
+             */
+            edited_at: string;
+            /** Edited By */
+            edited_by: string | null;
+            /** Property */
+            property: string;
+            /** Source Value */
+            source_value: string;
+            /** Value */
+            value: string;
+        };
         /** EditOut */
         EditOut: {
             /** Action Run Id */
@@ -2259,6 +2380,20 @@ export interface components {
             ready: boolean;
             /** Target Pk */
             target_pk?: string | null;
+        };
+        /** ExplorerLimitsIn */
+        ExplorerLimitsIn: {
+            /** Max Depth */
+            max_depth: number;
+            /** Max Nodes */
+            max_nodes: number;
+        };
+        /** ExplorerLimitsOut */
+        ExplorerLimitsOut: {
+            /** Max Depth */
+            max_depth: number;
+            /** Max Nodes */
+            max_nodes: number;
         };
         /**
          * Expr
@@ -3047,6 +3182,49 @@ export interface components {
             /** Status */
             status: ("ok" | "empty" | "failed" | "not_query" | "action_preview") | null;
         };
+        /** NeighborGroupOut */
+        NeighborGroupOut: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "out" | "in";
+            /** Link Display Name */
+            link_display_name: string;
+            /** Link Type */
+            link_type: string;
+            /** Other Display Name */
+            other_display_name: string;
+            /** Other Type */
+            other_type: string;
+            /** Total */
+            total: number;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** NeighborOut */
+        NeighborOut: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "out" | "in";
+            /** Link Type */
+            link_type: string;
+            /** Pk */
+            pk: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+        };
+        /** NeighborsOut */
+        NeighborsOut: {
+            /** Groups */
+            groups: components["schemas"]["NeighborGroupOut"][];
+            /** Items */
+            items: components["schemas"]["NeighborOut"][];
+        };
         /** NodePositionIn */
         NodePositionIn: {
             /**
@@ -3416,6 +3594,17 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+        };
+        /** SearchHitOut */
+        SearchHitOut: {
+            /** Pk */
+            pk: string;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** Type Display Name */
+            type_display_name: string;
         };
         /** SessionCreate */
         SessionCreate: {
@@ -4176,6 +4365,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditChainOut"];
+                };
+            };
+        };
+    };
+    put_explorer_limits_api_v1_admin_explorer_limits_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplorerLimitsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplorerLimitsIn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5670,6 +5892,59 @@ export interface operations {
             };
         };
     };
+    explorer_limits_get_api_v1_objects_explorer_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplorerLimitsOut"];
+                };
+            };
+        };
+    };
+    search_api_v1_objects_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                type?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchHitOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     card_api_v1_objects__object_type___pk__get: {
         parameters: {
             query?: never;
@@ -5689,6 +5964,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObjectCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_history_api_v1_objects__object_type___pk__edits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                object_type: string;
+                pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditHistoryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    neighbors_api_v1_objects__object_type___pk__neighbors_get: {
+        parameters: {
+            query?: {
+                link_type?: string | null;
+                direction?: "out" | "in" | "both";
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                object_type: string;
+                pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NeighborsOut"];
                 };
             };
             /** @description Validation Error */

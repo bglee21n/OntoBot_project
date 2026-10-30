@@ -3,6 +3,7 @@ export const ko = {
   appTitle: "OntoBot",
   nav: {
     chat: "채팅",
+    explore: "객체 탐색",
     workshop: "인터뷰",
     eval: "평가",
     ontology: "온톨로지",
@@ -16,6 +17,14 @@ export const ko = {
     version: "지금 버전",
     deployerOpen: "배포 콘솔 열기(업그레이드·롤백·백업)",
     deployerNone: "배포 콘솔 주소가 설정되지 않았습니다(ONTOBOT_DEPLOYER_URL)",
+    explorerLimits: {
+      title: "객체 탐색 확장 한도",
+      hint: "객체 탐색 화면에서 한 번에 펼칠 수 있는 최대 깊이(1~5)와 화면 노드 수(10~1000)입니다. 서버도 이웃 조회를 같은 노드 수로 자릅니다. 바꾸면 감사 로그에 남습니다.",
+      depth: "최대 깊이",
+      nodes: "노드 수",
+      current: (d: number, n: number) => `깊이 ${d} · 노드 ${n}개`,
+      edit: "고치기",
+    },
     targets: {
       title: "성공 지표 목표(PRD 7절)",
       hint: "목표는 관리자가 정합니다. 비우면 측정 근거가 있는 제안값을 쓰고, 근거가 없는 지표는 미정으로 둡니다. 측정값은 마지막 평가 실행(P95 는 단일 사용자 순차)과 최근 30일 운영 지표입니다. 평가 게이트 기준(gate.yaml)은 바꾸지 않습니다.",
@@ -187,6 +196,7 @@ export const ko = {
     estimate: "추정",
     card: {
       title: "근거 카드",
+      explore: "탐색기에서 보기 →",
       syncedAt: "마지막 동기화",
       close: "닫기",
       aggregate: "집계 결과는 조회 조건으로 다시 계산한 값입니다. 카드가 없습니다.",
@@ -557,6 +567,32 @@ export const ko = {
     published: (versionId: number, items: number) =>
       `draft 버전(id ${versionId})을 만들었습니다. 평가셋 초안 질문 ${items}개.`,
     openDraft: "draft 열기",
+  },
+  explorer: {
+    title: "객체 탐색",
+    intro:
+      "객체를 찾아 관계를 따라가며 봅니다. 읽을 권한이 있는 객체만 보이고, 값은 근거 카드처럼 열 때마다 다시 읽습니다. 화면에서는 값을 바꾸지 않습니다(바꾸기는 Action 으로).",
+    search: "검색",
+    searchHint: "객체 이름 또는 ID",
+    searchButton: "찾기",
+    noHits: "찾은 객체가 없습니다.",
+    empty: "왼쪽에서 객체를 찾아 고르세요. 채팅 근거 카드의 '탐색기에서 보기'로도 올 수 있습니다.",
+    depth: (d: number) => `깊이 ${d}`,
+    grow: "깊이까지 펼치기",
+    reset: "다시 시작",
+    expand: "이웃 펼치기",
+    collapse: "이 노드로 들어온 이웃 접기",
+    more: (n: number) => `+${n} 더 있음`,
+    count: (n: number, max: number) => `노드 ${n} / ${max}`,
+    capped: (max: number) => `화면 노드 상한(${max}개)에 닿아 일부 이웃을 넣지 못했습니다. 노드를 접거나 다른 객체에서 시작하세요.`,
+    history: "편집 이력",
+    noHistory: "Action 으로 바뀐 값이 없습니다.",
+    property: "속성",
+    value: "원천 값 → 편집 값",
+    by: "편집",
+    state: "상태",
+    active: "적용 중",
+    cleared: (at: string) => `해제됨 · ${at}`,
   },
   eval: {
     title: "평가",
