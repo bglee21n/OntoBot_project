@@ -13,6 +13,14 @@ uv run --project backend python scripts/task.py test-int    # 컨테이너가 �
 uv run --project backend python scripts/task.py test-down   # 다 쓰면 지운다
 ```
 
+"Ports are not available … 55432 … forbidden by its access permissions" 로 PostgreSQL 컨테이너가 뜨지 않으면 Windows
+(Hyper-V·WSL)가 그 포트를 동적 예약 범위에 넣은 것이다(`netsh int ipv4 show excludedportrange protocol=tcp` 로 확인).
+예약 밖 포트를 사용자 환경변수로 고정한다 — compose.test 와 `task.py` 가 같은 변수를 읽는다(카세트 키와 무관):
+
+```powershell
+[Environment]::SetEnvironmentVariable('ONTOBOT_TEST_PG_PORT', '54432', 'User')   # 새 터미널부터 적용
+```
+
 설치 절차 시험은 Docker Desktop VM 의 `/opt/ontobot-trial` 에 번들을 복사하고 배포 콘솔 이미지 안에서
 `ontobotctl install` 을 돌린다(INSTALL.md 5절).
 
