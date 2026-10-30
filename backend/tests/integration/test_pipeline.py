@@ -133,6 +133,7 @@ async def test_ok_answer_is_grounded_and_conditions_are_shown(monkeypatch, schem
     assert res.conditions == "시설 · 시설명에 '파이프' 포함 · 위험등급 ≥ 3 · 최대 20건"
     assert res.citations[0]["ref"] == "o:Facility/PT-1#risk_grade"
     assert res.citations[0]["synced_at"] is not None
+    assert res.citations[0]["values"] is None  # 객체 근거는 카드가 지금 값을 다시 읽는다
 
 
 async def test_invented_number_is_removed_and_answer_refused(monkeypatch, schema) -> None:
@@ -336,6 +337,14 @@ async def test_function_result_is_cited_like_an_aggregate(monkeypatch, schema) -
     assert res.conditions is not None
     assert res.conditions.startswith("파이프 고위험 비율(기준 위험등급 = 4(기본값)) · 고위험 수:")
     assert [c["ref"] for c in res.citations] == ["q:1#value", "q:2#value"]
+    # 근거 카드가 보여 줄 값 — 답을 만들 때 대조한 행 그대로(집계는 다시 읽을 곳이 없다).
+    assert res.citations[0]["values"] == [
+        {"name": "facility_type", "label": "시설 유형", "display": "변전소"},
+        {"name": "high_risk", "label": "고위험 수", "display": "1"},
+        {"name": "total", "label": "전체 수", "display": "1"},
+        {"name": "value", "label": "고위험 비율(%)", "display": "100"},
+        {"name": "inputs", "label": "입력 조건", "display": "기준 위험등급 = 4(기본값)"},
+    ]
     assert res.context_refs is None  # 집계처럼 대화 맥락을 바꾸지 않는다
     # 내부 조회 둘(";" 로 이어 붙인다), 조건 값은 바인드다.
     assert res.sql is not None and len(res.sql.split(";\n")) == 2 and "파이프" not in res.sql

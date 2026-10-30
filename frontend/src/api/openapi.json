@@ -1089,6 +1089,20 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CitationValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Values"
           }
         },
         "required": [
@@ -1097,6 +1111,29 @@
           "synced_at"
         ],
         "title": "CitationData",
+        "type": "object"
+      },
+      "CitationValue": {
+        "properties": {
+          "display": {
+            "title": "Display",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "display"
+        ],
+        "title": "CitationValue",
         "type": "object"
       },
       "ColumnsIn": {
@@ -6376,6 +6413,56 @@
         "title": "UtteranceOut",
         "type": "object"
       },
+      "V1MetricsOut": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "open_conflicts": {
+            "title": "Open Conflicts",
+            "type": "integer"
+          },
+          "rejection_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Rate"
+          },
+          "success_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success Rate"
+          }
+        },
+        "required": [
+          "days",
+          "counts",
+          "success_rate",
+          "rejection_rate",
+          "open_conflicts"
+        ],
+        "title": "V1MetricsOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -6975,6 +7062,52 @@
         "summary": "Preview Action",
         "tags": [
           "actions"
+        ]
+      }
+    },
+    "/api/v1/admin/metrics": {
+      "get": {
+        "description": "PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율, 확인되지 않은 편집 충돌.",
+        "operationId": "metrics_api_v1_admin_metrics_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1MetricsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Metrics",
+        "tags": [
+          "admin"
         ]
       }
     },

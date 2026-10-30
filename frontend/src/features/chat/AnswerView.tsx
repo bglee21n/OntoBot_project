@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { api } from "../../api/client";
 import type { CitationData, FieldOut, MessageOut, ObjectCard } from "../../api/types";
@@ -29,6 +29,8 @@ export interface Selection {
   target: string;
   title: string;
   fields: string[];
+  /** 집계·Function 결과 행(q:N)의 값 — 답을 만들 때 대조한 그대로(다시 읽을 곳이 없다). */
+  values?: CitationData["values"];
 }
 
 /** 인용을 객체 단위로 묶는다. 속성마다 칩을 두면 목록 답에서 칩이 수십 개가 된다. */
@@ -37,7 +39,7 @@ function groupCitations(citations: CitationData[]): Selection[] {
   for (const c of citations) {
     const hash = c.ref.lastIndexOf("#");
     const target = c.ref.slice(0, hash);
-    const g = groups.get(target) ?? { target, title: c.title, fields: [] };
+    const g = groups.get(target) ?? { target, title: c.title, fields: [], values: c.values };
     g.fields.push(c.ref.slice(hash + 1));
     groups.set(target, g);
   }
@@ -165,9 +167,20 @@ export function ObjectCardPanel({ selection, onClose }: { selection: Selection; 
         </button>
       </div>
       {!isObject && (
-        <p className="muted">
-          {selection.title} — {t.card.aggregate}
-        </p>
+        <>
+          <h3>{selection.title}</h3>
+          {selection.values?.length ? (
+            <dl>
+              {selection.values.map((v) => (
+                <Fragment key={v.name}>
+                  <dt>{v.label}</dt>
+                  <dd>{fields.includes(v.name) ? <strong>{v.display}</strong> : v.display}</dd>
+                </Fragment>
+              ))}
+            </dl>
+          ) : null}
+          <p className="muted">{selection.values?.length ? t.card.aggregateValues : t.card.aggregate}</p>
+        </>
       )}
       {card.isPending && isObject && <p>{ko.common.loading}</p>}
       {card.isError && <ErrorBox error={card.error} />}

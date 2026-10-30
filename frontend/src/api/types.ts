@@ -39,6 +39,7 @@ export type ActionTypeDef = S["ActionTypeDef"];
 export type ActionTypeOut = S["ActionTypeOut"];
 export type FunctionDef = S["FunctionDef"];
 export type FunctionOut = S["FunctionOut"];
+export type V1MetricsOut = S["V1MetricsOut"];
 export type ActionTypeView = S["ActionTypeView"];
 export type ActionRunOut = S["ActionRunOut"];
 export type NotificationList = S["NotificationList"];

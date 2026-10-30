@@ -42,10 +42,18 @@ class AnswerData(BaseModel):
     estimated_sentences: list[int]
 
 
+class CitationValue(BaseModel):
+    name: str
+    label: str
+    display: str
+
+
 class CitationData(BaseModel):
     ref: str
     title: str
     synced_at: str | None
+    # 집계·Function 결과 행(q:N)만 — 답을 만들 때 대조한 값. 객체 근거는 카드가 다시 읽는다.
+    values: list[CitationValue] | None = None
 
 
 class GradeData(BaseModel):

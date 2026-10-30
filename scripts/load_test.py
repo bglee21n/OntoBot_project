@@ -4,7 +4,9 @@
     uv run --project backend python scripts/load_test.py --username loadtest --users 1,4,8
 
 - 가상 사용자마다 따로 로그인한다(세션 쿠키 하나 = 사용자 하나). 질문은 골든셋의 정상 단일 질문
-  (맥락·장애 주입·평가 역할이 없는 ``ok`` 문항)을 사용자마다 다른 순서로 돈다.
+  (맥락·장애 주입·평가 역할이 없는 ``ok`` 문항 — Function 문항 포함)을 사용자마다 다른 순서로 돈다.
+  ``--with-actions`` 면 미리보기를 만드는 Action 요청 문항(``expected_action.ready``)도 섞는다 —
+  채팅이 실행 기록(미리보기)을 쓰므로 **평가·시험 DB 에서만** 쓴다. 실행(승인)은 하지 않는다.
 - 지연은 요청을 보낸 때부터 SSE ``done`` 까지(사용자가 기다리는 시간). 첫 이벤트까지도 따로 잰다.
 - 결과 상태(ok·empty·not_query·failed 사유)를 센다. 부하에서 ``failed(timeout)`` 이 느는지가
   동시 사용자 상한을 정하는 신호다 — 빨라도 실패가 늘면 그 단계는 통과가 아니다.
@@ -46,12 +48,19 @@ class Sample:
     first_event_ms: int | None
 
 
-def questions(pack: str) -> list[str]:
-    doc = yaml.safe_load((ROOT / "domain-packs" / pack / "golden.yaml").read_text(encoding="utf-8"))
+def questions(pack: str, *, with_actions: bool = False) -> list[str]:
+    doc = yaml.safe_load(
+        (ROOT / "domain-packs" / pack / "golden.yaml").read_text(encoding="utf-8")
+    )
+    wanted = {"ok", "action_preview"} if with_actions else {"ok"}
     out = [
         it["question"]
         for it in doc["items"]
-        if it.get("expected_status") == "ok"
+        if it.get("expected_status") in wanted
+        and (
+            it.get("expected_status") == "ok"
+            or (it.get("expected_action") or {}).get("ready", True)
+        )
         and not it.get("context")
         and it.get("fault", "none") == "none"
         and not it.get("test_role")
@@ -92,6 +101,10 @@ async def ask(client: httpx.AsyncClient, question: str) -> tuple[str, int, int |
                 data: dict[str, Any] = json.loads(line.removeprefix("data: "))
                 if event == "grade":
                     outcome = str(data["status"])
+                elif event == "action_preview":
+                    outcome = (
+                        "action_preview" if data.get("run_id") else "action_unready"
+                    )
                 elif event == "error":
                     outcome = f"failed:{data['reason']}"
                 elif event == "done":
@@ -128,7 +141,9 @@ async def virtual_user(
                     None,
                 )
             samples.append(Sample(users, index, q, outcome, latency, first))
-            print(f"  [{users}명 #{index}] {latency:>6}ms {outcome:<24} {q}", flush=True)
+            print(
+                f"  [{users}명 #{index}] {latency:>6}ms {outcome:<24} {q}", flush=True
+            )
     return samples
 
 
@@ -136,7 +151,11 @@ def summarize(samples: list[Sample]) -> dict[str, Any]:
     lat = [s.latency_ms for s in samples]
     first = [s.first_event_ms for s in samples if s.first_event_ms is not None]
     outcomes = Counter(s.outcome for s in samples)
-    answered = sum(n for o, n in outcomes.items() if o in ("ok", "empty", "not_query"))
+    answered = sum(
+        n
+        for o, n in outcomes.items()
+        if o in ("ok", "empty", "not_query", "action_preview", "action_unready")
+    )
     return {
         "requests": len(samples),
         "outcomes": dict(outcomes),
@@ -151,7 +170,9 @@ def summarize(samples: list[Sample]) -> dict[str, Any]:
 
 async def main() -> int:
     sys.stdout.reconfigure(errors="replace")  # type: ignore[union-attr]
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter
+    )
     ap.add_argument("--base-url", default="http://localhost:8000")
     ap.add_argument("--username", required=True)
     ap.add_argument(
@@ -160,17 +181,24 @@ async def main() -> int:
         help="비밀번호를 담은 환경변수 이름(명령줄에 비밀번호를 적지 않는다)",
     )
     ap.add_argument("--users", default="1,2,4", help="동시 사용자 단계(쉼표)")
-    ap.add_argument("--rounds", type=int, default=4, help="사용자 한 명이 보내는 질문 수")
+    ap.add_argument(
+        "--rounds", type=int, default=4, help="사용자 한 명이 보내는 질문 수"
+    )
     ap.add_argument("--pack", default="sample")
     ap.add_argument("--timeout", type=float, default=300.0)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument(
+        "--with-actions",
+        action="store_true",
+        help="Action 요청(미리보기) 문항도 섞는다 — 실행 기록이 생기므로 평가·시험 DB 에서만",
+    )
     args = ap.parse_args()
 
     password = os.environ.get(args.password_env)
     if not password:
         raise SystemExit(f"환경변수 {args.password_env} 에 비밀번호를 넣어 주세요")
     steps = [int(x) for x in args.users.split(",") if x.strip()]
-    qs = questions(args.pack)
+    qs = questions(args.pack, with_actions=args.with_actions)
 
     async with httpx.AsyncClient(base_url=args.base_url, timeout=10) as c:
         ready = await c.get("/readyz")
@@ -186,6 +214,7 @@ async def main() -> int:
         "readiness": readiness,
         "rounds_per_user": args.rounds,
         "questions": len(qs),
+        "with_actions": args.with_actions,
         "steps": [],
     }
     for users in steps:

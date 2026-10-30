@@ -138,6 +138,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metrics
+         * @description PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율, 확인되지 않은 편집 충돌.
+         */
+        get: operations["metrics_api_v1_admin_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/object-types": {
         parameters: {
             query?: never;
@@ -1717,6 +1737,17 @@ export interface components {
             synced_at: string | null;
             /** Title */
             title: string;
+            /** Values */
+            values?: components["schemas"]["CitationValue"][] | null;
+        };
+        /** CitationValue */
+        CitationValue: {
+            /** Display */
+            display: string;
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
         };
         /** ColumnsIn */
         ColumnsIn: {
@@ -3387,6 +3418,21 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** V1MetricsOut */
+        V1MetricsOut: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Days */
+            days: number;
+            /** Open Conflicts */
+            open_conflicts: number;
+            /** Rejection Rate */
+            rejection_rate: number | null;
+            /** Success Rate */
+            success_rate: number | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -3672,6 +3718,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    metrics_api_v1_admin_metrics_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V1MetricsOut"];
                 };
             };
             /** @description Validation Error */

@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.19                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.20                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -216,7 +216,7 @@ v0.13 (Phase 9 구현):
 | `interview_session`       | `interviewee_id`, `title`, `topic_state`, `status`(open/submitted/published), `published_version_id`                                                                                                                                                          |
 | `interview_utterance`     | `session_id`, `speaker`, `text`(마스킹 저장), `seq`                                                                                                                                                                            |
 | `draft_element`           | `session_id`, `kind`(object_type/property/link_type/action_candidate/golden_query), `payload`(jsonb), `evidence`(jsonb: `[{utterance_id, quote}]`), `evidence_ok`, `status`(proposed/confirmed/edited/rejected), `reviewed_by` |
-| `job`                     | `kind`, `payload`, `status`, `run_after`, `attempts`, `locked_by`, `locked_at`                                                                                                                                                 |
+| `job`                     | `kind`, `payload`, `status`, `run_after`, `attempts`, `locked_by`, `locked_at` — 기한은 **DB 시계**(`now()`)로만 정하고 비교한다(v0.20: 앱 시계로 넣은 기한이 컨테이너 DB 와 어긋나 방금 넣은 작업을 못 집던 간헐 실패) |
 | `graph_outbox`            | `id`(bigserial — **소비 순서**), `event`, `payload`, `created_at`, `processed_at` — 처리 위치는 `processed_at IS NULL`인 가장 작은 `id`다(별도 위치 테이블 없음)                                                                |
 
 의미 캐시는 MVP에 두지 않는다. 도입하면 캐시 키에 **권한 지문**(사용자의 역할 집합 + 게시 스키마 버전의 해시)을 넣어 권한이 다른 사용자끼리 답변을 공유하지 않게 한다(PRD 5.5).
@@ -460,7 +460,7 @@ class LLMGateway:
 | 그래프   | `GET /graph/status` · `POST /graph/rebuild`                                                                                                                                                                                                                                                         | 관리자              |
 | 워크숍   | `GET·POST /workshop/sessions` · `GET /workshop/sessions/{id}` · `POST /workshop/sessions/{id}/utterances` (다음 질문 반환) · `GET /workshop/sessions/{id}/elements` · `PATCH /workshop/elements/{id}` · `POST /workshop/sessions/{id}/submit` · `POST /workshop/sessions/{id}/publish`                                                  | 현업 / 모델러(게시) |
 | 평가     | `CRUD /golden-sets` · `CRUD /golden-sets/{id}/items` · `POST /eval-runs`(202, 작업 큐) · `GET /eval-runs[?golden_set_id=]` · `GET /eval-runs/{id}`                                                                                                                                                                                                    | 챗봇 빌더 / 모델러 |
-| 관리     | `GET·POST /admin/users` · `PATCH /admin/users/{id}`(상태·역할) · `GET /admin/roles` · `PUT /admin/roles/{id}/permissions` · `GET /admin/object-types` · `GET /audit-logs` · `GET /traces/{id}`                                                                                                  | 관리자              |
+| 관리     | `GET·POST /admin/users` · `PATCH /admin/users/{id}`(상태·역할) · `GET /admin/roles` · `PUT /admin/roles/{id}/permissions` · `GET /admin/object-types` · `GET /admin/metrics?days=`(v1 지표, 17.5) · `GET /audit-logs` · `GET /traces/{id}`                                                                                                  | 관리자              |
 
 ### 14.2 채팅 SSE 이벤트
 
@@ -469,7 +469,7 @@ class LLMGateway:
 | `stage`      | `{"stage": "planning" \| "querying" \| "answering" \| "verifying"}`        | 단계 시작          |
 | `conditions` | `{"text": "시설 · 지역 = 서울 · …", "graph_as_of": "…" \| null}`           | 조회 직후          |
 | `answer`     | `{"text": "…", "estimated_sentences": [2, 5]}`                             | 대조 완료 후 한 번 |
-| `citations`  | `[{"ref": "o:Facility/F-001#risk_grade", "title": "…", "synced_at": "…"}]` | `answer` 직후      |
+| `citations`  | `[{"ref": "o:Facility/F-001#risk_grade", "title": "…", "synced_at": "…", "values": null}]` — 집계·Function 결과 행(`q:N`)은 `values`(`[{name, label, display}]`, 답을 만들 때 대조한 값)를 함께 싣는다(v0.20, 객체는 카드가 다시 읽는다) | `answer` 직후      |
 | `grade`      | `{"status": "ok", "grade": 1}`                                             | `answer` 직후      |
 | `action_preview` | `{"text", "action_type", "display_name", "target_type", "target_pk", "target_title", "params", "issues", "candidates", "ready", "run_id"}` (v0.15) | Action 요청일 때 한 번 |
 | `error`      | `{"status": "failed", "reason": "timeout", "message": "…"}`                | 실패 시            |
@@ -724,7 +724,16 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 - **인용**(17.1-8): 결과 행은 `q:N` 근거 — 칸은 그룹 열, **내부 조회 값마다 하나**(이름 = 조회 이름, 라벨 = 조회 표시 이름), `value`(라벨 = `result_label`), 인자가 있으면 `inputs`(입력 조건 문장). 답이 "10곳 중 3곳(30%)"처럼 계산 근거를 말해도 칸마다 인용된다. 근거 대조(`grounding`)는 바뀌지 않았다. 조건 값 가리기는 내부 조회 조건 값과 인자 값. 대화 맥락은 바꾸지 않는다(집계와 같다).
 - **조회 조건 문장**: `고위험 시설 비율(기준 위험등급 = 4(기본값)) · 고위험 시설 수: 시설 · 위험등급 ≥ 4 · 시설 유형별 건수 / 전체 시설 수: 시설 · 시설 유형별 건수 · 최대 100개 그룹` — Function 표시 이름·인자(기본값 표시), 내부 조회마다 7.1 5단계 문장(최대 N건 없이).
 - **API**: `POST/PUT/DELETE /ontology/versions/{id}/functions[/{function_id}]`(모델러, draft 만, 이름 변경 409), `VersionDetail.functions`, 버전 비교 요소 `function`, 영향 분석이 Function 참조(조회 타입·건너는 링크·쓰는 속성)를 낸다. 감사는 `ontology.draft_edited`(`function.create/update/delete`).
-- **화면**: 버전 화면의 Function 섹션 — 요약(인자·내부 조회·그룹·결과)과 JSON 편집(형식은 저장 때 422, 교차 검사는 게시 전 검사). 그래프 삭제 창이 함께 지울 Function 을 고를 수 있다.
+- **화면**: 버전 화면의 Function 섹션 — 요약(인자·내부 조회·그룹·결과)과 JSON 편집(형식은 저장 때 422, 교차 검사는 게시 전 검사). 그래프 삭제 창이 함께 지울 Function 을 고를 수 있고, Function 문제 배지는 첫 내부 조회의 대상 타입 노드에 붙는다. 근거 카드는 `q:N` 의 `values`(그룹 열·내부 조회 값·결과·입력 조건)를 보여 준다(v0.20).
+
+### 17.5 v1 운영 지표 (v0.20, Phase 13)
+
+PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`), 관리 화면 맨 위 카드.
+
+- **Action 실행 성공률** = (실행 + 롤백) ÷ (실행 + 롤백 + 실패). 실패 = 승인 때 재검증에 걸림(오작동 신호).
+- **승인 거부율** = 거부 ÷ (거부 + 실행 + 롤백 + 실패). 요청자가 거둔 것(`rejected` 이고 결정자 = 요청자)은 `withdrawn` 으로 따로 세고 분모에서 뺀다. `previewed`·`blocked` 도 분모 밖.
+- 기간은 요청 시각(`created_at`) 기준·DB 시계. 분모가 0 이면 `null`(화면 '—').
+- **확인되지 않은 편집 충돌** = `sync_conflict.status = 'open'` 건수(기간 무관, 지금 값).
 
 ## 18. PRD 추적 매트릭스 (P0)
 
@@ -808,6 +817,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.20 | 2026-10-30 | Phase 13 — 17.5 v1 운영 지표(`GET /admin/metrics`, 성공률·거부율 정의, 요청자 거둠 분리), 근거 이벤트 `citations[].values`(집계·Function 행의 대조 값 — 근거 카드), Function 문제 배지 위치, `job` 기한은 DB 시계로만(간헐 실패 원인) |
 | v0.19 | 2026-10-30 | Phase 12 Function(17.4) — `FunctionDef`(인자·집계 내부 조회·식 트리·결과)를 정의 문서에, `function_type` 표(마이그레이션 0010), 게시 전 검사(연산자 표 `OPS_BY_TYPE` 를 계획 검증과 공유), 요약에 실을 조건(내부 타입 모두 읽기), 플래너 `kind: function`(`FunctionPlannerOutput` — Function 이 없으면 스키마·프롬프트 그대로), 바인드·권한(`forbidden`)·인자 ↔ 질문 두 방향 대조, 실행기 공유·실패 전파, 그룹 키 맞춤·`Decimal` 계산·서버 반올림, 근거 행(내부 조회 값·결과·입력 조건), 조건 문장, API·화면. 17절 표의 5.10 행 갱신 |
 | v0.18 | 2026-10-30 | Phase G1 스키마 그래프 편집기 — 정의 문서에 `deprecated`(객체 타입·링크 타입, 거짓이면 정규 표현·내보내기에서 빠져 기존 `content_hash` 유지). 플래너 요약·계획 검증은 폐기 요소를 뺀 문서(`OntologyDocument.active()`)를 본다(폐기 타입 = 없는 것, 권한 없음 아님). 폐기 타입을 대상으로 하는 Action 은 게시 전 검사 문제. `ontology_layout`(그래프 노드 위치 — 정의 밖, 감사 없음, draft 생성 때 부모 배치 복사), `GET/PUT /ontology/versions/{id}/layout`, 영향 분석 `GET /ontology/versions/{id}/references`(`ontology/impact.py` 첫 조각 — 문서 안 참조·매핑·골든 문항 id·데이터 존재만, 설정·본문·값 없음). `VersionSummary.created_by`·`created_by_name`. 마이그레이션 0009 |
 | v0.15 | 2026-10-20 | Phase 11 구현 반영 — 17.3 채팅에서 Action: 플래너 `kind: action`·`ActionProposal`, 요청할 수 있는 Action 만 요약에, 대상·값 대조 규칙(질문·맥락에 그대로, pk → 제목 정확 일치, 후보), 재계획 뒤 확인 사항, 채팅 API 가 미리보기 기록(`origin=chat`). 7.3 상태 `action_preview`, 14.2 SSE `action_preview`, 13.1·13.2 지표 `action_param_accuracy`(가안·optional)·`action_fabrications`(불변식) |

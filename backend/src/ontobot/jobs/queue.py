@@ -5,16 +5,19 @@
 - 실패하면 ``MAX_ATTEMPTS`` 까지 지수 백오프로 다시 넣고, 그 뒤에는 ``failed`` 로 남긴다.
   프로세스를 죽이는 작업이 워커가 뜰 때마다 다시 돌며 죽는 고리를 끊는다.
 - 워커가 죽으면 ``running`` 이 고아로 남는다. ``recover_stale`` 이 오래 잠긴 것을 되돌린다.
+- 기한(``run_after``·``locked_at``)은 **DB 시계**로만 정하고 비교한다. 앱과 DB 의 시계가
+  다르면(컨테이너·다른 서버) 앱 시계로 넣은 기한을 DB ``now()`` 와 비교하는 순간 작업이 늦게
+  집히거나 일찍 고아로 몰린다 — 통합 테스트에서 방금 넣은 작업을 집지 못하는 간헐 실패로 드러났다.
 """
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.db.models.jobs import Job
@@ -46,7 +49,10 @@ async def enqueue(
         )
         if exists:
             return None
-    job = Job(kind=kind, payload=body, status="queued", run_after=run_after or datetime.now(UTC))
+    job = Job(kind=kind, payload=body, status="queued")
+    # 기한을 주지 않으면 DB 기본값 now() — 앱 시계를 쓰지 않는다(모듈 설명).
+    if run_after is not None:
+        job.run_after = run_after
     db.add(job)
     await db.flush()
     return job.id
@@ -98,7 +104,7 @@ async def fail(db: AsyncSession, job_id: int, error: str) -> None:
     job.locked_by = None
     if job.attempts < MAX_ATTEMPTS:
         job.status = "queued"
-        job.run_after = datetime.now(UTC) + timedelta(seconds=30 * 2 ** (job.attempts - 1))
+        job.run_after = func.now() + timedelta(seconds=30 * 2 ** (job.attempts - 1))
     else:
         job.status = "failed"
     await db.commit()
@@ -110,9 +116,9 @@ async def recover_stale(db: AsyncSession, *, older_than: timedelta = STALE_AFTER
         text(
             "UPDATE job SET status = CASE WHEN attempts >= :max THEN 'failed' ELSE 'queued' END, "
             "locked_by = NULL, error = coalesce(error, '워커가 응답 없이 사라졌습니다') "
-            "WHERE status = 'running' AND locked_at < :cutoff"
+            "WHERE status = 'running' AND locked_at < now() - CAST(:age AS interval)"
         ),
-        {"max": MAX_ATTEMPTS, "cutoff": datetime.now(UTC) - older_than},
+        {"max": MAX_ATTEMPTS, "age": older_than},
     )
     await db.commit()
     return int(result.rowcount or 0)  # type: ignore[attr-defined]

@@ -41,10 +41,14 @@ export interface GraphElements {
   links: (LinkEdgeData & { from: string; to: string })[];
 }
 
-/** 이슈 경로(`object_types.X…`·`link_types.l…`·`action_types.a…`)가 가리키는 그래프 요소. */
+/**
+ * 이슈 경로(`object_types.X…`·`link_types.l…`·`action_types.a…`·`functions.f`)가 가리키는 그래프 요소.
+ * Action·Function 은 그래프 요소가 아니므로 대상 타입(Function 은 첫 내부 조회의 대상)에 붙인다.
+ */
 export function issueTarget(
   issue: IssueOut,
   actionTargets: Map<string, string>,
+  functionTargets: Map<string, string> = new Map(),
 ): { kind: "type" | "link"; name: string } | null {
   const [head, name] = issue.path.split(".");
   if (!name) return null;
@@ -52,6 +56,10 @@ export function issueTarget(
   if (head === "link_types") return { kind: "link", name };
   if (head === "action_types") {
     const target = actionTargets.get(name);
+    return target ? { kind: "type", name: target } : null;
+  }
+  if (head === "functions") {
+    const target = functionTargets.get(name);
     return target ? { kind: "type", name: target } : null;
   }
   return null;
@@ -112,6 +120,9 @@ function linkData(l: LinkTypeOut, extra: Partial<LinkEdgeData>) {
 export function buildElements(v: VersionDetail, base?: VersionDetail, changes?: ChangeOut[]): GraphElements {
   const { types: typeChange, links: linkChange } = changeMap(base ? changes : undefined);
   const actionTargets = new Map(v.action_types.map((a) => [a.api_name, a.target_type]));
+  const functionTargets = new Map(
+    v.functions.flatMap((f) => (f.queries[0] ? [[f.api_name, f.queries[0].target] as const] : [])),
+  );
   const types = v.object_types.map((t) =>
     typeData(t, {
       change: typeChange.get(t.api_name) ?? null,
@@ -135,7 +146,7 @@ export function buildElements(v: VersionDetail, base?: VersionDetail, changes?: 
   const byType = new Map(types.map((t) => [t.name, t]));
   const byLink = new Map(links.map((l) => [l.name, l]));
   for (const issue of v.issues) {
-    const target = issueTarget(issue, actionTargets);
+    const target = issueTarget(issue, actionTargets, functionTargets);
     if (target?.kind === "type") byType.get(target.name)?.issues.push(issue);
     else if (target?.kind === "link") byLink.get(target.name)?.issues.push(issue);
   }

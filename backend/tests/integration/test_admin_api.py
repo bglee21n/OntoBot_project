@@ -133,3 +133,65 @@ async def test_viewing_audit_logs_is_itself_audited(client, make_user: MakeUser)
     assert again[0]["event"] == "security.audit_viewed"
     assert again[0]["payload"]["user_id"] == me
     assert (await client.get("/api/v1/traces/999999999")).status_code == 404
+
+
+async def test_v1_metrics_count_action_outcomes(client, make_user: MakeUser) -> None:
+    # PRD 7절 v1 지표. 다른 테스트의 실행 기록과 섞이므로 넣기 전후의 차이로 본다.
+    from ontobot.db.models.actions import ActionRun
+    from ontobot.db.models.ontology import OntologyVersion
+
+    uid = await _admin(client, make_user)
+    _, _, approver = await make_user("admin")
+    before = (await client.get("/api/v1/admin/metrics")).json()
+    async with session_scope() as db:
+        version = await db.scalar(select(OntologyVersion.id).limit(1))
+        if version is None:
+            v = OntologyVersion(version_no=900_000 + uuid.uuid4().int % 99_999, status="draft")
+            db.add(v)
+            await db.flush()
+            version = v.id
+        for status, decider in [
+            ("executed", approver),
+            ("rolled_back", approver),
+            ("failed", approver),
+            ("rejected", approver),
+            ("rejected", uid),  # 요청자가 거둠 — 거부율 분모에 넣지 않는다
+            ("previewed", None),
+        ]:
+            db.add(
+                ActionRun(
+                    request_id=f"metrics-{uuid.uuid4().hex}",
+                    action_type="adjust_risk_grade",
+                    ontology_version_id=version,
+                    target_type="Facility",
+                    target_pk="F-0001",
+                    params={},
+                    status=status,
+                    preview={},
+                    requested_by=uid,
+                    decided_by=decider,
+                )
+            )
+        await db.commit()
+    after = (await client.get("/api/v1/admin/metrics", params={"days": 7})).json()
+    delta = {k: after["counts"][k] - before["counts"][k] for k in after["counts"]}
+    assert delta == {
+        "previewed": 1,
+        "blocked": 0,
+        "rejected": 1,
+        "withdrawn": 1,
+        "executed": 1,
+        "failed": 1,
+        "rolled_back": 1,
+    }
+    c = after["counts"]
+    attempted = c["executed"] + c["rolled_back"] + c["failed"]
+    assert after["success_rate"] == round((c["executed"] + c["rolled_back"]) / attempted, 4)
+    assert after["rejection_rate"] == round(c["rejected"] / (attempted + c["rejected"]), 4)
+    assert isinstance(after["open_conflicts"], int) and after["days"] == 7
+
+
+async def test_v1_metrics_are_admin_only(client, make_user: MakeUser) -> None:
+    username, password, _ = await make_user("modeler")
+    await login(client, username, password)
+    assert (await client.get("/api/v1/admin/metrics")).status_code == 403

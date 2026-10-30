@@ -7,6 +7,7 @@ import type {
   RoleOut,
   SystemOut,
   TraceOut,
+  V1MetricsOut,
   TypeOut,
   UserCreate,
   UserOut,
@@ -25,6 +26,7 @@ export function AdminPage() {
     <section className="stack">
       <h1>{t.title}</h1>
       <SystemCard />
+      <MetricsCard />
       <nav className="row" role="tablist">
         {(Object.keys(t.tabs) as Tab[]).map((k) => (
           <button
@@ -66,6 +68,37 @@ function SystemCard() {
       ) : (
         <span className="muted">{t.deployerNone}</span>
       )}
+    </div>
+  );
+}
+
+/** PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율과 확인되지 않은 편집 충돌. 분모가 0 이면 '—'. */
+function MetricsCard() {
+  const m = useQuery({ queryKey: ["admin", "metrics"], queryFn: () => api.get<V1MetricsOut>("/admin/metrics") });
+  if (m.isError) return <ErrorBox error={m.error} />;
+  if (!m.data) return null;
+  const tm = t.metrics;
+  const pct = (v: number | null) => (v == null ? tm.none : `${(v * 100).toFixed(1)}%`);
+  return (
+    <div className="card stack">
+      <strong>{tm.title(m.data.days)}</strong>
+      <div className="row">
+        <span title={tm.successHint}>
+          {tm.success}: <strong>{pct(m.data.success_rate)}</strong>
+        </span>
+        <span title={tm.rejectionHint}>
+          {tm.rejection}: <strong>{pct(m.data.rejection_rate)}</strong>
+        </span>
+        <span title={tm.conflictsHint}>
+          {tm.conflicts}: <strong>{m.data.open_conflicts}</strong>
+        </span>
+      </div>
+      <div className="muted">
+        {tm.counts}:{" "}
+        {Object.entries(m.data.counts)
+          .map(([k, n]) => `${tm.status[k] ?? k} ${n}`)
+          .join(" · ")}
+      </div>
     </div>
   );
 }

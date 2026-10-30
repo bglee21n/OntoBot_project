@@ -437,6 +437,17 @@ async def run(
     return res
 
 
+def _snapshot(r: records.Record | None) -> list[dict[str, str]] | None:
+    """집계·Function 결과 행(``q:N``)의 값 — 근거 카드가 보여 준다.
+
+    객체 근거는 카드가 열 때마다 지금 값을 다시 읽지만, 집계 행은 다시 읽을 곳이 없다. 그래서
+    답을 만들 때 대조한 그 값(표시 문자열)을 인용에 함께 남긴다. 객체 근거는 None.
+    """
+    if r is None or r.type is not None:
+        return None
+    return [{"name": f.name, "label": f.label, "display": f.display} for f in r.fields]
+
+
 def _finish(res: PipelineResult, g: GradeResult, rs: records.RecordSet) -> None:
     res.status, res.grade = "ok", g.grade
     res.answer = g.text if g.text is not None else templates.ungrounded(res.conditions or "")
@@ -445,6 +456,7 @@ def _finish(res: PipelineResult, g: GradeResult, rs: records.RecordSet) -> None:
             "ref": f"{c.ref}#{c.field}",
             "title": (r.title if (r := rs.by_ref(c.ref)) else c.ref),
             "synced_at": r.synced_at.isoformat() if r and r.synced_at else None,
+            "values": _snapshot(r),
         }
         for c in g.citations
     ]

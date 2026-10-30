@@ -12,6 +12,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
+from ontobot.actions import metrics as action_metrics
 from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.config import app_version, get_settings
@@ -161,6 +162,22 @@ class SystemOut(BaseModel):
 async def system(_: Admin) -> SystemOut:
     """지금 버전(이미지의 VERSION)과 배포 콘솔 주소 — 배포는 앱 밖의 콘솔이 한다(ADR-0014)."""
     return SystemOut(version=app_version(), deployer_url=get_settings().deployer_url or None)
+
+
+class V1MetricsOut(BaseModel):
+    days: int
+    # 상태별 Action 요청 수(요청 시각 기준). withdrawn = 요청자가 거둔 것
+    counts: dict[str, int]
+    success_rate: float | None
+    rejection_rate: float | None
+    open_conflicts: int
+
+
+@router.get("/admin/metrics", response_model=V1MetricsOut)
+async def metrics(db: Db, _: Admin, days: Annotated[int, Query(ge=1, le=365)] = 30) -> V1MetricsOut:
+    """PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율, 확인되지 않은 편집 충돌."""
+    m = await action_metrics.v1_metrics(db, days)
+    return V1MetricsOut(**m.__dict__)
 
 
 @router.get("/admin/object-types", response_model=list[TypeOut])
