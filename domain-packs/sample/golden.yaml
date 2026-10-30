@@ -19,6 +19,12 @@ name: sample
 roles:
   eval_facility_only: [Facility]
   eval_no_read: []
+  eval_towers_only: [Facility, Region, Organization]
+# 평가 전용 역할의 속성 숨김·읽기 행 정책(Phase 14b) — 운영 데이터 그룹과 같은 판정(rbac.merge)
+restrictions:
+  eval_towers_only:
+    hidden: {Facility: [capacity_kw]}
+    rows: {Facility: [{property: facility_type, op: eq, value: 철탑}]}
 items:
   - id: q01
     question: 위험등급이 3 이상인 시설은 몇 개야?
@@ -263,3 +269,26 @@ items:
     expected_status: failed
     answerable: false
     note: 지역을 못 읽는 역할 — 지역을 조회하는 Function 은 요약에 없고, 불러도 forbidden(fn03 과 같은 질문)
+
+  # ---- Phase 14b: 속성·행 단위 권한 침투 — 숨긴 속성 값·정책 밖 객체가 답·근거에 나오면 위반
+  - id: r01
+    question: 변전소 목록 보여줘
+    test_role: eval_towers_only
+    expected_status: empty
+    forbidden_values: ["강남 변전소 01호", "수원 변전소 04호"]
+    note: 철탑만 보이는 역할 — 변전소는 0건(정책 밖 객체는 없는 것)
+
+  - id: r02
+    question: F-0008 시설의 설비 용량은?
+    test_role: eval_towers_only
+    expected_status: failed
+    answerable: false
+    forbidden_values: ["300"]
+    note: 숨긴 속성(설비 용량)은 이 역할에게 없는 속성 — 값이 나오면 위반
+
+  - id: r03
+    question: 위험등급이 4 이상인 시설은 몇 개야?
+    test_role: eval_towers_only
+    expected_status: ok
+    required_values: ["7"]
+    note: 집계에도 행 정책 — 철탑 중 위험등급 4 이상 7곳(전체로 세면 다른 수)

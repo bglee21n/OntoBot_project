@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.22                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.23                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -772,6 +772,36 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - **화면**: 관리 → **데이터 그룹** 탭(그룹 카드: 구성원 체크, 타입 × 읽기·생성·편집·삭제 표, 링크 연결, SSO ID),
   사용자 표의 그룹 칸·계정 추가의 그룹 선택.
 
+### 17.7 속성 숨김·행 정책 (v0.23, Phase 14b)
+
+| 표 | 주요 컬럼 |
+| --- | --- |
+| `group_property_hide` | `group_id`, `object_type`, `property` — 유일 |
+| `group_row_policy` | `group_id`, `object_type`, `applies_to`(read/write), `filters`(jsonb — QueryPlan `Filter` 조건 목록, AND) — 유일 `(group, type, applies_to)` |
+| `golden_set.restrictions` | 평가 전용 역할의 `{hidden: {타입: [속성]}, rows: {타입: [조건]}}` |
+
+- **합집합 규칙**(`rbac.merge` — 순수 함수, 평가 역할도 같은 함수): 속성은 그 타입을 **읽게 해 주는 모든 그룹**이 숨길
+  때만 숨겨진다(기본은 모두 보임, 사용자 결정). 행은 그 권한을 주는 그룹마다 정책을 OR(각 정책은 조건 AND), 정책
+  없는 그룹이 하나라도 있으면 제한 없음. 읽기 정책은 읽기 그룹, 쓰기 정책은 편집 그룹만 본다. `rbac.access(db,
+  user)` → `Access{readable, editable, types: {타입: TypeAccess(hidden, read_rows, write_rows)}}`.
+- **보이는 문서**(`OntologyDocument.without_properties`): 숨긴 속성을 빼고, 그 속성을 바꾸거나 조건·연락처로 쓰는
+  Action 과 쓰는 Function 을 통째로 뺀다(미리보기·계산으로 새지 않게). pk·제목은 숨기지 않는다(저장 때도 거부).
+  플래너 요약·계획 검증·데이터 블록·Function 바인드·근거 카드가 이 문서를 본다 — 숨긴 속성은 그 사용자에게 **없는
+  속성**(계획에 쓰면 재계획, 권한 없음과 구분하지 않는다).
+- **행 정책 주입**: `query.validator.check_scopes`(숨김 전 문서로 검증 — 정책은 숨긴 속성에도 건다)가 정책을
+  `CheckedFilter` 로 바꾸고, `ValidatedPlan.scopes`(대상·탐색 끝 타입)에 실어 컴파일러가 `(… AND …) OR (…)` 로 덧붙인다
+  — 값은 다른 조건처럼 바인드. 목록·집계·탐색 끝 pk 조회·Function 내부 조회 모두 같다. **잘못된 정책은 그 정책만 빠지고,
+  남는 정책이 없으면 `false`(볼 행 없음)** — 정책 오류로 제한이 풀리지 않는다. 저장 때 `invalid_restriction` 으로 먼저 막는다.
+- **근거 카드**: 숨긴 속성 칸 없음, 읽기 정책 밖 객체는 404(`query.executor.in_scope`).
+- **Action**: 미리보기 때 대상이 요청자의 읽기 정책 밖이면 없는 것(404), 쓰기 정책 밖이면 거부. 승인 때 요청자의 정책으로
+  **다시** 확인(밖이면 `failed` 기록).
+- **API·화면**: `PUT /admin/groups/{id}/permissions` 의 타입 행에 `hidden`·`read_filters`·`write_filters`(null = 제한 없음),
+  `GET /admin/object-types` 에 `properties`(pk·제목 제외). 그룹 카드의 타입 행 **속성·행** 펼치기(숨길 속성 체크, 정책 JSON).
+- **평가**: 팩 `restrictions` + 침투 문항(정책 밖 객체 목록 → 0건, 숨긴 속성 질문 → 실패·값 미노출, 집계가 정책 안에서만 셈).
+  실제 모델 게이트 통과(권한 위반 0).
+- **한계**: 채팅 Action 제안의 같은 제목 후보(`actions.params`)는 읽기 정책을 보지 않는다(실행 기록은 미리보기에서 막힌다 —
+  후보 제목이 보일 수 있음). 참조 값 실재 대조(`existing_values`)도 정책을 보지 않는다(존재 여부만).
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -854,6 +884,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |
 | v0.21 | 2026-10-30 | 성공 지표 목표를 관리자 설정으로(17.5 — `ops_target`·`/admin/targets`, 마이그레이션 0011, 측정값 출처: 평가는 재생 제외·운영은 트레이스, 게이트와 분리), 스키마 그래프 옆 패널의 Action·Function 편집 |
 | v0.20 | 2026-10-30 | Phase 13 — 17.5 v1 운영 지표(`GET /admin/metrics`, 성공률·거부율 정의, 요청자 거둠 분리), 근거 이벤트 `citations[].values`(집계·Function 행의 대조 값 — 근거 카드), Function 문제 배지 위치, `job` 기한은 DB 시계로만(간헐 실패 원인) |

@@ -47,7 +47,15 @@ from ontobot.query.references import (
     check_references,
     rewrite_fk_names,
 )
-from ontobot.query.validator import CheckedFilter, PlanInvalid, ValidatedPlan, validate
+from ontobot.query.validator import (
+    CheckedFilter,
+    PlanInvalid,
+    Scope,
+    ValidatedPlan,
+    check_scopes,
+    validate,
+)
+from ontobot.security import rbac
 
 Status = Literal["ok", "empty", "failed", "not_query", "action_preview"]
 Emit = Callable[[str, dict[str, Any]], Awaitable[None]]
@@ -221,10 +229,16 @@ async def _plan_and_validate(
     context: list[dict[str, str]],
     res: PipelineResult,
     actions: Set[str],
+    access: rbac.Access | None,
 ) -> ValidatedPlan | fn_binding.ValidatedFunction | action_params.ProposalCheck | PipelineResult:
     # 계획은 폐기되지 않은 요소로만 세운다 — 폐기 타입은 '없는 것'이라 재계획 대상이다
-    # (권한 없음이 아니다).
+    # (권한 없음이 아니다). 숨긴 속성(Phase 14b)도 이 사용자에게는 없는 것이다 — 요약·검증·데이터
+    # 블록·Function 이 모두 이 "보이는 문서"를 본다.
     doc = schema.document.active()
+    scopes: dict[str, Scope] = {}
+    if access is not None:
+        doc = doc.without_properties(access.hidden())
+        scopes = check_scopes(schema.document, access.read_scopes())
     summary = schema_summary(doc, readable, actions)
     allowed = frozenset((c["type"], c["pk"]) for c in context)
     errors: list[str] | None = None
@@ -273,7 +287,7 @@ async def _plan_and_validate(
                 continue
             res.plan = {"function": out.function.model_dump(mode="json")}
             try:
-                vf = fn_binding.bind(doc, readable, out.function)
+                vf = fn_binding.bind(doc, readable, out.function, scopes)
             except PlanInvalid as e:
                 res.plan_attempts.append(
                     {"structured_ok": True, "function": True, "errors": e.errors}
@@ -302,7 +316,7 @@ async def _plan_and_validate(
         plan, rewrites = await rewrite_fk_names(db, doc, out.plan)
         res.plan = plan.model_dump(mode="json")
         try:
-            vp = validate(doc, readable, plan, allowed)
+            vp = validate(doc, readable, plan, allowed, scopes)
         except PlanInvalid as e:
             if e.forbidden:
                 res.plan_attempts.append({"structured_ok": True, "errors": e.errors})
@@ -360,11 +374,13 @@ async def run(
     emit: Emit = _silent,
     executor: Executor = execute_plan,
     actions: Set[str] = frozenset(),
+    access: rbac.Access | None = None,
 ) -> PipelineResult:
     """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``).
 
     ``actions`` 는 이 사용자가 요청할 수 있는 Action 이름(``actions.params.requestable``). 비면
-    플래너는 Action 을 모른다.
+    플래너는 Action 을 모른다. ``access`` 는 속성 숨김·행 정책(``security.rbac.access``) — None 이면
+    타입 단위(``readable``)만 본다.
     """
     res = PipelineResult(status="failed", answer="")
     timer = _Timer(res.stage_latency_ms)
@@ -374,7 +390,7 @@ async def run(
         await emit("stage", {"stage": "planning"})
         with timer.stage("planning"):
             planned = await _plan_and_validate(
-                db, llm, schema, readable, question, context or [], res, actions
+                db, llm, schema, readable, question, context or [], res, actions, access
             )
         if isinstance(planned, PipelineResult):
             return planned

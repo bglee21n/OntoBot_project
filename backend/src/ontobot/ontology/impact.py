@@ -17,24 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ontobot.db.models.evaluation import GoldenItem
 from ontobot.db.models.sync import DataSource, Mapping
 from ontobot.objects import reader
-from ontobot.ontology.models import FunctionDef, Issue, OntologyDocument
+from ontobot.ontology.models import Issue, OntologyDocument
 
 ElementKind = Literal["object_type", "property", "link_type"]
-
-
-def _function_props(fn: FunctionDef, type_name: str) -> set[str]:
-    """Function 이 ``type_name`` 에서 쓰는 속성(조건·집계·그룹·탐색 끝 조건)."""
-    used: set[str] = set()
-    for q in fn.queries:
-        if q.target == type_name:
-            used.update(f.property for f in q.filters)
-            used.update(q.aggregate.group_by)
-            if q.aggregate.property:
-                used.add(q.aggregate.property)
-        for tr in q.traverse:
-            if tr.to == type_name:
-                used.update(f.property for f in tr.filters)
-    return used
 
 
 def references(
@@ -99,7 +84,7 @@ def references(
                     )
                 )
         for fn in doc.functions:
-            if name in _function_props(fn, t.api_name):
+            if name in fn.props_on(t.api_name):
                 out.append(
                     Issue(f"functions.{fn.api_name}", f"Function '{fn.api_name}' 이 쓰는 속성")
                 )

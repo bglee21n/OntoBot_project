@@ -6506,10 +6506,50 @@
             "title": "Can Read",
             "type": "boolean"
           },
+          "hidden": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Hidden",
+            "type": "array"
+          },
           "object_type": {
             "maxLength": 64,
             "title": "Object Type",
             "type": "string"
+          },
+          "read_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Filters"
+          },
+          "write_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Write Filters"
           }
         },
         "required": [
@@ -6527,6 +6567,13 @@
           "display_name": {
             "title": "Display Name",
             "type": "string"
+          },
+          "properties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Properties",
+            "type": "array"
           }
         },
         "required": [

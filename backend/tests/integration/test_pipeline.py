@@ -25,6 +25,7 @@ from ontobot.objects.store import upsert_objects
 from ontobot.ontology import importer, registry, versioning
 from ontobot.ontology.models import FunctionDef, check_document
 from ontobot.query.executor import ExecResult, execute_plan
+from ontobot.security import rbac
 
 pytestmark = pytest.mark.integration
 
@@ -408,3 +409,70 @@ async def test_function_inner_failure_fails_the_whole_function(monkeypatch, sche
     # 나머지 값으로 계산해 그럴듯한 답을 만들지 않는다.
     assert (res.status, res.failure_reason, res.grade) == ("failed", "timeout", None)
     assert calls == ["Facility", "Facility"]
+
+
+# ---------------------------------------------------------------- 속성·행 단위 권한(Phase 14b)
+
+
+def _restricted() -> rbac.Access:
+    # 시설: 설비 용량 숨김, 철탑만 보임. 지역: 제한 없음.
+    return rbac.merge(
+        {
+            "Facility": [
+                rbac.grant(
+                    hidden=["capacity_kw"],
+                    read_rows=[{"property": "facility_type", "op": "eq", "value": "철탑"}],
+                )
+            ],
+            "Region": [rbac.grant()],
+        }
+    )
+
+
+async def _run_access(monkeypatch, schema, script, access) -> pipeline.PipelineResult:
+    monkeypatch.setattr(ollama, "transport", httpx.MockTransport(script.handler))
+    async with session_scope() as db:
+        return await pipeline.run(
+            db, LLMGateway(CFG), schema, access.readable, "질문", access=access
+        )
+    raise AssertionError
+
+
+async def test_row_policy_limits_rows_and_aggregates(monkeypatch, schema) -> None:
+    # 변전소(PT-1)는 정책 밖 — 데이터 블록에 없으니 인용하면 지워진다.
+    script = Script([_plan()], "파이프 변전소 1입니다. [[o:Facility/PT-1#name]]")
+    res = await _run_access(monkeypatch, schema, script, _restricted())
+    assert (res.status, res.grade) == ("ok", 3)
+    script = Script([_plan()], "파이프 철탑 2입니다. [[o:Facility/PT-2#name]]")
+    res = await _run_access(monkeypatch, schema, script, _restricted())
+    assert (res.status, res.grade) == ("ok", 1)
+    assert res.context_refs == [{"type": "Facility", "pk": "PT-2"}]
+    # 집계에도 정책이 걸린다(파이프 시설 2건 중 1건).
+    script = Script(
+        [_plan(aggregate={"fn": "count", "property": None, "group_by": []})],
+        "1건입니다. [[q:1#value]]",
+    )
+    res = await _run_access(monkeypatch, schema, script, _restricted())
+    assert (res.status, res.grade) == ("ok", 1)
+
+
+async def test_hidden_property_is_not_in_schema_or_data(monkeypatch, schema) -> None:
+    # 숨긴 속성은 이 사용자에게 없는 속성이다 — 조건에 쓰면 재계획, 그래도 쓰면 plan_invalid.
+    bad = _plan(filters=[{"property": "capacity_kw", "op": "gt", "value": 100}])
+    script = Script([bad, bad])
+    res = await _run_access(monkeypatch, schema, script, _restricted())
+    assert (res.status, res.failure_reason) == ("failed", "plan_invalid")
+    assert "capacity_kw" in res.plan_attempts[0]["errors"][0]
+    # 데이터 블록에 숨긴 속성 값이 없다 — 인용하면 지워진다.
+    script = Script([_plan()], "설비 용량은 150kW 입니다. [[o:Facility/PT-2#capacity_kw]]")
+    res = await _run_access(monkeypatch, schema, script, _restricted())
+    assert (res.status, res.grade) == ("ok", 3)
+
+
+async def test_broken_policy_closes_instead_of_opening(monkeypatch, schema) -> None:
+    # 없는 속성에 건 정책은 그 정책만 빠지고, 남는 정책이 없으면 볼 행이 없다(닫힌 쪽).
+    access = rbac.merge(
+        {"Facility": [rbac.grant(read_rows=[{"property": "nope", "op": "eq", "value": 1}])]}
+    )
+    res = await _run_access(monkeypatch, schema, Script([_plan()]), access)
+    assert res.status == "empty"

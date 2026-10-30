@@ -143,6 +143,11 @@ async def source_env() -> AsyncIterator[None]:
         pytest.skip(f"원천 테스트 DB({SOURCE_DB}) 에 접속할 수 없음: {type(e).__name__}")
     await conn.close()
     # 매핑이 게시 버전에 맞아야 하므로 샘플 온톨로지를 게시해 둔다.
+    await _publish_sample()
+    yield
+
+
+async def _publish_sample() -> None:
     async with session_scope() as db:
         doc = importer.parse(SAMPLE_PACK.read_text(encoding="utf-8"), "yaml")
         current = await registry.reload(db)
@@ -152,7 +157,12 @@ async def source_env() -> AsyncIterator[None]:
             await versioning.publish(db, draft.id, actor_id=None)
             await db.commit()
             await registry.reload(db)
-    yield
+
+
+@pytest.fixture
+async def sample_published() -> None:
+    """샘플 온톨로지가 게시된 상태(이미 같으면 그대로) — 게시본으로 검사하는 관리 규칙 테스트용."""
+    await _publish_sample()
 
 
 async def source_connect() -> asyncpg.Connection:

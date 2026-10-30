@@ -27,7 +27,9 @@ from ontobot.objects.lineage import object_lineage
 from ontobot.objects.reader import resolve
 from ontobot.ontology import registry
 from ontobot.ontology.models import ObjectTypeDef
+from ontobot.query.executor import in_scope
 from ontobot.query.records import display
+from ontobot.query.validator import check_scopes
 from ontobot.security import audit, rbac
 from ontobot.security.rbac import ROLE_ADMIN, ROLE_MODELER
 
@@ -111,9 +113,17 @@ def _edit_out(t: ObjectTypeDef, info: edits.EditInfo) -> EditOut:
 
 @router.get("/{object_type}/{pk}", response_model=ObjectCard)
 async def card(object_type: str, pk: str, db: Db, user: User) -> ObjectCard:
-    t = _readable_type(object_type, await rbac.readable_types(db, user.id))
+    access = await rbac.access(db, user.id)
+    t = _readable_type(object_type, access.readable)
     if t is None:
         raise ProblemError(404, "객체를 찾을 수 없습니다", code="object_not_found")
+    # 숨긴 속성은 카드에도 없다. 읽기 행 정책 밖의 객체는 없는 것과 같다(Phase 14b).
+    schema = registry.current()
+    if schema is not None:
+        t = schema.document.without_properties(access.hidden()).object_type(t.api_name) or t
+        scope = check_scopes(schema.document, access.read_scopes()).get(t.api_name)
+        if not await in_scope(db, t.api_name, [pk], scope):
+            raise ProblemError(404, "객체를 찾을 수 없습니다", code="object_not_found")
     found = await resolve(db, object_type, [pk], declared=[p.api_name for p in t.properties])
     row = found.get(pk)
     if row is None:

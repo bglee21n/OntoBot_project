@@ -150,7 +150,10 @@ async def test_groups_give_data_permissions_and_are_audited(client, make_user: M
         "security.group_members_changed",
         "security.permission_changed",
     ]
-    assert events[-1][1]["after"] == {"Facility": ["can_read", "can_edit"], "Region": ["can_read"]}
+    assert events[-1][1]["after"] == {
+        "Facility": {"flags": ["can_read", "can_edit"]},
+        "Region": {"flags": ["can_read"]},
+    }
     # 사용자 목록에 소속이 보인다.
     users = {u["id"]: u for u in (await client.get("/api/v1/admin/users")).json()}
     assert name in users[member]["groups"]
@@ -283,3 +286,63 @@ async def test_targets_default_then_admin_override_and_reset(client, make_user: 
     ) in await _events("ops_target")
     # 남이 다음 테스트에 영향 주지 않게 되돌린다.
     await client.put("/api/v1/admin/targets", json={"values": {"freshness_minutes": None}})
+
+
+async def test_hidden_properties_and_row_policies_are_validated_and_merged(
+    client, make_user: MakeUser, sample_published: None
+) -> None:
+    # Phase 14b — 저장 때 검사(pk·제목 숨김·없는 속성·잘못된 조건 거부), 두 그룹은 합집합.
+    await _admin(client, make_user)
+    _, _, uid = await make_user()
+    gids = []
+    for i in range(2):
+        r = await client.post(
+            "/api/v1/admin/groups",
+            json={"name": f"m{i}_{uuid.uuid4().hex[:6]}", "display_name": f"m{i}"},
+        )
+        gids.append(r.json()["id"])
+        await client.put(f"/api/v1/admin/groups/{gids[-1]}/members", json={"user_ids": [uid]})
+    url = f"/api/v1/admin/groups/{gids[0]}/permissions"
+    for bad in (
+        {"object_type": "Facility", "can_read": True, "hidden": ["facility_id"]},
+        {"object_type": "Facility", "can_read": True, "hidden": ["nope"]},
+        {
+            "object_type": "Facility",
+            "can_read": True,
+            "read_filters": [{"property": "risk_grade", "op": "contains", "value": 1}],
+        },
+    ):
+        r = await client.put(url, json={"types": [bad]})
+        assert (r.status_code, r.json()["code"]) == (400, "invalid_restriction"), r.text
+    policy = [{"property": "facility_type", "op": "eq", "value": "철탑"}]
+    r = await client.put(
+        url,
+        json={
+            "types": [
+                {
+                    "object_type": "Facility",
+                    "can_read": True,
+                    "can_edit": True,
+                    "hidden": ["capacity_kw", "installed_on"],
+                    "read_filters": policy,
+                    "write_filters": policy,
+                }
+            ]
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["types"][0]["hidden"] == ["capacity_kw", "installed_on"]
+    async with session_scope() as db:
+        acc = await rbac.access(db, uid)
+    assert acc.of("Facility").hidden == {"capacity_kw", "installed_on"}
+    assert acc.of("Facility").read_rows == (tuple(policy),)
+    # 두 번째 그룹: 설치일은 보여 주고 행 제한 없음 → 합집합(설비 용량만 숨김, 행 제한 없음).
+    await client.put(
+        f"/api/v1/admin/groups/{gids[1]}/permissions",
+        json={"types": [{"object_type": "Facility", "can_read": True, "hidden": ["capacity_kw"]}]},
+    )
+    async with session_scope() as db:
+        acc = await rbac.access(db, uid)
+    assert acc.of("Facility").hidden == {"capacity_kw"}
+    assert acc.of("Facility").read_rows is None
+    assert acc.of("Facility").write_rows == (tuple(policy),)  # 편집은 첫 그룹만 준다

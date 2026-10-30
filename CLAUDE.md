@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.22) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.23) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
-G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14a(데이터 그룹) 완료 — 다음은 Phase 14b(속성·행 권한)
-·14c(감사 해시 체인), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14a(데이터 그룹)·14b(속성·행 권한) 완료 — 다음은 Phase 14c
+(감사 해시 체인), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -217,6 +217,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   `editable_types` 뿐이고 소속 그룹의 합집합이다(거부 규칙 없음). Action 요청에는 대상 타입 **편집**이 필요하다.
   SSO 소속 맞추기는 `external_id` 정확 일치뿐(유사도·접두어 금지). 통합 테스트는 `conftest.add_group` 으로 권한을
   만든다(역할과 같은 이름 그룹이면 `make_user` 가 구성원으로 넣는다).
+- **속성 숨김·행 정책은 `rbac.access` 의 결과로만 적용한다**(Phase 14b). 숨김은 "보이는 문서"
+  (`OntologyDocument.without_properties`)로 — 요약·검증·데이터 블록·카드가 같은 문서를 봐야 한다. 행 정책은
+  `check_scopes` → `ValidatedPlan.scopes` → 컴파일러 주입뿐이다(값 바인드). **잘못된 정책은 닫힌 쪽**(볼 행 없음)으로
+  실패해야 한다 — 정책 오류로 제한이 풀리는 경로를 만들지 말 것. 평가 역할도 같은 `rbac.merge` 로 만든다.
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

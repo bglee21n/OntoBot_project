@@ -27,6 +27,7 @@ from ontobot.llm.config import LlmConfig
 from ontobot.llm.gateway import LLMGateway
 from ontobot.objects.store import upsert_objects
 from ontobot.ontology import importer, registry, versioning
+from ontobot.security import admin
 from tests.integration.conftest import MakeUser, add_group, login
 from tests.integration.test_pipeline import CFG, FACILITIES, SAMPLE, Script, _plan
 
@@ -354,6 +355,37 @@ async def test_object_card_respects_type_permission(schema, client, make_user) -
     blind = await _reader(make_user, "Region")
     assert (await login(client, blind[0], blind[1])).status_code == 200
     assert (await client.get("/api/v1/objects/Facility/PT-1")).status_code == 404
+
+
+async def test_object_card_hides_properties_and_respects_row_policy(
+    schema, client, make_user
+) -> None:
+    # Phase 14b — 숨긴 속성은 카드에도 없고, 읽기 행 정책 밖 객체는 없는 객체와 같은 404 다.
+    username, password, uid = await make_user()
+    name = f"rp_{uuid.uuid4().hex[:8]}"
+    async with session_scope() as db:
+        g = await admin.create_group(db, actor_id=None, name=name, display_name=name)
+        await admin.set_members(db, actor_id=None, group_id=g.id, user_ids=[uid], via="test")
+        await admin.set_permissions(
+            db,
+            actor_id=None,
+            group_id=g.id,
+            types=[
+                admin.TypeGrant(
+                    "Facility",
+                    can_read=True,
+                    hidden=("capacity_kw",),
+                    read_filters=({"property": "facility_type", "op": "eq", "value": "철탑"},),
+                )
+            ],
+            links=[],
+        )
+        await db.commit()
+    assert (await login(client, username, password)).status_code == 200
+    assert (await client.get("/api/v1/objects/Facility/PT-1")).status_code == 404  # 변전소
+    card = (await client.get("/api/v1/objects/Facility/PT-2")).json()  # 철탑
+    assert "capacity_kw" not in {f["name"] for f in card["fields"]}
+    assert "risk_grade" in {f["name"] for f in card["fields"]}
 
 
 # ---------------------------------------------------------------- Phase 5: 외부 공급자 PII

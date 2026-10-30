@@ -3535,8 +3535,18 @@ export interface components {
              * @default false
              */
             can_read: boolean;
+            /** Hidden */
+            hidden?: string[];
             /** Object Type */
             object_type: string;
+            /** Read Filters */
+            read_filters?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Write Filters */
+            write_filters?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /** TypeOut */
         TypeOut: {
@@ -3544,6 +3554,8 @@ export interface components {
             api_name: string;
             /** Display Name */
             display_name: string;
+            /** Properties */
+            properties?: string[];
         };
         /** UserCreate */
         UserCreate: {

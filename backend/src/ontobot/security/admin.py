@@ -19,6 +19,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,11 +30,15 @@ from ontobot.db.models.security import (
     DataGroup,
     GroupLinkPermission,
     GroupMember,
+    GroupPropertyHide,
+    GroupRowPolicy,
     GroupTypePermission,
     Role,
     UserRole,
 )
+from ontobot.ontology import registry
 from ontobot.ontology.models import IDENT_MEMBER_RE, IDENT_TYPE_RE
+from ontobot.query.validator import check_scopes
 from ontobot.security import audit
 from ontobot.security.auth import hash_password, revoke_user_sessions
 from ontobot.security.pii import mask_contact
@@ -256,9 +261,24 @@ class TypeGrant:
     can_create: bool = False
     can_edit: bool = False
     can_delete: bool = False
+    # Phase 14b — 숨길 속성, 행 정책(QueryPlan Filter 문법의 조건 AND, None = 제한 없음)
+    hidden: tuple[str, ...] = ()
+    read_filters: tuple[dict[str, Any], ...] | None = None
+    write_filters: tuple[dict[str, Any], ...] | None = None
 
     def flags(self) -> list[str]:
         return [f for f in TYPE_FLAGS if getattr(self, f)]
+
+    def summary(self) -> dict[str, Any]:
+        """감사 기록용 — 플래그·숨김·정책 유무(정책 값은 조건이라 그대로 남긴다)."""
+        out: dict[str, Any] = {"flags": self.flags()}
+        if self.hidden:
+            out["hidden"] = list(self.hidden)
+        if self.read_filters is not None:
+            out["read_filters"] = list(self.read_filters)
+        if self.write_filters is not None:
+            out["write_filters"] = list(self.write_filters)
+        return out
 
 
 @dataclass(frozen=True)
@@ -307,8 +327,29 @@ async def _group_view(db: AsyncSession, g: DataGroup) -> GroupView:
         .where(GroupLinkPermission.group_id == g.id, GroupLinkPermission.can_link.is_(True))
         .order_by(GroupLinkPermission.link_type)
     )
+    hidden: dict[str, list[str]] = {}
+    for h in await db.scalars(
+        select(GroupPropertyHide)
+        .where(GroupPropertyHide.group_id == g.id)
+        .order_by(GroupPropertyHide.property)
+    ):
+        hidden.setdefault(h.object_type, []).append(h.property)
+    policies: dict[tuple[str, str], tuple[dict[str, Any], ...]] = {
+        (r.object_type, r.applies_to): tuple(r.filters)
+        for r in await db.scalars(select(GroupRowPolicy).where(GroupRowPolicy.group_id == g.id))
+    }
     grants = [
-        TypeGrant(t.object_type, t.can_read, t.can_create, t.can_edit, t.can_delete) for t in types
+        TypeGrant(
+            t.object_type,
+            t.can_read,
+            t.can_create,
+            t.can_edit,
+            t.can_delete,
+            tuple(hidden.get(t.object_type, ())),
+            policies.get((t.object_type, "read")),
+            policies.get((t.object_type, "write")),
+        )
+        for t in types
     ]
     return GroupView(
         g.id,
@@ -469,21 +510,35 @@ async def set_permissions(
     bad += [lk for lk in links if not IDENT_MEMBER_RE.match(lk)]
     if bad:
         raise AdminError(f"이름 형식이 아닙니다: {bad}", code="invalid_type")
+    _check_restrictions(types)
     before = await _group_view(db, g)
-    await db.execute(delete(GroupTypePermission).where(GroupTypePermission.group_id == g.id))
-    await db.execute(delete(GroupLinkPermission).where(GroupLinkPermission.group_id == g.id))
+    for model in (GroupTypePermission, GroupLinkPermission, GroupPropertyHide, GroupRowPolicy):
+        await db.execute(delete(model).where(model.group_id == g.id))
     for t in {x.object_type: x for x in types}.values():
-        if t.flags():
-            db.add(
-                GroupTypePermission(
-                    group_id=g.id,
-                    object_type=t.object_type,
-                    can_read=t.can_read,
-                    can_create=t.can_create,
-                    can_edit=t.can_edit,
-                    can_delete=t.can_delete,
-                )
+        if not t.flags():
+            continue
+        db.add(
+            GroupTypePermission(
+                group_id=g.id,
+                object_type=t.object_type,
+                can_read=t.can_read,
+                can_create=t.can_create,
+                can_edit=t.can_edit,
+                can_delete=t.can_delete,
             )
+        )
+        for prop in sorted(set(t.hidden)):
+            db.add(GroupPropertyHide(group_id=g.id, object_type=t.object_type, property=prop))
+        for applies_to, filters in (("read", t.read_filters), ("write", t.write_filters)):
+            if filters is not None:
+                db.add(
+                    GroupRowPolicy(
+                        group_id=g.id,
+                        object_type=t.object_type,
+                        applies_to=applies_to,
+                        filters=list(filters),
+                    )
+                )
     for lk in sorted(set(links)):
         db.add(GroupLinkPermission(group_id=g.id, link_type=lk, can_link=True))
     await db.flush()
@@ -495,13 +550,48 @@ async def set_permissions(
             actor_id=actor_id,
             target=f"group:{g.name}",
             payload={
-                "before": {t.object_type: t.flags() for t in before.types},
-                "after": {t.object_type: t.flags() for t in after.types},
+                "before": {t.object_type: t.summary() for t in before.types},
+                "after": {t.object_type: t.summary() for t in after.types},
                 "links_before": before.links,
                 "links_after": after.links,
             },
         )
     return after
+
+
+def _check_restrictions(types: Sequence[TypeGrant]) -> None:
+    """숨김·행 정책 검사 — 게시본이 있으면 그 정의로 본다(없는 속성·pk·제목 숨김·잘못된 조건은
+    거부).
+
+    정책이 잘못되면 실행 때는 그 정책을 빼고 닫힌 쪽(볼 행 없음)으로 판정하지만, 저장 때 먼저
+    막는다.
+    """
+    schema = registry.current()
+    errors: list[str] = []
+    for t in types:
+        if not (t.hidden or t.read_filters is not None or t.write_filters is not None):
+            continue
+        td = schema.document.object_type(t.object_type) if schema is not None else None
+        bad_names = [p for p in t.hidden if not IDENT_MEMBER_RE.match(p)]
+        if bad_names:
+            errors.append(f"{t.object_type}: 속성 이름 형식이 아닙니다 {bad_names}")
+        if td is not None:
+            frozen = {td.pk_property, td.title_property}
+            if frozen & set(t.hidden):
+                errors.append(f"{t.object_type}: pk·제목 속성은 숨길 수 없습니다")
+            unknown = [p for p in t.hidden if td.property(p) is None]
+            if unknown:
+                errors.append(f"{t.object_type}: 없는 속성 {unknown}")
+        for label, filters in (("읽기", t.read_filters), ("쓰기", t.write_filters)):
+            if filters is None:
+                continue
+            if schema is None or td is None:
+                continue  # 게시 전 타입 — 형식만(실행 때 검증되지 않으면 닫힌 쪽)
+            scope = check_scopes(schema.document, {t.object_type: [list(filters)]})
+            if scope[t.object_type] == ():
+                errors.append(f"{t.object_type}: {label} 행 정책 조건이 올바르지 않습니다")
+    if errors:
+        raise AdminError("; ".join(errors), code="invalid_restriction")
 
 
 async def grant_read(

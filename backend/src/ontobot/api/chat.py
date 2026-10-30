@@ -124,7 +124,8 @@ async def _answer(
     async def work() -> None:
         try:
             async with session_scope() as db:
-                readable = await rbac.readable_types(db, user.id)
+                access = await rbac.access(db, user.id)
+                readable = access.readable
                 schema = registry.current()
                 refs = await chat_context.load(db, conversation_id)
                 ctx = (
@@ -138,7 +139,7 @@ async def _answer(
                         schema.document,
                         readable,
                         user.roles,
-                        await rbac.editable_types(db, user.id),
+                        access.editable,
                     )
                     if schema is not None
                     else frozenset()
@@ -154,6 +155,7 @@ async def _answer(
                     graph_driver=getattr(request.app.state, "graph", None),
                     emit=emit,
                     actions=actions,
+                    access=access,
                 )
                 await _request_action(db, user, res, question_id)
                 msg = Message(

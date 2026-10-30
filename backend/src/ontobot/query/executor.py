@@ -10,6 +10,7 @@ PostgreSQL 의 ``link`` 표로 대신 답하지 않는다(TRD 5.5). 대체 경�
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -19,8 +20,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.graph import client as graph
 from ontobot.objects.reader import CompiledQuery, ObjectRow, render_sql, run_query
-from ontobot.query.compiler import PK_CAP, compile_hop, compile_plan, compile_traverse
-from ontobot.query.validator import ValidatedPlan
+from ontobot.query.compiler import (
+    PK_CAP,
+    compile_hop,
+    compile_plan,
+    compile_scope_check,
+    compile_traverse,
+)
+from ontobot.query.validator import Scope, ValidatedPlan
 
 Status = Literal["ok", "empty", "failed"]
 SQL_TIMEOUT_MS = 10_000
@@ -60,6 +67,16 @@ async def execute(
     return ExecResult("ok" if rows else "empty", rows=rows, sql=sql)
 
 
+async def in_scope(
+    db: AsyncSession, object_type: str, pks: Sequence[str], scope: Scope | None
+) -> set[str]:
+    """``pks`` 중 행 정책을 만족하는 pk. 정책이 없으면 그대로(존재 여부는 보지 않는다)."""
+    if scope is None:
+        return set(pks)
+    rows = await run_query(db, compile_scope_check(object_type, pks, scope))
+    return {r.pk for r in rows if isinstance(r, ObjectRow)}
+
+
 async def _pks(db: AsyncSession, q: CompiledQuery, timeout_ms: int) -> list[str] | ExecResult:
     res = await execute(db, q, timeout_ms=timeout_ms)
     if res.status == "failed":
@@ -84,7 +101,7 @@ async def execute_plan(
 
     hop_pks: list[list[str] | None] = []
     for hop in vp.hops:
-        q = compile_hop(hop)
+        q = compile_hop(hop, vp.scopes.get(hop.to.api_name))
         if q is None:
             hop_pks.append(None)
             continue

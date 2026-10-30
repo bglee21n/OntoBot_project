@@ -80,6 +80,11 @@ class TypeGrantIO(BaseModel):
     can_create: bool = False
     can_edit: bool = False
     can_delete: bool = False
+    # Phase 14b — 숨길 속성(기본은 모두 보임), 행 정책(QueryPlan Filter 문법의 조건 AND, null =
+    # 제한 없음)
+    hidden: list[str] = Field(default_factory=list, max_length=200)
+    read_filters: list[dict[str, Any]] | None = Field(default=None, max_length=20)
+    write_filters: list[dict[str, Any]] | None = Field(default=None, max_length=20)
 
 
 class GroupOut(BaseModel):
@@ -194,6 +199,8 @@ async def set_contacts(user_id: int, body: ContactsIn, db: Db, me: Admin) -> Use
 class TypeOut(BaseModel):
     api_name: str
     display_name: str
+    # 객체 타입이면 속성 api_name(속성 숨김 표의 선택지), 링크 타입이면 비어 있다.
+    properties: list[str] = Field(default_factory=list)
 
 
 class SystemOut(BaseModel):
@@ -280,7 +287,15 @@ async def object_types(_: Admin) -> list[TypeOut]:
     if schema is None:
         return []
     return [
-        TypeOut(api_name=t.api_name, display_name=t.display_name)
+        TypeOut(
+            api_name=t.api_name,
+            display_name=t.display_name,
+            properties=[
+                p.api_name
+                for p in t.properties
+                if p.api_name not in {t.pk_property, t.title_property}
+            ],
+        )
         for t in schema.document.object_types
     ]
 
@@ -366,7 +381,19 @@ async def set_members(group_id: int, body: MembersIn, db: Db, me: Admin) -> Grou
 async def set_group_permissions(
     group_id: int, body: GroupPermissionsIn, db: Db, me: Admin
 ) -> GroupOut:
-    grants = [admin.TypeGrant(**t.model_dump()) for t in body.types]
+    grants = [
+        admin.TypeGrant(
+            t.object_type,
+            t.can_read,
+            t.can_create,
+            t.can_edit,
+            t.can_delete,
+            tuple(t.hidden),
+            tuple(t.read_filters) if t.read_filters is not None else None,
+            tuple(t.write_filters) if t.write_filters is not None else None,
+        )
+        for t in body.types
+    ]
     return _group(
         await _call(
             admin.set_permissions(

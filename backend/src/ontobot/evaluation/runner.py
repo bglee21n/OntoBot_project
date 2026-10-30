@@ -108,6 +108,26 @@ async def readable_for(
     return await rbac.readable_types_for_group(db, test_role) & published
 
 
+def access_for(
+    roles: dict[str, list[str]], restrictions: dict[str, Any], test_role: str | None
+) -> rbac.Access | None:
+    """평가 전용 역할의 속성 숨김·행 정책 — 운영 데이터 그룹과 같은 규칙(``rbac.merge``)으로 만든다.
+
+    제한이 없는 역할·기본 문항은 None(타입 단위만). DB 그룹으로 도는 문항은 ``_one`` 이 DB 에서
+    읽는다.
+    """
+    if test_role is None or test_role not in restrictions:
+        return None
+    r = restrictions[test_role]
+    hidden, rows = r.get("hidden", {}), r.get("rows", {})
+    return rbac.merge(
+        {
+            t: [rbac.grant(hidden=hidden.get(t, ()), read_rows=rows.get(t))]
+            for t in roles.get(test_role, [])
+        }
+    )
+
+
 def actions_for(
     schema: PublishedSchema,
     readable: frozenset[str],
@@ -171,6 +191,7 @@ async def reap_orphans(db: AsyncSession, golden_set_id: int) -> list[int]:
 async def _one(
     item: GoldenItem,
     roles: dict[str, list[str]],
+    restrictions: dict[str, Any],
     cfg: RunConfig,
     driver: graph.AsyncDriver | None,
 ) -> tuple[metrics.Outcome, frozenset[str], dict[str, Any]]:
@@ -199,6 +220,7 @@ async def _one(
                 graph_driver=drv,
                 executor=executor,
                 actions=actions,
+                access=access_for(roles, restrictions, item.test_role),
             )
         await db.rollback()
     stats = {
@@ -236,6 +258,7 @@ async def execute(
             raise RunNotFound(run_id)
         gs = await db.get(GoldenSet, run.golden_set_id)
         roles = dict(gs.roles) if gs else {}
+        restrictions = dict(gs.restrictions) if gs else {}
         todo = await golden.items(db, run.golden_set_id)
         done = set(await db.scalars(select(EvalResult.item_id).where(EvalResult.run_id == run_id)))
     rows: list[tuple[metrics.Spec, metrics.Outcome, metrics.Verdict]] = []
@@ -247,7 +270,7 @@ async def execute(
             readable: frozenset[str] = frozenset()
             stats: dict[str, Any] = {}
             try:
-                out, readable, stats = await _one(item, roles, cfg, graph_driver)
+                out, readable, stats = await _one(item, roles, restrictions, cfg, graph_driver)
             except Exception as e:
                 log.exception("평가 문항 %s 실행 오류", spec.key)
                 out = metrics.Outcome(status=None, error=f"{type(e).__name__}: {e}")

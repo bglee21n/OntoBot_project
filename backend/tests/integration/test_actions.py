@@ -15,13 +15,20 @@ from typing import Any
 
 import httpx
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 
 from ontobot.actions import runner
 from ontobot.api import actions as actions_api
 from ontobot.db.models.actions import ActionRun, Notification, NotificationDelivery
 from ontobot.db.models.jobs import Job
-from ontobot.db.models.security import AppUser, AuditLog, DataGroup, GroupTypePermission, Role
+from ontobot.db.models.security import (
+    AppUser,
+    AuditLog,
+    DataGroup,
+    GroupRowPolicy,
+    GroupTypePermission,
+    Role,
+)
 from ontobot.db.session import session_scope
 from ontobot.notify import channels, delivery
 from ontobot.notify.config import NotifyConfig
@@ -336,6 +343,31 @@ async def test_who_may_request_approve_and_reject(tmp_path, make_user, install) 
             .where(GroupTypePermission.group_id == gid)
             .values(can_edit=True)
         )
+        await db.commit()
+
+    # 쓰기 행 정책 밖의 대상은 요청할 수 없다(Phase 14b).
+    async with session_scope() as db:
+        db.add(
+            GroupRowPolicy(
+                group_id=gid,
+                object_type="Facility",
+                applies_to="write",
+                filters=[{"property": "risk_grade", "op": "gte", "value": 99}],
+            )
+        )
+        await db.commit()
+    async with session_scope() as db:
+        with pytest.raises(runner.Forbidden, match="행 정책"):
+            await runner.preview(
+                db,
+                w.requester,
+                action=w.action,
+                target_pk=w.pk,
+                params={"grade": 4},
+                request_id=uuid.uuid4().hex,
+                cfg=w.cfg,
+            )
+        await db.execute(delete(GroupRowPolicy).where(GroupRowPolicy.group_id == gid))
         await db.commit()
 
     run = await _preview(w)

@@ -36,6 +36,8 @@ from ontobot.objects import edits
 from ontobot.objects.reader import ObjectRow, resolve
 from ontobot.ontology import registry
 from ontobot.ontology.models import ActionTypeDef, ObjectTypeDef
+from ontobot.query.executor import in_scope
+from ontobot.query.validator import check_scopes
 from ontobot.security import audit, rbac
 from ontobot.security.pii import mask_contact
 
@@ -245,13 +247,15 @@ async def preview(
             raise Conflict("이미 쓰인 요청 ID 입니다")
         return existing  # 같은 요청의 재전송 — 처음 기록을 돌려준다(멱등)
     version_id, a, t = _schema_action(action)
-    if t.api_name not in await rbac.readable_types(db, actor.id):
+    acc = await rbac.access(db, actor.id)
+    if t.api_name not in acc.readable:
         raise NotFound("Action 을 찾을 수 없습니다")  # 읽을 수 없는 타입의 Action 은 없는 것과 같다
     if not rbac.can_request_action(actor.roles, a.requester_roles):
         raise Forbidden("이 Action 을 요청할 권한이 없습니다")
-    if t.api_name not in await rbac.editable_types(db, actor.id):
+    if t.api_name not in acc.editable:
         # 요청 = 대상 값을 바꾸자는 것 — 대상 타입 편집 권한(데이터 그룹)이 있어야 한다(Phase 14).
         raise Forbidden("이 타입을 편집할 권한이 없습니다")
+    await _check_rows(db, acc, t.api_name, target_pk)
     plan = await _plan(db, a, t, target_pk, params, cfg)
     pv = _preview_json(plan)
     run = ActionRun(
@@ -285,6 +289,23 @@ async def preview(
 
 
 # ---------------------------------------------------------------- 승인(= 실행)·거부
+
+
+async def _check_rows(db: AsyncSession, acc: rbac.Access, type_name: str, pk: str) -> None:
+    """행 정책(Phase 14b) — 읽기 정책 밖의 대상은 없는 것과 같고, 쓰기 정책 밖이면 요청할 수
+    없다."""
+    schema = registry.current()
+    if schema is None:
+        return
+    ta = acc.of(type_name)
+    raw = {k: v for k, v in (("read", ta.read_rows), ("write", ta.write_rows)) if v is not None}
+    if not raw:
+        return
+    scopes = {k: check_scopes(schema.document, {type_name: v})[type_name] for k, v in raw.items()}
+    if "read" in scopes and pk not in await in_scope(db, type_name, [pk], scopes["read"]):
+        raise NotFound("대상 객체를 찾을 수 없습니다")
+    if "write" in scopes and pk not in await in_scope(db, type_name, [pk], scopes["write"]):
+        raise Forbidden("이 객체를 편집할 권한이 없습니다(행 정책)")
 
 
 async def _locked(db: AsyncSession, run_id: int) -> ActionRun:
@@ -343,6 +364,11 @@ async def approve(db: AsyncSession, actor: Actor, run_id: int, cfg: NotifyConfig
         is_requester=actor.id == run.requested_by,
     ):
         raise Forbidden("이 Action 을 승인할 권한이 없습니다")
+    try:
+        # 재검증: 요청자의 쓰기 행 정책(미리보기 뒤 대상 값이 바뀌어 정책 밖이 됐을 수 있다).
+        await _check_rows(db, await rbac.access(db, run.requested_by), t.api_name, run.target_pk)
+    except (NotFound, Forbidden) as e:
+        return _fail(db, run, actor, f"요청자의 편집 범위 밖입니다: {e}")
     try:
         plan = await _plan(db, a, t, run.target_pk, run.params, cfg)
     except ActionError as e:

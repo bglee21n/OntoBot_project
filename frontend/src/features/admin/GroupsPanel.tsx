@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, Fragment, useState } from "react";
 
 import { api } from "../../api/client";
 import type { GroupOut, TypeGrantIO, TypeOut, UserOut } from "../../api/types";
@@ -84,13 +84,35 @@ function GroupForm() {
   );
 }
 
-function grantMap(g: GroupOut): Record<string, Record<Flag, boolean>> {
+type Grant = Record<Flag, boolean> & { hidden: string[]; read: string; write: string };
+const EMPTY: Grant = { can_read: false, can_create: false, can_edit: false, can_delete: false, hidden: [], read: "", write: "" };
+
+/** 행 정책은 JSON 글로 고친다 — 비우면 제한 없음. */
+const policyText = (f: unknown[] | null | undefined) => (f == null ? "" : JSON.stringify(f));
+
+function grantMap(g: GroupOut): Record<string, Grant> {
   return Object.fromEntries(
     g.types.map((x) => [
       x.object_type,
-      { can_read: !!x.can_read, can_create: !!x.can_create, can_edit: !!x.can_edit, can_delete: !!x.can_delete },
+      {
+        can_read: !!x.can_read,
+        can_create: !!x.can_create,
+        can_edit: !!x.can_edit,
+        can_delete: !!x.can_delete,
+        hidden: x.hidden ?? [],
+        read: policyText(x.read_filters),
+        write: policyText(x.write_filters),
+      },
     ]),
   );
+}
+
+function parsePolicy(text: string): Record<string, unknown>[] | null {
+  const t = text.trim();
+  if (!t) return null;
+  const v: unknown = JSON.parse(t);
+  if (!Array.isArray(v)) throw new Error(ko.admin.groups.policyArray);
+  return v as Record<string, unknown>[];
 }
 
 function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; types: TypeOut[]; links: TypeOut[] }) {
@@ -103,21 +125,35 @@ function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; 
     mutationFn: () => api.put<GroupOut>(`/admin/groups/${g.id}/members`, { user_ids: members }),
     onSuccess: refresh,
   });
+  const [open, setOpen] = useState<string | null>(null);
   const savePerms = useMutation({
     mutationFn: () =>
       api.put<GroupOut>(`/admin/groups/${g.id}/permissions`, {
-        types: Object.entries(grants).map(([object_type, f]): TypeGrantIO => ({ object_type, ...f })),
+        types: Object.entries(grants).map(
+          ([object_type, f]): TypeGrantIO => ({
+            object_type,
+            can_read: f.can_read,
+            can_create: f.can_create,
+            can_edit: f.can_edit,
+            can_delete: f.can_delete,
+            hidden: f.hidden,
+            read_filters: parsePolicy(f.read),
+            write_filters: parsePolicy(f.write),
+          }),
+        ),
         links: linkSet,
       }),
     onSuccess: refresh,
   });
+  const patch = (type: string, next: Partial<Grant>) =>
+    setGrants((prev) => ({ ...prev, [type]: { ...(prev[type] ?? EMPTY), ...next } }));
   const del = useMutation({ mutationFn: () => api.del(`/admin/groups/${g.id}`), onSuccess: refresh });
   // 게시본에서 빠진 타입·링크에 남은 권한도 보여 준다 — 보이지 않으면 지울 수 없다.
   const typeRows = [
     ...types,
     ...Object.keys(grants)
       .filter((x) => !types.some((ty) => ty.api_name === x))
-      .map((x) => ({ api_name: x, display_name: t.unpublished })),
+      .map((x) => ({ api_name: x, display_name: t.unpublished, properties: [] as string[] })),
   ];
   const linkRows = [
     ...links,
@@ -125,7 +161,7 @@ function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; 
   ];
   const flip = (type: string, f: Flag) =>
     setGrants((prev) => {
-      const cur = prev[type] ?? { can_read: false, can_create: false, can_edit: false, can_delete: false };
+      const cur = prev[type] ?? EMPTY;
       const next = { ...cur, [f]: !cur[f] };
       // 쓰기 권한은 읽을 수 있어야 쓸모가 있다 — 쓰기를 켜면 읽기도 켠다.
       if (f !== "can_read" && next[f]) next.can_read = true;
@@ -175,26 +211,76 @@ function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; 
             {FLAGS.map((f) => (
               <th key={f}>{t.flag[f]}</th>
             ))}
+            <th>{t.restrictCol}</th>
           </tr>
         </thead>
         <tbody>
-          {typeRows.map((ty) => (
-            <tr key={ty.api_name}>
-              <td>
-                {ty.display_name} <code>{ty.api_name}</code>
-              </td>
-              {FLAGS.map((f) => (
-                <td key={f}>
-                  <input
-                    type="checkbox"
-                    aria-label={`${ty.api_name} ${t.flag[f]}`}
-                    checked={!!grants[ty.api_name]?.[f]}
-                    onChange={() => flip(ty.api_name, f)}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
+          {typeRows.map((ty) => {
+            const gr = grants[ty.api_name] ?? EMPTY;
+            const restricted = gr.hidden.length > 0 || gr.read.trim() !== "" || gr.write.trim() !== "";
+            return (
+              <Fragment key={ty.api_name}>
+                <tr>
+                  <td>
+                    {ty.display_name} <code>{ty.api_name}</code>
+                  </td>
+                  {FLAGS.map((f) => (
+                    <td key={f}>
+                      <input
+                        type="checkbox"
+                        aria-label={`${ty.api_name} ${t.flag[f]}`}
+                        checked={!!gr[f]}
+                        onChange={() => flip(ty.api_name, f)}
+                      />
+                    </td>
+                  ))}
+                  <td>
+                    <button
+                      type="button"
+                      className="link"
+                      disabled={!gr.can_read}
+                      onClick={() => setOpen(open === ty.api_name ? null : ty.api_name)}
+                    >
+                      {restricted ? t.restricted : t.restrict}
+                    </button>
+                  </td>
+                </tr>
+                {open === ty.api_name && (
+                  <tr>
+                    <td colSpan={FLAGS.length + 2}>
+                      <div className="stack">
+                        <div className="row">
+                          <span>{t.hidden}:</span>
+                          {(ty.properties ?? []).map((p) => (
+                            <label key={p} className="check">
+                              <input
+                                type="checkbox"
+                                checked={gr.hidden.includes(p)}
+                                onChange={() =>
+                                  patch(ty.api_name, {
+                                    hidden: gr.hidden.includes(p) ? gr.hidden.filter((x) => x !== p) : [...gr.hidden, p],
+                                  })
+                                }
+                              />
+                              <code>{p}</code>
+                            </label>
+                          ))}
+                        </div>
+                        <label className="stack">
+                          <span className="muted">{t.readPolicy}</span>
+                          <textarea rows={2} value={gr.read} onChange={(e) => patch(ty.api_name, { read: e.target.value })} />
+                        </label>
+                        <label className="stack">
+                          <span className="muted">{t.writePolicy}</span>
+                          <textarea rows={2} value={gr.write} onChange={(e) => patch(ty.api_name, { write: e.target.value })} />
+                        </label>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
       {linkRows.length > 0 && (

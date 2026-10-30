@@ -38,6 +38,11 @@ class GoldenSet(IdMixin, Base):
     roles: Mapped[dict[str, list[str]]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")
     )
+    # 평가 전용 역할의 속성 숨김·행 정책(Phase 14b) — {역할: {hidden: {타입: [속성]}, rows: {타입:
+    # [조건]}}}.
+    restrictions: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
 
 
 class GoldenItem(IdMixin, Base):

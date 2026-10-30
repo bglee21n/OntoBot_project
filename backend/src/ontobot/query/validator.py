@@ -9,8 +9,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Set
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence, Set
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -29,6 +29,7 @@ from ontobot.query.plan import (
     MAX_LIMIT,
     MAX_TRAVERSE,
     AggFn,
+    Filter,
     Op,
     QueryPlan,
     Scalar,
@@ -83,6 +84,43 @@ class ValidatedPlan:
     hops: tuple[CheckedHop, ...] = ()
     # 대화 맥락으로 좁힌 대상 pk. None 이면 제한 없음.
     target_pks: tuple[str, ...] | None = None
+    # 행 정책(Phase 14b) — 타입 → 정책들의 OR(각 정책은 조건 AND). 대상·탐색 끝 타입만 싣는다.
+    # 컴파일러가 덧붙인다. 빈 튜플이면 볼 수 있는 행이 없다.
+    scopes: Mapping[str, Scope] = field(default_factory=dict)
+
+
+Scope = tuple[tuple[CheckedFilter, ...], ...]
+
+
+def check_scopes(
+    doc: OntologyDocument, raw: Mapping[str, Sequence[Sequence[Mapping[str, Any]]]]
+) -> dict[str, Scope]:
+    """행 정책(QueryPlan Filter 문법) → 검증된 조건. ``doc`` 은 **숨김 전** 문서다(정책은 숨긴
+    속성에도 건다).
+
+    잘못된 정책(없는 속성·맞지 않는 값)은 그 정책만 빼고, 남는 정책이 없으면 빈 튜플 = 볼 행이 없다.
+    정책 오류로 제한이 풀리는 일은 없다(닫힌 쪽으로 실패).
+    """
+    out: dict[str, Scope] = {}
+    for type_name, policies in raw.items():
+        t = doc.object_type(type_name)
+        kept: list[tuple[CheckedFilter, ...]] = []
+        for policy in policies:
+            errors: list[str] = []
+            checked = []
+            for f in policy:
+                try:
+                    flt = Filter.model_validate(f)
+                except ValueError:
+                    errors.append("형식")
+                    continue
+                cf = _check_filter(t, flt, errors) if t is not None else None
+                if cf is not None:
+                    checked.append(cf)
+            if t is not None and not errors:
+                kept.append(tuple(checked))
+        out[type_name] = tuple(kept)
+    return out
 
 
 class PlanInvalid(Exception):
@@ -257,6 +295,7 @@ def validate(
     readable: Set[str],
     plan: QueryPlan,
     context: Set[tuple[str, str]] = frozenset(),
+    scopes: Mapping[str, Scope] | None = None,
 ) -> ValidatedPlan:
     """``context`` 는 대화 맥락에 있는 (타입, pk) — ``context_refs`` 는 이 안에서만 고를 수 있다."""
     t = doc.object_type(plan.target)
@@ -327,4 +366,9 @@ def validate(
         limit=plan.limit or (MAX_LIMIT if agg is not None else DEFAULT_LIMIT),
         hops=tuple(hops),
         target_pks=target_pks,
+        scopes={
+            k: v
+            for k, v in (scopes or {}).items()
+            if k == t.api_name or any(h.to.api_name == k for h in hops)
+        },
     )

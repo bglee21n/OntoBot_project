@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
@@ -442,6 +443,20 @@ class FunctionDef(_Strict):
         """결과의 그룹 열. 그룹이 있는 조회는 모두 같은 그룹 열을 쓴다(``check_document``)."""
         return next((q.aggregate.group_by for q in self.queries if q.aggregate.group_by), [])
 
+    def props_on(self, type_name: str) -> set[str]:
+        """이 Function 이 ``type_name`` 에서 쓰는 속성(조건·집계·그룹·탐색 끝 조건)."""
+        used: set[str] = set()
+        for q in self.queries:
+            if q.target == type_name:
+                used.update(f.property for f in q.filters)
+                used.update(q.aggregate.group_by)
+                if q.aggregate.property:
+                    used.add(q.aggregate.property)
+            for tr in q.traverse:
+                if tr.to == type_name:
+                    used.update(f.property for f in tr.filters)
+        return used
+
 
 class OntologyDocument(_Strict):
     object_types: list[ObjectTypeDef] = Field(default_factory=list)
@@ -479,6 +494,46 @@ class OntologyDocument(_Strict):
             action_types=[a for a in self.action_types if a.target_type not in gone],
             functions=[
                 f for f in self.functions if not f.types() & gone and f.links() <= kept_links
+            ],
+        )
+
+    def without_properties(self, hidden: Mapping[str, Set[str]]) -> OntologyDocument:
+        """숨긴 속성을 뺀 문서 — 사용자별 "보이는 문서"(Phase 14b, 판정은 ``security.rbac.access``).
+
+        pk·제목 속성은 숨기지 않는다(식별자). 숨긴 속성을 쓰는 Action(바꿀 속성·사전
+        조건·연락처)·Function 은
+        통째로 뺀다 — 미리보기·계산 결과로 숨긴 값이 새지 않게. 숨긴 것이 없으면 같은 문서다.
+        """
+        gone = {
+            t.api_name: set(hidden.get(t.api_name, ())) - {t.pk_property, t.title_property}
+            for t in self.object_types
+        }
+        gone = {k: v for k, v in gone.items() if v}
+        if not gone:
+            return self
+
+        def action_ok(a: ActionTypeDef) -> bool:
+            used = {c.property for c in a.changes} | {c.property for c in a.preconditions}
+            used |= {n.to_property for n in a.notify if n.to_property}
+            return not used & gone.get(a.target_type, set())
+
+        return OntologyDocument(
+            object_types=[
+                t.model_copy(
+                    update={
+                        "properties": [
+                            p for p in t.properties if p.api_name not in gone.get(t.api_name, ())
+                        ]
+                    }
+                )
+                for t in self.object_types
+            ],
+            link_types=self.link_types,
+            action_types=[a for a in self.action_types if action_ok(a)],
+            functions=[
+                f
+                for f in self.functions
+                if not any(f.props_on(t) & props for t, props in gone.items())
             ],
         )
 

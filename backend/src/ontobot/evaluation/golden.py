@@ -61,12 +61,22 @@ class PackItem(BaseModel):
         return [str(x) for x in v] if isinstance(v, list) else v
 
 
+class RoleRestriction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    hidden: dict[str, list[str]] = Field(default_factory=dict)  # 타입 → 숨길 속성
+    rows: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)  # 타입 → 읽기 행 정책
+
+
 class Pack(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=128)
     # 평가 전용 역할 → 읽을 수 있는 타입. 문항의 test_role 이 여기 있으면 이 권한으로 돈다.
     roles: dict[str, list[str]] = Field(default_factory=dict)
+    # 평가 전용 역할의 속성·행 단위 제한(Phase 14b) — 운영의 데이터 그룹과 같은
+    # 판정(``rbac.merge``).
+    restrictions: dict[str, RoleRestriction] = Field(default_factory=dict)
     items: list[PackItem]
 
     @field_validator("items")
@@ -116,6 +126,7 @@ async def load_pack(
         db.add(gs)
         await db.flush()
     gs.roles = pack.roles
+    gs.restrictions = {k: v.model_dump() for k, v in pack.restrictions.items()}
     gs.domain_pack = domain_pack
     gs.ontology_version_id = ontology_version_id
 

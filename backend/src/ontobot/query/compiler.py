@@ -22,7 +22,7 @@ from ontobot.graph.client import label, rel
 from ontobot.objects.reader import CompiledQuery
 from ontobot.ontology.models import PropertyDef
 from ontobot.query.plan import AGG_VALUE
-from ontobot.query.validator import CheckedFilter, CheckedHop, ValidatedPlan
+from ontobot.query.validator import CheckedFilter, CheckedHop, Scope, ValidatedPlan
 
 # 탐색이 돌려주는 pk 상한. 넘으면 failed(too_broad) — 큰 집합을 넘기는 대신 좁혀 달라고 한다.
 PK_CAP = 10_000
@@ -83,16 +83,29 @@ def _where(b: _Binds, filters: Sequence[CheckedFilter]) -> list[str]:
     return where
 
 
+def _scope(b: _Binds, scope: Scope | None) -> list[str]:
+    """행 정책 → WHERE 조각 하나(정책들의 OR, 각 정책은 조건 AND). 값은 다른 조건처럼 바인드다."""
+    if scope is None:
+        return []
+    if not scope:
+        return ["false"]  # 볼 수 있는 행이 없다
+    parts = []
+    for policy in scope:
+        cond = _where(b, policy)
+        parts.append("(" + " AND ".join(cond) + ")" if cond else "true")
+    return ["(" + " OR ".join(parts) + ")"]
+
+
 def _pk_in(b: _Binds, pks: Sequence[str]) -> str:
     return f"o.pk = ANY(CAST({b.value(list(pks))} AS text[]))"
 
 
-def compile_hop(hop: CheckedHop) -> CompiledQuery | None:
-    """링크 끝 객체 조건 → 그 타입의 pk 조회. 조건도 맥락 제한도 없으면 None(아무 객체나)."""
-    if not hop.filters and hop.pks is None:
+def compile_hop(hop: CheckedHop, scope: Scope | None = None) -> CompiledQuery | None:
+    """링크 끝 객체 조건 → 그 타입의 pk 조회. 조건·맥락 제한·행 정책이 없으면 None(아무 객체나)."""
+    if not hop.filters and hop.pks is None and scope is None:
         return None
     b = _Binds()
-    where = _where(b, hop.filters)
+    where = _where(b, hop.filters) + _scope(b, scope)
     if hop.pks is not None:
         where.append(_pk_in(b, hop.pks))
     return CompiledQuery(
@@ -101,6 +114,20 @@ def compile_hop(hop: CheckedHop) -> CompiledQuery | None:
         where=where,
         order_by=["o.pk"],
         limit=PK_CAP + 1,
+        params=b.params,
+    )
+
+
+def compile_scope_check(object_type: str, pks: Sequence[str], scope: Scope) -> CompiledQuery:
+    """``pks`` 중 행 정책을 만족하는 것(근거 카드 읽기·Action 대상 쓰기 확인, Phase 14b)."""
+    b = _Binds()
+    where = [_pk_in(b, pks), *_scope(b, scope)]
+    return CompiledQuery(
+        object_type=object_type,
+        declared_properties=(),
+        where=where,
+        order_by=["o.pk"],
+        limit=len(pks) or 1,
         params=b.params,
     )
 
@@ -138,7 +165,7 @@ def compile_traverse(
 def compile_plan(vp: ValidatedPlan, target_pks: Sequence[str] | None = None) -> CompiledQuery:
     """``target_pks`` 는 탐색 결과(또는 맥락)로 좁힌 대상 pk. None 이면 제한 없음."""
     b = _Binds()
-    where = _where(b, vp.filters)
+    where = _where(b, vp.filters) + _scope(b, vp.scopes.get(vp.target.api_name))
     pks = target_pks if target_pks is not None else vp.target_pks
     if pks is not None:
         where.append(_pk_in(b, pks))

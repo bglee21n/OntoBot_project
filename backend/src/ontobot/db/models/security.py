@@ -104,6 +104,47 @@ class GroupLinkPermission(IdMixin, Base):
     can_link: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
+class GroupPropertyHide(IdMixin, Base):
+    """그룹이 숨기는 속성(Phase 14b). 기본은 "타입을 읽으면 모두 보임"이고, 여기 적은 것만 숨긴다.
+
+    합집합 규칙: 속성은 그 타입을 읽게 해 주는 **모든** 그룹이 숨길 때만 숨겨진다.
+    pk·제목 속성은 숨기지 못한다(근거·대화 맥락·그래프가 기대는 식별자다 — 관리 규칙이 막는다).
+    """
+
+    __tablename__ = "group_property_hide"
+    __table_args__ = (
+        Index("uq_group_property_hide", "group_id", "object_type", "property", unique=True),
+    )
+
+    group_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("data_group.id", ondelete="CASCADE")
+    )
+    object_type: Mapped[str] = mapped_column(String(64))
+    property: Mapped[str] = mapped_column(String(64))
+
+
+class GroupRowPolicy(IdMixin, Base):
+    """그룹의 행 정책(Phase 14b) — QueryPlan ``Filter`` 문법의 조건 목록(AND).
+
+    ``applies_to`` read 는 조회(컴파일러가 대상·탐색 끝에 덧붙인다), write 는 Action 대상
+    (미리보기·승인 때 다시 확인). 합집합 규칙: 그 권한을 주는 그룹마다 정책을 OR 로 묶고, 정책이
+    없는 그룹이 하나라도 있으면 제한하지 않는다.
+    """
+
+    __tablename__ = "group_row_policy"
+    __table_args__ = (
+        CheckConstraint("applies_to IN ('read','write')", name="applies_to"),
+        Index("uq_group_row_policy", "group_id", "object_type", "applies_to", unique=True),
+    )
+
+    group_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("data_group.id", ondelete="CASCADE")
+    )
+    object_type: Mapped[str] = mapped_column(String(64))
+    applies_to: Mapped[str] = mapped_column(String(8))
+    filters: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+
+
 class UserSession(IdMixin, Base):
     """서버 세션 — 쿠키에는 무작위 토큰만, DB에는 그 해시만 둔다(즉시 폐기 가능, TRD 3절)."""
 

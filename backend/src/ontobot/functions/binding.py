@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Set
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -27,7 +27,7 @@ from ontobot.ontology.models import (
     PropertyDef,
 )
 from ontobot.query.plan import Aggregate, Filter, FunctionCall, QueryPlan, Scalar, Traverse
-from ontobot.query.validator import PlanInvalid, ValidatedPlan, coerce, validate
+from ontobot.query.validator import PlanInvalid, Scope, ValidatedPlan, coerce, validate
 
 # Function 결과 그룹 상한 — 넘으면 앞에서부터 이만큼만 근거로 싣는다(조건 문장에 밝힌다).
 MAX_GROUPS = 100
@@ -137,7 +137,12 @@ def _args(
     return args, given
 
 
-def bind(doc: OntologyDocument, readable: Set[str], call: FunctionCall) -> ValidatedFunction:
+def bind(
+    doc: OntologyDocument,
+    readable: Set[str],
+    call: FunctionCall,
+    scopes: Mapping[str, Scope] | None = None,
+) -> ValidatedFunction:
     """``doc`` 은 활성 문서(폐기 제외)다.
 
     실패하면 ``PlanInvalid`` — 메시지는 재계획 프롬프트에 실린다.
@@ -158,7 +163,7 @@ def bind(doc: OntologyDocument, readable: Set[str], call: FunctionCall) -> Valid
     bound: list[BoundQuery] = []
     for q in fn.queries:
         try:
-            vp = validate(doc, readable, _plan(q, args))
+            vp = validate(doc, readable, _plan(q, args), scopes=scopes)
         except PlanInvalid as e:
             if e.forbidden:
                 raise
