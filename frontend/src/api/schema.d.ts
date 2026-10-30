@@ -232,6 +232,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Targets
+         * @description PRD 7절 성공 지표 — 목표(관리자 설정, 없으면 제안값)와 지금 측정값.
+         */
+        get: operations["get_targets_api_v1_admin_targets_get"];
+        /** Put Targets */
+        put: operations["put_targets_api_v1_admin_targets_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -3252,6 +3273,42 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** TargetOut */
+        TargetOut: {
+            /** Custom */
+            custom: boolean;
+            /** Default */
+            default: number | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "min" | "max";
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Measured */
+            measured: number | null;
+            /** Met */
+            met: boolean | null;
+            /** Source */
+            source: string;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "ratio" | "seconds" | "minutes" | "days" | "count";
+            /** Value */
+            value: number | null;
+        };
+        /** TargetsIn */
+        TargetsIn: {
+            /** Values */
+            values: {
+                [key: string]: number | string | null;
+            };
+        };
         /** TestResult */
         TestResult: {
             /** Error */
@@ -3853,6 +3910,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemOut"];
+                };
+            };
+        };
+    };
+    get_targets_api_v1_admin_targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"][];
+                };
+            };
+        };
+    };
+    put_targets_api_v1_admin_targets_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TargetsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

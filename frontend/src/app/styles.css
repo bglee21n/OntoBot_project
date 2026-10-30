@@ -166,6 +166,7 @@ tr.selected-row td { background: #eff6ff; }
 .schema-node-issues { color: var(--danger); font-size: 0.8em; }
 .schema-node-actions { display: flex; gap: 0.2rem; flex-wrap: wrap; }
 .schema-node-actions .badge { font-size: 0.72em; background: #eff6ff; border-color: #bfdbfe; }
+.schema-node-actions .badge.fn { background: #f5f3ff; border-color: #ddd6fe; }
 .schema-node-expand { display: flex; gap: 0.4rem; justify-content: flex-end; }
 .schema-node-expand button { padding: 0 0.3rem; font-weight: 600; }
 .dialog-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }

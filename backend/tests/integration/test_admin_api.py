@@ -195,3 +195,31 @@ async def test_v1_metrics_are_admin_only(client, make_user: MakeUser) -> None:
     username, password, _ = await make_user("modeler")
     await login(client, username, password)
     assert (await client.get("/api/v1/admin/metrics")).status_code == 403
+
+
+async def test_targets_default_then_admin_override_and_reset(client, make_user: MakeUser) -> None:
+    # PRD 7절 목표 수치 — 행이 없으면 제안값, 관리자가 정하면 그 값, null 이면 제안값으로 되돌린다.
+    await _admin(client, make_user)
+    got = {t["key"]: t for t in (await client.get("/api/v1/admin/targets")).json()}
+    assert got["accuracy"]["default"] == 0.9 and got["accuracy"]["direction"] == "min"
+    assert got["freshness_minutes"]["default"] is None  # 근거 없는 지표는 미정
+    res = await client.put(
+        "/api/v1/admin/targets", json={"values": {"accuracy": 0.95, "freshness_minutes": 30}}
+    )
+    assert res.status_code == 200, res.text
+    got = {t["key"]: t for t in res.json()}
+    assert (got["accuracy"]["value"], got["accuracy"]["custom"]) == (0.95, True)
+    assert got["freshness_minutes"]["value"] == 30
+    res = await client.put("/api/v1/admin/targets", json={"values": {"accuracy": None}})
+    got = {t["key"]: t for t in res.json()}
+    assert (got["accuracy"]["value"], got["accuracy"]["custom"]) == (0.9, False)
+    bad = await client.put("/api/v1/admin/targets", json={"values": {"nope": 1}})
+    assert bad.status_code == 422 and bad.json()["code"] == "invalid_target"
+    bad = await client.put("/api/v1/admin/targets", json={"values": {"accuracy": 1.5}})
+    assert bad.status_code == 422
+    assert (
+        "ops.targets_changed",
+        {"accuracy": "0.95", "freshness_minutes": "30"},
+    ) in await _events("ops_target")
+    # 남이 다음 테스트에 영향 주지 않게 되돌린다.
+    await client.put("/api/v1/admin/targets", json={"values": {"freshness_minutes": None}})

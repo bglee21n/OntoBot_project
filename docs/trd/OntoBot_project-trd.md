@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.20                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.21                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -724,7 +724,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 - **인용**(17.1-8): 결과 행은 `q:N` 근거 — 칸은 그룹 열, **내부 조회 값마다 하나**(이름 = 조회 이름, 라벨 = 조회 표시 이름), `value`(라벨 = `result_label`), 인자가 있으면 `inputs`(입력 조건 문장). 답이 "10곳 중 3곳(30%)"처럼 계산 근거를 말해도 칸마다 인용된다. 근거 대조(`grounding`)는 바뀌지 않았다. 조건 값 가리기는 내부 조회 조건 값과 인자 값. 대화 맥락은 바꾸지 않는다(집계와 같다).
 - **조회 조건 문장**: `고위험 시설 비율(기준 위험등급 = 4(기본값)) · 고위험 시설 수: 시설 · 위험등급 ≥ 4 · 시설 유형별 건수 / 전체 시설 수: 시설 · 시설 유형별 건수 · 최대 100개 그룹` — Function 표시 이름·인자(기본값 표시), 내부 조회마다 7.1 5단계 문장(최대 N건 없이).
 - **API**: `POST/PUT/DELETE /ontology/versions/{id}/functions[/{function_id}]`(모델러, draft 만, 이름 변경 409), `VersionDetail.functions`, 버전 비교 요소 `function`, 영향 분석이 Function 참조(조회 타입·건너는 링크·쓰는 속성)를 낸다. 감사는 `ontology.draft_edited`(`function.create/update/delete`).
-- **화면**: 버전 화면의 Function 섹션 — 요약(인자·내부 조회·그룹·결과)과 JSON 편집(형식은 저장 때 422, 교차 검사는 게시 전 검사). 그래프 삭제 창이 함께 지울 Function 을 고를 수 있고, Function 문제 배지는 첫 내부 조회의 대상 타입 노드에 붙는다. 근거 카드는 `q:N` 의 `values`(그룹 열·내부 조회 값·결과·입력 조건)를 보여 준다(v0.20).
+- **화면**: 버전 화면의 Function 섹션 — 요약(인자·내부 조회·그룹·결과)과 JSON 편집(형식은 저장 때 422, 교차 검사는 게시 전 검사). 그래프 삭제 창이 함께 지울 Function 을 고를 수 있고, Function 문제 배지는 첫 내부 조회의 대상 타입 노드에 붙는다. 스키마 그래프 옆 패널에서 고른 타입의 Action(대상)·Function(조회 타입)을 만들고 고치고 지운다(v0.21 — 목록 탭과 같은 양식·API, 노드에 ƒ 칩). 근거 카드는 `q:N` 의 `values`(그룹 열·내부 조회 값·결과·입력 조건)를 보여 준다(v0.20).
 
 ### 17.5 v1 운영 지표 (v0.20, Phase 13)
 
@@ -734,6 +734,8 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - **승인 거부율** = 거부 ÷ (거부 + 실행 + 롤백 + 실패). 요청자가 거둔 것(`rejected` 이고 결정자 = 요청자)은 `withdrawn` 으로 따로 세고 분모에서 뺀다. `previewed`·`blocked` 도 분모 밖.
 - 기간은 요청 시각(`created_at`) 기준·DB 시계. 분모가 0 이면 `null`(화면 '—').
 - **확인되지 않은 편집 충돌** = `sync_conflict.status = 'open'` 건수(기간 무관, 지금 값).
+
+**성공 지표 목표**(v0.21, 사용자 결정 — "제안값은 관리자 설정에서 관리"): 표 `ops_target(key 유일, value, updated_by, updated_at)`(마이그레이션 0011), `GET·PUT /admin/targets`(관리자, `evaluation.targets`). 행이 없으면 측정 근거가 있는 제안값(정답률 0.9·추정 비율 0.2·Action 파라미터 정확도 0.9 — 게이트 가안, P95 25초·동시 8명 — ADR-0011), 근거 없는 지표는 미정(`null`). `PUT` 의 `null` 은 설정을 지워 제안값으로, 비율은 0~1, 감사 `ops.targets_changed`. 측정값: 품질은 마지막 **녹화 재생이 아닌** 평가 실행, 조회 실패율·P95·주간 활성 사용자는 트레이스(실패율 분자는 장애성 실패 `execution_error`·`timeout`·`graph_unavailable`·`llm_unavailable`·`too_broad` 만, P95 는 단계별 지연 합의 95 백분위), Action 실행 성공률은 위 지표. **평가 게이트(`gate.yaml`)는 이 값을 읽지 않는다** — CI 에서 DB 없이 같은 기준이어야 하고 불변식을 설정으로 느슨하게 할 수 없어야 한다.
 
 ## 18. PRD 추적 매트릭스 (P0)
 
@@ -817,6 +819,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.21 | 2026-10-30 | 성공 지표 목표를 관리자 설정으로(17.5 — `ops_target`·`/admin/targets`, 마이그레이션 0011, 측정값 출처: 평가는 재생 제외·운영은 트레이스, 게이트와 분리), 스키마 그래프 옆 패널의 Action·Function 편집 |
 | v0.20 | 2026-10-30 | Phase 13 — 17.5 v1 운영 지표(`GET /admin/metrics`, 성공률·거부율 정의, 요청자 거둠 분리), 근거 이벤트 `citations[].values`(집계·Function 행의 대조 값 — 근거 카드), Function 문제 배지 위치, `job` 기한은 DB 시계로만(간헐 실패 원인) |
 | v0.19 | 2026-10-30 | Phase 12 Function(17.4) — `FunctionDef`(인자·집계 내부 조회·식 트리·결과)를 정의 문서에, `function_type` 표(마이그레이션 0010), 게시 전 검사(연산자 표 `OPS_BY_TYPE` 를 계획 검증과 공유), 요약에 실을 조건(내부 타입 모두 읽기), 플래너 `kind: function`(`FunctionPlannerOutput` — Function 이 없으면 스키마·프롬프트 그대로), 바인드·권한(`forbidden`)·인자 ↔ 질문 두 방향 대조, 실행기 공유·실패 전파, 그룹 키 맞춤·`Decimal` 계산·서버 반올림, 근거 행(내부 조회 값·결과·입력 조건), 조건 문장, API·화면. 17절 표의 5.10 행 갱신 |
 | v0.18 | 2026-10-30 | Phase G1 스키마 그래프 편집기 — 정의 문서에 `deprecated`(객체 타입·링크 타입, 거짓이면 정규 표현·내보내기에서 빠져 기존 `content_hash` 유지). 플래너 요약·계획 검증은 폐기 요소를 뺀 문서(`OntologyDocument.active()`)를 본다(폐기 타입 = 없는 것, 권한 없음 아님). 폐기 타입을 대상으로 하는 Action 은 게시 전 검사 문제. `ontology_layout`(그래프 노드 위치 — 정의 밖, 감사 없음, draft 생성 때 부모 배치 복사), `GET/PUT /ontology/versions/{id}/layout`, 영향 분석 `GET /ontology/versions/{id}/references`(`ontology/impact.py` 첫 조각 — 문서 안 참조·매핑·골든 문항 id·데이터 존재만, 설정·본문·값 없음). `VersionSummary.created_by`·`created_by_name`. 마이그레이션 0009 |

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -11,9 +12,11 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -113,4 +116,21 @@ class EvalResult(IdMixin, Base):
     # 단계별 지연·사실 문장 수 등 지표 계산 재료(TRD 13.2). 트레이스 표와 따로 둔다.
     stats: Mapped[dict[str, Any]] = mapped_column(
         JSONB, default=dict, server_default=text("'{}'::jsonb")
+    )
+
+
+class OpsTarget(IdMixin, Base):
+    """PRD 7절 성공 지표의 목표 수치 — 관리자가 화면에서 정한다(행이 없으면 제안 기본값).
+
+    평가 게이트(``evaluation/gate.yaml``)의 불변식·가안과 별개다 — 게이트는 CI 에서 DB 없이도 같은
+    기준으로 돌아야 하므로 파일이 정본이고, 이 표는 운영 화면에서 측정값과 견주는 목표다.
+    """
+
+    __tablename__ = "ops_target"
+
+    key: Mapped[str] = mapped_column(String(64), unique=True)
+    value: Mapped[Decimal] = mapped_column(Numeric)
+    updated_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    updated_at: Mapped[datetime] = mapped_column(
+        tz(), server_default=func.now(), onupdate=func.now()
     )

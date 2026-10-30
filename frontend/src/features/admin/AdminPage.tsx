@@ -6,6 +6,7 @@ import type {
   AuditLogOut,
   RoleOut,
   SystemOut,
+  TargetOut,
   TraceOut,
   V1MetricsOut,
   TypeOut,
@@ -27,6 +28,7 @@ export function AdminPage() {
       <h1>{t.title}</h1>
       <SystemCard />
       <MetricsCard />
+      <TargetsCard />
       <nav className="row" role="tablist">
         {(Object.keys(t.tabs) as Tab[]).map((k) => (
           <button
@@ -100,6 +102,109 @@ function MetricsCard() {
           .join(" · ")}
       </div>
     </div>
+  );
+}
+
+/**
+ * PRD 7절 성공 지표의 목표 — 관리자가 정하고(비우면 제안값), 지금 측정값과 견준다. 평가 게이트 기준(gate.yaml)과는
+ * 별개다(게이트는 CI 에서 같은 기준으로 돌아야 한다). 비율은 화면에서 %로 다룬다.
+ */
+function TargetsCard() {
+  const qc = useQueryClient();
+  const tt = t.targets;
+  const q = useQuery({ queryKey: ["admin", "targets"], queryFn: () => api.get<TargetOut[]>("/admin/targets") });
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const save = useMutation({
+    mutationFn: (values: Record<string, number | null>) => api.put<TargetOut[]>("/admin/targets", { values }),
+    onSuccess: (data) => {
+      qc.setQueryData(["admin", "targets"], data);
+      setDraft(null);
+    },
+  });
+  if (q.isError) return <ErrorBox error={q.error} />;
+  if (!q.data) return null;
+  const ratio = (x: TargetOut) => x.unit === "ratio";
+  const show = (x: TargetOut, v: number | null | undefined) =>
+    v == null ? tt.unset : ratio(x) ? `${(v * 100).toFixed(1)}%` : `${v}`;
+  const toInput = (x: TargetOut) => (x.value == null ? "" : String(ratio(x) ? +(x.value * 100).toFixed(4) : x.value));
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!draft) return;
+    const values: Record<string, number | null> = {};
+    for (const x of q.data) {
+      const raw = (draft[x.key] ?? "").trim();
+      if (raw === toInput(x)) continue;
+      values[x.key] = raw === "" ? null : ratio(x) ? Number(raw) / 100 : Number(raw);
+    }
+    save.mutate(values);
+  };
+  return (
+    <form className="card stack" onSubmit={submit}>
+      <div className="row">
+        <strong>{tt.title}</strong>
+        <span className="spacer" />
+        {draft ? (
+          <>
+            <button type="submit" disabled={save.isPending}>
+              {tt.save}
+            </button>
+            <button type="button" className="link" onClick={() => setDraft(null)}>
+              {tt.cancel}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="link"
+            onClick={() => setDraft(Object.fromEntries(q.data.map((x) => [x.key, toInput(x)])))}
+          >
+            {tt.edit}
+          </button>
+        )}
+      </div>
+      <p className="muted">{tt.hint}</p>
+      {save.isError && <ErrorBox error={save.error} />}
+      <table>
+        <thead>
+          <tr>
+            <th>{tt.metric}</th>
+            <th>{tt.target}</th>
+            <th>{tt.measured}</th>
+            <th>{tt.status}</th>
+            <th>{tt.source}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {q.data.map((x) => (
+            <tr key={x.key}>
+              <td>{x.label}</td>
+              <td>
+                {tt.direction[x.direction]}{" "}
+                {draft ? (
+                  <input
+                    aria-label={x.label}
+                    inputMode="decimal"
+                    size={6}
+                    value={draft[x.key] ?? ""}
+                    placeholder={x.default == null ? tt.unset : show(x, x.default)}
+                    onChange={(e) => setDraft({ ...draft, [x.key]: e.target.value })}
+                  />
+                ) : (
+                  <>
+                    {show(x, x.value)}
+                    {!x.custom && x.value != null && <span className="muted"> ({tt.proposed})</span>}
+                  </>
+                )}
+                {draft && ratio(x) && " %"}
+              </td>
+              <td>{show(x, x.measured)}</td>
+              <td>{x.met == null ? "—" : x.met ? tt.met : <span className="error-text">{tt.unmet}</span>}</td>
+              <td className="muted">{x.source}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </form>
   );
 }
 

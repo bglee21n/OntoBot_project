@@ -128,11 +128,11 @@ function ActionSummary({
   );
 }
 
-function blank(): ActionTypeDef {
+function blank(target = ""): ActionTypeDef {
   return {
     api_name: "",
     display_name: "",
-    target_type: "",
+    target_type: target,
     requester_roles: [],
     parameters: [],
     preconditions: [],
@@ -143,21 +143,24 @@ function blank(): ActionTypeDef {
   };
 }
 
-function ActionForm({
+/** Action 정의 폼 — 목록 섹션과 스키마 그래프 옆 패널이 함께 쓴다. ``presetTarget`` 은 새 Action 의 대상. */
+export function ActionForm({
   types,
   initial,
+  presetTarget,
   pending,
   onSubmit,
   onCancel,
 }: {
   types: ObjectTypeOut[];
   initial?: ActionTypeOut;
+  presetTarget?: string;
   pending: boolean;
   onSubmit: (a: ActionTypeDef) => void;
   onCancel: () => void;
 }) {
   const [a, setA] = useState<ActionTypeDef>(() => {
-    if (!initial) return blank();
+    if (!initial) return blank(presetTarget);
     // 응답의 id 는 정의가 아니다 — 보내지 않는다.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...def } = initial;

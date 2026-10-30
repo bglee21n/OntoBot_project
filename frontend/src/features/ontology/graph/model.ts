@@ -12,6 +12,8 @@ export interface TypeNodeData extends Record<string, unknown> {
   propertyCount: number;
   hasPii: boolean;
   actions: string[];
+  /** 이 타입을 조회하는 Function 표시 이름. */
+  functions: string[];
   issues: IssueOut[];
   change: ChangeKind | null;
   deprecated: boolean;
@@ -89,6 +91,7 @@ function typeData(t: ObjectTypeOut, extra: Partial<TypeNodeData>): TypeNodeData 
     propertyCount: t.properties.length,
     hasPii: t.properties.some((p) => p.pii_kind),
     actions: [],
+    functions: [],
     issues: [],
     change: null,
     deprecated: t.deprecated,
@@ -127,6 +130,9 @@ export function buildElements(v: VersionDetail, base?: VersionDetail, changes?: 
     typeData(t, {
       change: typeChange.get(t.api_name) ?? null,
       actions: v.action_types.filter((a) => a.target_type === t.api_name).map((a) => a.display_name),
+      functions: v.functions
+        .filter((f) => f.queries.some((q) => q.target === t.api_name || (q.traverse ?? []).some((tr) => tr.to === t.api_name)))
+        .map((f) => f.display_name),
     }),
   );
   const links = v.link_types.map((l) => linkData(l, { change: linkChange.get(l.api_name) ?? null }));

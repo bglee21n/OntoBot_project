@@ -36,11 +36,16 @@ export function TypeNodeView({ data, selected }: NodeProps<TypeNode>) {
         {data.hasPii && <span className="badge flag">{ko.ontology.graph.pii}</span>}
       </div>
       {data.issues.length > 0 && <div className="schema-node-issues">{ko.ontology.graph.issues(data.issues.length)}</div>}
-      {data.actions.length > 0 && (
+      {data.actions.length + data.functions.length > 0 && (
         <div className="schema-node-actions">
           {data.actions.map((a) => (
-            <span key={a} className="badge">
+            <span key={`a:${a}`} className="badge">
               {a}
+            </span>
+          ))}
+          {data.functions.map((f) => (
+            <span key={`f:${f}`} className="badge fn" title={ko.ontology.functions}>
+              ƒ {f}
             </span>
           ))}
         </div>

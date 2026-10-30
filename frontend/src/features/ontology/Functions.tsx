@@ -8,9 +8,9 @@ import { useVersionMutation, V } from "./queries";
 
 const t = ko.ontology;
 
-/** 새 Function 의 뼈대 — 첫 객체 타입의 건수를 그대로 돌려준다. 고쳐서 쓴다. */
-function blank(v: VersionDetail): FunctionDef {
-  const target = v.object_types[0]?.api_name ?? "";
+/** 새 Function 의 뼈대 — 대상(없으면 첫 객체 타입)의 건수를 그대로 돌려준다. 고쳐서 쓴다. */
+export function blankFunction(v: VersionDetail, presetTarget?: string): FunctionDef {
+  const target = presetTarget ?? v.object_types[0]?.api_name ?? "";
   return {
     api_name: "",
     display_name: "",
@@ -68,7 +68,7 @@ export function FunctionsSection({ v, editable }: { v: VersionDetail; editable: 
       {editable && editing === "new" && (
         <div className="card stack">
           <FunctionForm
-            initial={blank(v)}
+            initial={blankFunction(v)}
             pending={add.isPending}
             onCancel={() => setEditing(null)}
             onSubmit={(body) => add.mutate(body, { onSuccess: () => setEditing(null) })}
@@ -80,7 +80,7 @@ export function FunctionsSection({ v, editable }: { v: VersionDetail; editable: 
   );
 }
 
-function strip(f: FunctionOut): FunctionDef {
+export function strip(f: FunctionOut): FunctionDef {
   const def: FunctionDef & { id?: number } = { ...f };
   delete def.id;
   return def;
@@ -138,7 +138,8 @@ function FunctionSummary({
   );
 }
 
-function FunctionForm({
+/** Function 정의(JSON) 폼 — 목록 섹션과 스키마 그래프 옆 패널이 함께 쓴다. */
+export function FunctionForm({
   initial,
   pending,
   onCancel,

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -17,6 +18,7 @@ from ontobot.api.deps import CurrentUser, Db, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.config import app_version, get_settings
 from ontobot.db.models.chat import Trace
+from ontobot.evaluation import targets
 from ontobot.ontology import registry
 from ontobot.security import admin, audit
 from ontobot.security.rbac import ROLE_ADMIN
@@ -178,6 +180,56 @@ async def metrics(db: Db, _: Admin, days: Annotated[int, Query(ge=1, le=365)] = 
     """PRD 7절 v1 지표 — Action 실행 성공률·승인 거부율, 확인되지 않은 편집 충돌."""
     m = await action_metrics.v1_metrics(db, days)
     return V1MetricsOut(**m.__dict__)
+
+
+class TargetOut(BaseModel):
+    key: str
+    label: str
+    unit: Literal["ratio", "seconds", "minutes", "days", "count"]
+    direction: Literal["min", "max"]
+    # 지금 목표 — 관리자 설정값, 없으면 제안값(근거 없는 지표는 null = 미정)
+    value: float | None
+    default: float | None
+    custom: bool
+    source: str
+    measured: float | None
+    met: bool | None
+
+
+class TargetsIn(BaseModel):
+    # 지표 이름 → 목표. null 은 설정을 지워 제안값으로 되돌린다.
+    values: dict[str, Annotated[Decimal, Field(ge=0, max_digits=12)] | None]
+
+
+def _target_out(t: targets.TargetView) -> TargetOut:
+    s = t.spec
+    return TargetOut(
+        key=s.key,
+        label=s.label,
+        unit=s.unit,
+        direction=s.direction,
+        value=float(t.value) if t.value is not None else None,
+        default=float(s.default) if s.default is not None else None,
+        custom=t.custom,
+        source=s.source,
+        measured=t.measured,
+        met=t.met,
+    )
+
+
+@router.get("/admin/targets", response_model=list[TargetOut])
+async def get_targets(db: Db, _: Admin) -> list[TargetOut]:
+    """PRD 7절 성공 지표 — 목표(관리자 설정, 없으면 제안값)와 지금 측정값."""
+    return [_target_out(t) for t in await targets.load(db)]
+
+
+@router.put("/admin/targets", response_model=list[TargetOut])
+async def put_targets(body: TargetsIn, db: Db, user: Admin) -> list[TargetOut]:
+    try:
+        await targets.update(db, body.values, actor_id=user.id)
+    except targets.UnknownTarget as e:
+        raise ProblemError(422, str(e), code="invalid_target") from e
+    return [_target_out(t) for t in await targets.load(db)]
 
 
 @router.get("/admin/object-types", response_model=list[TypeOut])

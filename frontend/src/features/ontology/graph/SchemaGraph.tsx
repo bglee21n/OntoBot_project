@@ -32,6 +32,7 @@ import {
   type LinkEdgeData,
   neighborhood,
 } from "./model";
+import { TypeBehaviors } from "./TypeBehaviors";
 import { NodeActions, type TypeNode, TypeNodeView } from "./TypeNode";
 
 type Selection =
@@ -430,6 +431,7 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
                     selectedType.description && <p className="muted">{selectedType.description}</p>
                   )}
                   <ObjectTypeCard versionId={v.id} t={selectedType} editable={editable} compact />
+                  <TypeBehaviors v={v} typeName={selectedType.api_name} editable={editable} />
                   {editable && (
                     <button
                       type="button"
