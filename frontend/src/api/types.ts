@@ -64,6 +64,7 @@ export type ActionCandidateOut = S["ActionCandidateOut"];
 export type SyncConflictOut = S["SyncConflictOut"];
 export type CitationData = S["CitationData"];
 export type UserOut = S["UserOut"];
+export type FeaturesOut = S["FeaturesOut"];
 export type ApiKeyOut = S["ApiKeyOut"];
 export type ApiKeyIssued = S["ApiKeyIssued"];
 export type UserCreate = S["UserCreate"];

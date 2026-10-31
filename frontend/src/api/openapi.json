@@ -3048,6 +3048,24 @@
         "title": "Expr",
         "type": "object"
       },
+      "FeaturesOut": {
+        "properties": {
+          "closed_network": {
+            "title": "Closed Network",
+            "type": "boolean"
+          },
+          "voice_input": {
+            "title": "Voice Input",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "closed_network",
+          "voice_input"
+        ],
+        "title": "FeaturesOut",
+        "type": "object"
+      },
       "FeedbackIn": {
         "properties": {
           "comment": {
@@ -10436,6 +10454,27 @@
         "summary": "Chat",
         "tags": [
           "chat"
+        ]
+      }
+    },
+    "/api/v1/config/features": {
+      "get": {
+        "operationId": "get_features_api_v1_config_features_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Features",
+        "tags": [
+          "config"
         ]
       }
     },

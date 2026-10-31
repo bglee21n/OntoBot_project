@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     # 등급 ②(일부 근거)를 허용할지. 끄면 ②를 ③으로 처리한다(TRD 2절 4번, 8.2-6).
     grade2_enabled: bool = True
 
+    # 폐쇄망 배포(기본). 켜져 있으면 외부 서버를 부르는 화면 기능(음성 입력)은 설정과 상관없이
+    # 꺼진다(TRD 17.1 결정 13). 음성 입력은 브라우저 음성 인식이라 음성이 브라우저 공급자 서버로
+    # 간다.
+    closed_network: bool = True
+    voice_input: bool = False
+
     # 인증(TRD 9.1). 로컬 계정은 IdP 가 없는 폐쇄망·개발용이며 운영에서 끌 수 있다.
     local_auth_enabled: bool = True
     session_cookie_name: str = "ontobot_session"

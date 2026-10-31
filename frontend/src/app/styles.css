@@ -116,7 +116,26 @@ textarea.plain { font-family: inherit; }
 .badge.el-proposed, .badge.ws-open { background: #eff6ff; border-color: var(--accent); color: var(--accent); }
 .badge.el-rejected { background: #f3f4f6; color: var(--muted); }
 .badge.ws-submitted { background: #fffbeb; border-color: var(--warn); color: var(--warn); }
-@media (max-width: 900px) { .workshop { grid-template-columns: 1fr; } }
+.mobile-only { display: none; }
+.ws-preview { position: sticky; top: 0.5rem; }
+.ws-graph { height: 26rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+.ws-graph .react-flow__node { width: 220px; text-align: left; font-size: 0.8em; }
+.ws-node ul { margin: 0.3rem 0 0; padding-left: 1rem; }
+.ws-node-pending { opacity: 0.65; border-style: dashed !important; }
+.ws-node-implied { border-style: dotted !important; background: #f9fafb !important; }
+.ws-sheet dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 0.8rem; margin: 0; }
+.ws-sheet dt { color: var(--muted); }
+.ws-sheet dd { margin: 0; }
+.voice { gap: 0.1rem; font-size: 0.85em; }
+@media (max-width: 900px) {
+  .workshop { grid-template-columns: 1fr; }
+  .mobile-only { display: flex; }
+  .ws-preview { position: static; }
+  .workshop[data-pane="chat"] .ws-preview { display: none; }
+  .workshop[data-pane="preview"] .ws-chat { display: none; }
+  .ws-graph { height: 60vh; }
+  .chat-input { flex-wrap: wrap; }
+}
 
 /* 평가 */
 .eval { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 1rem; align-items: start; }

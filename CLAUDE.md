@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.30) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.31) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-Phase 18(인터뷰 워크숍 확장형) — Phase 17(게시 영향·공개 REST API) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+Phase 18b(워크숍 세션 병합)·18c(샘플 데이터 시연) — 17(게시 영향·공개 REST API)·18a(워크숍 분할 화면) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -23,7 +23,8 @@ Phase 18(인터뷰 워크숍 확장형) — Phase 17(게시 영향·공개 REST 
   설치본은 서명된 이미지 번들(`scripts/build_bundle.py`), 절차의 정본은 `deploy/docker/ontobotctl`, 업그레이드·롤백·
   백업은 배포 콘솔(`deployer/`, ADR-0014) 화면으로. 통합 테스트·평가·CI 도 같은 이미지의 컨테이너를 쓴다.
   실행 중 외부 네트워크를 호출하는 코드를 넣지 않는다(예외는 외부 LLM 공급자와, v1 Phase 10 부터 운영자가 설정한
-  사내 메일·SMS 게이트웨이뿐 — TRD 17.1-4). 외부 서버를 부르는 화면 기능(음성 입력)은 `ONTOBOT_CLOSED_NETWORK` 면 끈다.
+  사내 메일·SMS 게이트웨이뿐 — TRD 17.1-4). 외부 서버를 부르는 화면 기능(음성 입력)은 `ONTOBOT_CLOSED_NETWORK` 면 끈다(판정은
+  `ontobot.features` 하나, 화면은 `GET /config/features` 로 받아 꺼진 기능의 단추를 그리지 않는다).
 - LLM 은 로컬 Ollama. 역할별 모델은 [config/llm.yaml](config/llm.yaml) 에만 적는다(코드에 모델 ID 금지).
   planner·answerer 기본값 `gemma4:e4b` 는 ADR-0004 의 측정 결과다 — 바꾸려면 다시 잰다.
 - 저장소: PostgreSQL 이 **기록의 원본**, Neo4j Community 는 링크 **투영**(언제든 PostgreSQL 에서 재구축).

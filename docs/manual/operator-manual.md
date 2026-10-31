@@ -596,6 +596,8 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose up -d"   # 
 | `ONTOBOT_LOCAL_AUTH_ENABLED` | true | 아이디·비밀번호 로그인 허용(SSO 만 쓰려면 false — 단 배포 콘솔은 로컬 관리자 계정이 필요) |
 | `ONTOBOT_OIDC_*` | 비어 있음 | 사내 SSO(6.2) |
 | `ONTOBOT_GRADE2_ENABLED` | true | 일부만 근거가 확인된 답(등급 ②)을 보일지 |
+| `ONTOBOT_CLOSED_NETWORK` | true | 폐쇄망 설치. true 면 외부 서버를 부르는 화면 기능(워크숍 음성 입력)이 설정과 상관없이 꺼진다 |
+| `ONTOBOT_VOICE_INPUT` | false | 워크숍 음성 입력(브라우저 음성 인식 — 음성이 브라우저 공급자 서버로 간다). `ONTOBOT_CLOSED_NETWORK=false` 일 때만 켜진다 |
 | `ONTOBOT_RETENTION_TRACE_DAYS` | 90 | 질문 처리 기록 보관 일수(0 = 지우지 않음) |
 | `ONTOBOT_RETENTION_MESSAGE_DAYS` | 365 | 대화 보관 일수 |
 | `ONTOBOT_RETENTION_UTTERANCE_DAYS` | 180 | 인터뷰 발언 보관 일수 |

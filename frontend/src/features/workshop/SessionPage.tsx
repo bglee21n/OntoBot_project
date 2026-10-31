@@ -8,8 +8,12 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ElementCard } from "./ElementCard";
+import { WorkshopPreview } from "./Preview";
+import { VoiceButton } from "./VoiceButton";
 
 const t = ko.workshop;
+// 미리보기 갱신 시간 재기(컴포넌트 밖 — 렌더가 아니라 요청 안에서만 부른다).
+const clock = () => performance.now();
 const KIND_ORDER = ["object_type", "property", "link_type", "action_candidate", "golden_query"];
 
 export function SessionPage() {
@@ -19,6 +23,10 @@ export function SessionPage() {
   const [text, setText] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [published, setPublished] = useState<PublishOut | null>(null);
+  // 좁은 화면(모바일)에서는 대화와 미리보기 중 하나만 보인다.
+  const [pane, setPane] = useState<"chat" | "preview">("chat");
+  // 미리보기 갱신 시간(Phase 18 측정) — 답을 보낸 때부터 요소 목록을 다시 받을 때까지.
+  const [refreshMs, setRefreshMs] = useState<number | null>(null);
 
   const sessionKey = ["workshop", "sessions", id];
   const elementsKey = ["workshop", "sessions", id, "elements"];
@@ -37,14 +45,19 @@ export function SessionPage() {
   };
 
   const say = useMutation({
-    mutationFn: (answer: string) =>
-      api.post<TurnOut>(`/workshop/sessions/${id}/utterances`, {
-        text: answer,
-      }),
-    onSuccess: (turn) => {
+    mutationFn: async (answer: string) => {
+      const started = clock();
+      const turn = await api.post<TurnOut>(`/workshop/sessions/${id}/utterances`, { text: answer });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: sessionKey }),
+        qc.invalidateQueries({ queryKey: elementsKey }),
+      ]);
+      return { turn, elapsed: Math.round(clock() - started) };
+    },
+    onSuccess: ({ turn, elapsed }) => {
       setText("");
       setWarnings(turn.warnings);
-      refresh();
+      setRefreshMs(elapsed);
     },
   });
   const submit = useMutation({
@@ -104,8 +117,22 @@ export function SessionPage() {
         ))}
       </ol>
 
-      <div className="workshop">
-        <div className="stack">
+      <div className="row tabs mobile-only" role="tablist">
+        {(["chat", "preview"] as const).map((x) => (
+          <button
+            key={x}
+            type="button"
+            role="tab"
+            aria-selected={pane === x}
+            className={pane === x ? "tab active" : "tab"}
+            onClick={() => setPane(x)}
+          >
+            {x === "chat" ? t.paneChat : t.panePreview(els.length)}
+          </button>
+        ))}
+      </div>
+      <div className="workshop" data-pane={pane}>
+        <div className="stack ws-chat">
           <div className="chat-thread">
             {s.utterances.map((u) =>
               u.speaker === "agent" ? (
@@ -138,16 +165,22 @@ export function SessionPage() {
               <button type="submit" disabled={!text.trim() || say.isPending}>
                 {t.send}
               </button>
+              <VoiceButton onText={(heard) => setText((cur) => (cur ? `${cur} ${heard}` : heard))} />
             </form>
           )}
+          {refreshMs !== null && <p className="muted">{t.refreshed((refreshMs / 1000).toFixed(1))}</p>}
           {s.status === "open" && finished && <p className="notice">{t.finished}</p>}
           {s.status === "open" && !finished && !isInterviewee && <p className="muted">{t.notInterviewee}</p>}
           {s.status !== "open" && <p className="muted">{t.closed}</p>}
         </div>
 
-        <aside className="stack">
-          <h2>{t.review}</h2>
+        <aside className="stack ws-preview">
+          <h2>{t.preview.title}</h2>
           {elements.isError && <ErrorBox error={elements.error} />}
+          <WorkshopPreview
+            elements={els}
+            review={
+              <div className="stack">
           {els.length === 0 && <p className="muted">{t.noElements}</p>}
           {KIND_ORDER.map((kind) => {
             const group = els.filter((e) => e.kind === kind);
@@ -170,6 +203,9 @@ export function SessionPage() {
               )
             );
           })}
+              </div>
+            }
+          />
 
           {s.status === "open" && (isInterviewee || isModeler) && (
             <div className="card stack">

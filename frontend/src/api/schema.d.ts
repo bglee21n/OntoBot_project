@@ -612,6 +612,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/config/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Features */
+        get: operations["get_features_api_v1_config_features_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -2970,6 +2987,13 @@ export interface components {
             op: "query" | "param" | "const" | "add" | "sub" | "mul" | "div" | "round" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "and" | "or" | "not" | "if";
             /** Value */
             value?: string | number | boolean | null;
+        };
+        /** FeaturesOut */
+        FeaturesOut: {
+            /** Closed Network */
+            closed_network: boolean;
+            /** Voice Input */
+            voice_input: boolean;
         };
         /** FeedbackIn */
         FeedbackIn: {
@@ -5876,6 +5900,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_features_api_v1_config_features_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturesOut"];
                 };
             };
         };
