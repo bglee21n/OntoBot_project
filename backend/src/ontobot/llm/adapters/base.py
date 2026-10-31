@@ -16,3 +16,7 @@ class Adapter(Protocol):
         json_schema: dict[str, Any] | None,
         timeout_s: float,
     ) -> Completion: ...
+
+    async def embed(self, model: str, texts: list[str], *, timeout_s: float) -> list[list[float]]:
+        """``texts`` 와 같은 순서의 벡터. 임베딩을 못 하는 공급자는 ``ValueError``."""
+        ...

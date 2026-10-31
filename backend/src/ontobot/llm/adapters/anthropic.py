@@ -88,3 +88,8 @@ class AnthropicAdapter:
             prompt_tokens=usage.get("input_tokens"),
             completion_tokens=usage.get("output_tokens"),
         )
+
+    async def embed(self, model: str, texts: list[str], *, timeout_s: float) -> list[list[float]]:
+        raise ValueError(
+            "Anthropic 공급자는 임베딩을 제공하지 않습니다 — embedder 역할은 다른 공급자로"
+        )

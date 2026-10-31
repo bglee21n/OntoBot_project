@@ -8,11 +8,16 @@ from __future__ import annotations
 import asyncio
 
 from alembic import context
+from sqlalchemy.dialects.postgresql.base import ischema_names
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from ontobot.config import get_settings
 from ontobot.db.models import Base
+from ontobot.db.models.documents import Vector
+
+# pgvector 열을 반영(reflect)할 때 알아보게 한다 — 모르면 자료형 비교를 건너뛴다(Phase 16).
+ischema_names["vector"] = Vector
 
 config = context.config
 target_metadata = Base.metadata

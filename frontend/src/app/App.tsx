@@ -4,6 +4,7 @@ import { ActionsPage } from "../features/actions/ActionsPage";
 import { AdminPage } from "../features/admin/AdminPage";
 import { ChatPage } from "../features/chat/ChatPage";
 import { EvalPage } from "../features/eval/EvalPage";
+import { DocumentsPage } from "../features/documents/DocumentsPage";
 import { ExplorerPage } from "../features/explorer/ExplorerPage";
 import { TracesPage } from "../features/traces/TracesPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
@@ -29,6 +30,8 @@ export function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:conversationId" element={<ChatPage />} />
         <Route path="/explore" element={<ExplorerPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/documents/:docId" element={<DocumentsPage />} />
         <Route path="/traces" element={<TracesPage />} />
         <Route path="/traces/:traceId" element={<TracesPage />} />
         <Route path="/ontology" element={<VersionsPage />} />

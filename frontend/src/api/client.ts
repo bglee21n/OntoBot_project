@@ -42,8 +42,9 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   const res = await fetch(path.startsWith("/") ? path : `${API}/${path}`, {
     method,
     credentials: "same-origin",
-    headers: body === undefined ? {} : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    // FormData(파일 올리기)는 브라우저가 multipart 경계를 붙인다 — Content-Type 을 적지 않는다.
+    headers: body === undefined || body instanceof FormData ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
   if (!res.ok) {
     throw await toError(res);
@@ -62,6 +63,7 @@ export const api = {
   patch: <T,>(path: string, body: unknown) => request<T>("PATCH", `${API}${path}`, body),
   put: <T,>(path: string, body: unknown) => request<T>("PUT", `${API}${path}`, body),
   del: (path: string) => request<void>("DELETE", `${API}${path}`),
+  upload: <T,>(path: string, form: FormData) => request<T>("POST", `${API}${path}`, form),
   text: (path: string) => request<string>("GET", `${API}${path}`),
 };
 

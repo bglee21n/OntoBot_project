@@ -58,3 +58,19 @@ class OpenAICompatAdapter:
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
         )
+
+    async def embed(self, model: str, texts: list[str], *, timeout_s: float) -> list[list[float]]:
+        headers = {"Content-Type": "application/json"}
+        if self.api_key is not None:
+            headers["Authorization"] = f"Bearer {self.api_key.get_secret_value()}"
+        async with httpx.AsyncClient(transport=transport, timeout=timeout_s) as client:
+            res = await client.post(
+                f"{self.base_url}/embeddings",
+                json={"model": model, "input": texts},
+                headers=headers,
+            )
+            res.raise_for_status()
+            data = sorted(res.json()["data"], key=lambda d: d["index"])
+        if len(data) != len(texts):
+            raise ValueError(f"임베딩 수가 다릅니다: {len(data)} != {len(texts)}")
+        return [[float(v) for v in d["embedding"]] for d in data]

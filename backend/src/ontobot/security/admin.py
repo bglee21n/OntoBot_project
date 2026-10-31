@@ -21,9 +21,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ontobot.db.models.documents import Document
 from ontobot.db.models.security import (
     AppUser,
     AuditLog,
@@ -443,6 +444,13 @@ async def update_group(
 
 async def delete_group(db: AsyncSession, *, actor_id: int, group_id: int) -> None:
     g = await _group(db, group_id)
+    # 문서는 그룹 하나에 속한다(Phase 16) — 그룹을 지우면 문서의 읽을 사람이 사라진다.
+    if await db.scalar(select(func.count()).select_from(Document).where(Document.group_id == g.id)):
+        raise AdminError(
+            "이 그룹에 속한 문서가 있어 지울 수 없습니다 — 문서를 지우거나 다른 그룹으로 옮기세요",
+            code="group_has_documents",
+            status=409,
+        )
     view = await _group_view(db, g)
     await db.delete(g)
     await db.flush()

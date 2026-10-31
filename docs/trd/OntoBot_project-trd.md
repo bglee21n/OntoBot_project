@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.24                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.25                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -818,6 +818,28 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
   맡는다). 감사 기록이 있는 트랜잭션은 커밋까지 체인 잠금을 쥐므로, 감사 기록 뒤에 오래 걸리는 일을 같은 트랜잭션에서
   하지 않는다(지금 경로는 모두 짧다).
 
+### 17.9 문서 등록·색인 (v0.25, Phase 16a)
+
+- **저장**(마이그레이션 0018): `document`(제목·파일 이름·형식·크기·원본 SHA-256·**데이터 그룹(필수)**·추출 글·색인 상태)와
+  `document_chunk`(번호·시작 글자·글·`embedding vector`(차원 없음)·`embedding_model`). 원본 파일은 두지 않는다.
+  같은 그룹에 같은 파일(SHA-256)은 한 번만. 문서가 있는 그룹은 지울 수 없다.
+- **권한**: 문서는 그 그룹 구성원만 본다(`rbac.document_groups` — 관리자도 소속이 아니면 못 본다, 없는 문서와 같은 404).
+  등록·삭제·다시 색인은 모델러·관리자 역할 + 그 그룹 구성원.
+- **글 추출**(`documents.extract`): `.txt`·`.md`(UTF-8, 안 되면 CP949)·`.pdf` 글자 층(`pypdf`). 스캔 PDF·HWP·암호 PDF 는
+  받지 않는다(422). 정규화는 NFC·줄바꿈·줄 끝 공백뿐 — 근거 대조가 청크 원문을 그대로 찾기 때문이다(결정 12).
+- **청크**(`documents.chunking`, 순수): 문단을 800자까지 이어 붙이고, 넘치는 문단은 문장 끝 → 글자 수로 자른다. 겹침
+  없음, 각 청크는 원문의 연속된 부분 문자열.
+- **색인**: 등록 트랜잭션에서 작업 `document_embed` 를 넣고 워커가 16개씩 `LLMGateway.embed("embedder")`(어댑터 `embed` —
+  Ollama `/api/embed`, OpenAI 호환 `/embeddings`, Anthropic 은 없음). 모델 호출 동안 DB 트랜잭션을 쥐지 않는다. 지금
+  모델과 다른 벡터는 다시 만든다. 실패하면 문서에 오류를 남기고 작업 큐가 다시 시도한다. 임베딩 호출 기록에는 글을 남기지
+  않는다(개수·차원·지연).
+- **pgvector 설치**: 확장은 슈퍼유저가 DB 초기화 때 별도 스키마 `extensions` 에 만들고(`USAGE` 는 PUBLIC), DB `search_path`
+  에 넣는다(`postgres-init`) — 통합 테스트가 `public` 을 지웠다 다시 만들어도 확장이 남는다(앱 계정은 확장을 만들 수 없다,
+  pgvector 는 trusted 가 아니다). 마이그레이션은 `CREATE EXTENSION IF NOT EXISTS` 로 있는지만 확인한다. 기존 설치(확장이
+  `public`)도 그대로 동작한다.
+- **임베딩 모델**: `config/llm.yaml` 역할 `embedder` — Phase 16b 측정 전까지 `bge-m3`(1024차원)를 임시로. 차원이 정해지면
+  모델별 부분 인덱스를 둔다.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -900,6 +922,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.5 | 2026-10-20 | Phase 1.5 스파이크 반영(ADR-0004) — `cannot_answer`, 참조 값 실재 대조 범위, 데이터 블록 형식, 평균 반올림, 사실 문장 판정 전 조건 값 제외, 깨진 인용 기록 |
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
+| v0.25 | 2026-10-31 | Phase 16a 문서 등록·색인(17.9) — `document`·`document_chunk`(마이그레이션 0018), 문서 = 데이터 그룹 소유, 글 추출(txt·md·PDF 글자 층, HWP 제외)·겹침 없는 청크·`embedder` 역할·임베딩 작업, pgvector 를 `extensions` 스키마에 |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

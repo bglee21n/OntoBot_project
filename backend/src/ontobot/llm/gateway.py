@@ -176,6 +176,43 @@ class LLMGateway:
         )
         return out
 
+    async def embed(self, role: str, texts: list[str]) -> list[list[float]]:
+        """임베딩(Phase 16, 역할 ``embedder``). 외부 공급자면 PII 를 토큰으로 바꿔 보낸다.
+
+        기록에는 글을 남기지 않는다(문서 청크는 길고 많다) — 개수·지연·모델만.
+        """
+        role_cfg, provider = self.config.role(role)
+        model = self.model_for(role)
+        external = provider.external
+        sent = [self._tokens.tokenize(t) for t in texts] if external else texts
+        started = time.perf_counter()
+        try:
+            out = await _adapter(provider).embed(model, sent, timeout_s=role_cfg.timeout_s)
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            self._record(
+                role,
+                model,
+                [],
+                "",
+                int((time.perf_counter() - started) * 1000),
+                external=external,
+                ok=False,
+                error=f"{type(e).__name__}: {self._mask(str(e))}",
+                extra={"inputs": len(texts)},
+            )
+            raise LlmUnavailable(f"{role}: {type(e).__name__}") from e
+        self._record(
+            role,
+            model,
+            [],
+            "",
+            int((time.perf_counter() - started) * 1000),
+            external=external,
+            ok=True,
+            extra={"inputs": len(texts), "dimensions": len(out[0]) if out else 0},
+        )
+        return out
+
     async def complete(self, role: str, messages: list[Message]) -> Completion:
         return await self._call(role, messages, None)
 

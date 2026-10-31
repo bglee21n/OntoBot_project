@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 완료(a 피드백·b 객체 탐색·c 트레이스 화면 — 그래프에서의 편집은 제안서 2단계로 남음) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 진행 중(a 문서 등록·색인 완료 — 다음 b 임베딩 측정·c 문서 ↔ 객체·d 검색 단계) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -225,6 +225,13 @@ TRD v0.12 17.1절에 같은 내용이 있다.
   문서 ↔ 객체 링크(본문에서 객체 제목·pk **정확 일치** 후보 → 모델러 확정).
 - 결정 11 측정 ADR, `query/retrievers/vector.py`, QueryPlan `search` 단계(문서 청크 후보 → 결정 12 인용).
 - **완료 기준**: 문서 질문 골든 문항(답 없음 포함) 게이트, 문서 인용도 지어내면 제거되는지 단위 테스트.
+- **나눔(2026-10-31)**: 16a 등록·색인 → 16b 임베딩 측정 ADR(샘플 팩 합성 문서·질문) → 16c 문서 ↔ 객체 연결 →
+  16d 플래너 `search` 단계·`[[d:…]]` 인용 대조·골든·`eval-record`. 기본값으로 정한 것: HWP 는 받지 않는다(폐쇄망에서
+  쓸 수 있는 해석기가 없다), 문서는 데이터 그룹 하나에 속하고 그 구성원만 본다, 원본 파일은 두지 않는다.
+  - **16a 완료(2026-10-31)**: TRD 17.9. `document`·`document_chunk`(0018), 업로드 API(`python-multipart`)·`pypdf`,
+    겹침 없는 청크, `embedder` 역할(임시 `bge-m3`)·어댑터 `embed`·작업 `document_embed`, 문서 화면 `/documents`.
+    pgvector 를 `extensions` 스키마로(테스트가 `public` 을 지워도 남게) — `postgres-init` 수정, 쓰던 테스트 컨테이너는
+    같은 SQL 을 superuser 로 한 번 적용했다.
 
 ### Phase 17 — 변경 영향 분석·REST API 공개 (PRD 5.1·5.11 P1)
 

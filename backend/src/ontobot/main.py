@@ -28,6 +28,7 @@ from ontobot.api import actions as actions_api
 from ontobot.api import admin as admin_api
 from ontobot.api import auth as auth_api
 from ontobot.api import chat as chat_api
+from ontobot.api import documents as documents_api
 from ontobot.api import errors
 from ontobot.api import eval as eval_api
 from ontobot.api import graph as graph_api
@@ -166,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_api.router, prefix=API_PREFIX)
     app.include_router(workshop_api.router, prefix=API_PREFIX)
     app.include_router(eval_api.router, prefix=API_PREFIX)
+    app.include_router(documents_api.router, prefix=API_PREFIX)
     # 되돌림 경로(/{path})가 다른 경로를 가리지 않도록 맨 마지막에 붙인다.
     if settings.frontend_dist is not None:
         _mount_frontend(app, settings.frontend_dist)

@@ -9,10 +9,12 @@ from typing import Any
 
 from ontobot.config import get_settings
 from ontobot.db.session import get_engine, session_scope
+from ontobot.documents.indexing import embed_document
 from ontobot.evaluation import runner
 from ontobot.graph import client as graph
 from ontobot.graph.reconcile import rebuild, reconcile
 from ontobot.llm.config import load as load_llm_config
+from ontobot.llm.gateway import LLMGateway
 from ontobot.notify import config as notify_config
 from ontobot.notify import delivery
 from ontobot.objects.indexes import ensure_property_index
@@ -32,6 +34,7 @@ _log = logging.getLogger(__name__)
 AUDIT_VERIFY = "audit_verify"
 EVAL_RUN = "eval_run"
 NOTIFY = "notify_deliver"  # actions.runner.NOTIFY_JOB 와 같은 이름
+DOCUMENT_EMBED = "document_embed"  # documents.store.EMBED_JOB 와 같은 이름
 
 
 class JobFailed(Exception):
@@ -151,6 +154,11 @@ async def notify_deliver(_: dict[str, Any]) -> dict[str, Any]:
     return await delivery.deliver_due(cfg)
 
 
+async def document_embed(payload: dict[str, Any]) -> dict[str, Any]:
+    llm = LLMGateway(load_llm_config(get_settings().llm_config_path))
+    return await embed_document(int(payload["document_id"]), llm)
+
+
 HANDLERS: dict[str, Handler] = {
     SYNC: sync_mapping,
     GRAPH_REBUILD: graph_rebuild,
@@ -160,4 +168,5 @@ HANDLERS: dict[str, Handler] = {
     AUDIT_VERIFY: audit_verify,
     EVAL_RUN: eval_run,
     NOTIFY: notify_deliver,
+    DOCUMENT_EMBED: document_embed,
 }

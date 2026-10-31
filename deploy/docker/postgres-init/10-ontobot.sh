@@ -20,6 +20,12 @@ for db in $ONTOBOT_DB_NAMES; do
        -v db="$db" -v app_user="$ONTOBOT_DB_USER" <<'SQL'
 CREATE DATABASE :"db" OWNER :"app_user" ENCODING 'UTF8' TEMPLATE template0;
 SQL
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" \
-       -c "CREATE EXTENSION IF NOT EXISTS vector"
+  # 확장은 따로 둔 스키마에 — 통합 테스트가 public 을 지웠다 다시 만들어도 확장이 남는다(앱 계정은
+  # 확장을 만들 수 없다). 검색 경로에 넣어 열 자료형은 그냥 vector 로 쓴다.
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" -v db="$db" <<'SQL'
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS vector SCHEMA extensions;
+GRANT USAGE ON SCHEMA extensions TO PUBLIC;
+ALTER DATABASE :"db" SET search_path = public, extensions;
+SQL
 done

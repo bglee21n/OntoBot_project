@@ -591,6 +591,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents */
+        get: operations["documents_api_v1_documents_get"];
+        put?: never;
+        /** Upload */
+        post: operations["upload_api_v1_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Upload Groups
+         * @description 문서를 넣을 수 있는 그룹 — 내가 속한 그룹.
+         */
+        get: operations["upload_groups_api_v1_documents_groups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Document */
+        get: operations["document_api_v1_documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Document */
+        delete: operations["delete_document_api_v1_documents__doc_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{doc_id}/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reindex */
+        post: operations["reindex_api_v1_documents__doc_id__reindex_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/eval-runs": {
         parameters: {
             query?: never;
@@ -1995,6 +2068,15 @@ export interface components {
              */
             ts: string;
         };
+        /** Body_upload_api_v1_documents_post */
+        Body_upload_api_v1_documents_post: {
+            /** File */
+            file: string;
+            /** Group Id */
+            group_id: number;
+            /** Title */
+            title?: string | null;
+        };
         /** ChangeOut */
         ChangeOut: {
             /** After */
@@ -2039,6 +2121,17 @@ export interface components {
             conversation_id?: number | null;
             /** Question */
             question: string;
+        };
+        /** ChunkOut */
+        ChunkOut: {
+            /** Embedded */
+            embedded: boolean;
+            /** No */
+            no: number;
+            /** Start Char */
+            start_char: number;
+            /** Text */
+            text: string;
         };
         /** CitationData */
         CitationData: {
@@ -2150,6 +2243,86 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "sent" | "failed" | "cancelled";
+        };
+        /** DocumentDetail */
+        DocumentDetail: {
+            /** Chars */
+            chars: number;
+            /** Chunk List */
+            chunk_list: components["schemas"]["ChunkOut"][];
+            /** Chunks */
+            chunks: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Embedded */
+            embedded: number;
+            /** Embedding Model */
+            embedding_model: string | null;
+            /** Error */
+            error: string | null;
+            /** Filename */
+            filename: string;
+            /** Group Id */
+            group_id: number;
+            /** Group Name */
+            group_name: string;
+            /** Id */
+            id: number;
+            /** Indexed At */
+            indexed_at: string | null;
+            /** Media Type */
+            media_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "indexed" | "failed";
+            /** Title */
+            title: string;
+        };
+        /** DocumentOut */
+        DocumentOut: {
+            /** Chars */
+            chars: number;
+            /** Chunks */
+            chunks: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Embedded */
+            embedded: number;
+            /** Embedding Model */
+            embedding_model: string | null;
+            /** Error */
+            error: string | null;
+            /** Filename */
+            filename: string;
+            /** Group Id */
+            group_id: number;
+            /** Group Name */
+            group_name: string;
+            /** Id */
+            id: number;
+            /** Indexed At */
+            indexed_at: string | null;
+            /** Media Type */
+            media_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "indexed" | "failed";
+            /** Title */
+            title: string;
         };
         /** DoneData */
         DoneData: {
@@ -2765,6 +2938,13 @@ export interface components {
             pending_events: number;
             /** Projection Lag Seconds */
             projection_lag_seconds: number;
+        };
+        /** GroupChoice */
+        GroupChoice: {
+            /** Display Name */
+            display_name: string;
+            /** Id */
+            id: number;
         };
         /** GroupCreate */
         GroupCreate: {
@@ -5184,6 +5364,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    documents_api_v1_documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"][];
+                };
+            };
+        };
+    };
+    upload_api_v1_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_api_v1_documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_groups_api_v1_documents_groups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupChoice"][];
+                };
+            };
+        };
+    };
+    document_api_v1_documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_api_v1_documents__doc_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reindex_api_v1_documents__doc_id__reindex_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
                 };
             };
             /** @description Validation Error */

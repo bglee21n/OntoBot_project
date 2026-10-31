@@ -53,6 +53,17 @@ class OllamaAdapter:
             completion_tokens=data.get("eval_count"),
         )
 
+    async def embed(self, model: str, texts: list[str], *, timeout_s: float) -> list[list[float]]:
+        async with httpx.AsyncClient(transport=transport, timeout=timeout_s) as client:
+            res = await client.post(
+                f"{self.base_url}/api/embed", json={"model": model, "input": texts}
+            )
+            res.raise_for_status()
+            vectors = res.json()["embeddings"]
+        if len(vectors) != len(texts):
+            raise ValueError(f"임베딩 수가 다릅니다: {len(vectors)} != {len(texts)}")
+        return [[float(v) for v in vec] for vec in vectors]
+
     async def missing_models(self, models: set[str], *, timeout_s: float) -> set[str]:
         """설치되지 않은 모델(``/readyz``). 서버에 닿지 못하면 httpx 오류를 그대로 올린다.
 

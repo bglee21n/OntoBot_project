@@ -52,6 +52,17 @@ def has_role(roles: Iterable[str], *required: str) -> bool:
     return any(r in held for r in required)
 
 
+async def document_groups(db: AsyncSession, user_id: int) -> frozenset[int]:
+    """문서를 읽을 수 있는 그룹(Phase 16) — 소속 그룹 전부.
+
+    문서는 그룹 하나에 속하고, 그 구성원만 본다.
+
+    관리자라도 소속이 아니면 그 그룹 문서를 읽지 못한다(타입 권한과 같은 원칙).
+    """
+    rows = await db.scalars(select(GroupMember.group_id).where(GroupMember.user_id == user_id))
+    return frozenset(rows)
+
+
 async def readable_types(db: AsyncSession, user_id: int) -> frozenset[str]:
     """읽을 수 있는 객체 타입 — 소속 데이터 그룹 읽기 권한의 합집합(Phase 14)."""
     return await _types_with(db, GroupTypePermission.can_read, user_id=user_id)

@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.24) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.25) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
-G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면) 완료 — 다음은 Phase 16(문서 ↔ 객체 연결·
-하이브리드 검색), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인) 완료 — 다음은 Phase 16b(임베딩
+측정 ADR)·16c(문서 ↔ 객체 연결)·16d(질의 검색 단계·문서 인용), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -104,6 +104,8 @@ backend/src/ontobot/
   actions/    rules(파라미터·사전 조건·바뀔 값·템플릿, 순수) · params(채팅 Action 제안 대조) · runner(미리보기 → 승인 = 실행 → 거부 → 롤백)
   notify/     config(notify.yaml, 채널 꺼짐이 기본) · channels(SMTP·SMS 게이트웨이 — 네트워크는 여기만) · delivery(아웃박스)
   functions/  binding(인자·내부 계획 검증, 순수) · evaluator(식 트리·근거 행·조건 문장, 순수) · runner(파이프라인 실행기로 내부 조회)
+  explorer/   객체 탐색(검색·1홉 이웃 — graph/traversal 의 Cypher, 제목은 reader) · limits(관리자 확장 한도)
+  documents/  extract(txt·md·PDF 글자 층) · chunking(겹침 없는 청크, 순수) · store(그룹 소유·등록·삭제) · indexing(임베딩 작업)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -190,6 +192,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   `task.py` 에(화면 설명·묶음은 `devconsole/.../catalog.py` 의 `TASK_INFO`). 127.0.0.1 바인드·Host·Origin·`X-Ontobot-Dev`
   검사를 느슨하게 하지 말 것(로컬 콘솔을 다른 사이트가 부르는 길이 된다). 서명 개인키는 경로만 다루고 내용을 읽지 않는다.
   작업 실행기는 배포 콘솔과 공유(`opsjobs/`) — 바꾸면 두 콘솔 테스트를 함께 돌린다. 화면 부품은 `frontend/src/components/ops/`.
+- **pgvector 는 `extensions` 스키마에 있다**(Phase 16, TRD 17.9). 슈퍼유저가 DB 초기화 때 만들고 `search_path` 에 넣는다 —
+  통합 테스트가 `public` 을 지워도 남고, 앱 계정은 확장을 만들 수 없다. 테스트 컨테이너를 새로 만들지 않고 쓰던 것이면
+  `postgres-init/10-ontobot.sh` 의 SQL 을 superuser 로 한 번 돌린다. 청크 글은 원문의 연속된 부분이어야 한다
+  (`documents.chunking` — 문서 인용 근거 대조가 그대로 찾는다). 문서 권한은 `rbac.document_groups` 뿐.
 - 채팅 한 건은 답이 끝날 때까지 DB 연결을 쥔다. 연결 풀(`ONTOBOT_DB_POOL_SIZE`+`MAX_OVERFLOW`)이 동시 채팅 상한이다.
 - 로그는 `ontobot.logs.setup` 으로만 꾸민다(JSON·마스킹·요청 ID). `logging.basicConfig` 를 새로 쓰지 말 것.
 - **폐기(`deprecated`)는 정의 문서에서 거짓이면 빠진다**(`models.drop_default_flags`) — 그래야 기존 게시본 `content_hash`·
