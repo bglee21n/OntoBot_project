@@ -28,6 +28,8 @@ $env:PYTHONUTF8 = "1"
 uv run --project backend python scripts/build_bundle.py --signing-key D:\keys\ontobot-release.key
 # 업그레이드용 앱 번들(앱·배포 콘솔 이미지만, 약 220MB) — 배포 콘솔에 올릴 zip 도 만든다
 uv run --project backend python scripts/build_bundle.py --app-only --zip --signing-key D:\keys\ontobot-release.key
+# 새 Ollama 모델이 생긴 버전(예: v1 의 bge-m3)으로 올릴 때는 모델도 담는다(약 11GB)
+uv run --project backend python scripts/build_bundle.py --app-only --with-models --zip --signing-key D:\keys\ontobot-release.key
 ```
 
 결과: `dist\bundle\ontobot-<버전>\`(+ `.zip`). 제3자 이미지는 `deploy/docker/images.lock` 의 다이제스트로 받는다.
@@ -80,6 +82,12 @@ Docker·NVIDIA → 번들·공개키 복사 → `ontobotctl install`(서명 확�
 1. 앱 번들 zip 을 **배포 콘솔 → 번들 → 올리기**, 또는 서버의 `C:\OntoBot-bundles` 에 복사해 **가져오기**.
 2. 서명·해시를 확인한 사전 점검 결과가 **통과**면 **업그레이드** → 대상 버전을 입력 → 실행. 진행 로그가 보인다.
 3. 문제가 있으면 **롤백**: 프로그램만(기본) / DB 까지 업그레이드 직전 백업으로(`RESTORE` 입력 — 그 뒤 데이터 사라짐).
+
+> **설정은 덮지 않는다.** `config/llm.yaml`·`notify.yaml` 은 운영자 것이라 업그레이드가 바꾸지 않는다. 새 버전에 새 LLM
+> 역할(예: v1 의 `embedder`)이 있으면 사전 점검·업그레이드 로그에 "설정에 없는 역할: …"이 나오고 새 기본값이
+> `config/llm.yaml.new` 로 놓인다 — 그 줄을 `config/llm.yaml` 의 `roles:` 에 옮기고
+> `wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose up -d"`. "Ollama 에 없는 모델: …"이 나오면 모델을 담은
+> 번들(`--with-models`)로 올린다. 역할을 더하기 전까지 그 기능(문서 넣기)은 409 로 막힌다.
 4. **현황 → 지금 백업**. 매일 02:30 자동 백업(14개 보관, `C:\OntoBot\backups` 에 복사본).
 
 배포 콘솔이 안 되면 같은 일을 WSL 안에서 직접 한다(비상 경로):

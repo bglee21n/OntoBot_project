@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.33) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-Phase 19(v1 안정화·출시) — 17(게시 영향·공개 REST API)·18(워크숍 확장형: 분할 화면·세션 병합·샘플 데이터 시연) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -183,6 +183,8 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   `.env`·`config/`·`VERSION` 을 패키지
   위치의 `parents[3]`(저장소 루트)에서 찾기 때문이다. 이 경로 규칙을 바꾸면 설치본이 설정을 못 찾는다.
   번들 wheelhouse 에는 hatchling 과 `editables` 가 함께 있어야 한다(오프라인 설치 시험에서 발견).
+  **업그레이드는 설치의 `config/` 를 덮지 않는다** — 새 LLM 역할·모델을 더하면 `ontobotctl` 이 알릴 뿐이고(config_drift,
+  `config/llm.yaml.new`) 운영자가 더한다. 새 Ollama 모델이 필요한 업그레이드는 `build_bundle.py --app-only --with-models`.
 - **컨테이너·배포 규칙(ADR-0013·0014)**: PostgreSQL 클러스터는 `--locale-provider=builtin --builtin-locale=C.UTF-8`
   로 만든다(glibc 로캘은 한글 정렬이 달라 그룹 순서·카세트 키가 바뀐다 — 실측). WSL·컨테이너에서 도는 파일
   (`ontobotctl`·`*.sh`·systemd)은 **LF**(`.gitattributes`, 번들은 `copy_lf`). 배포 콘솔(`deployer/`)은 `ontobot` 을

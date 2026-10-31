@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 17 완료 · Phase 18 완료 · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.33, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 17 완료 · Phase 18 완료 · Phase 19 완료 — v1 구현 확정(TRD v1.0)** · 2026-10-31 · 기준 TRD v1.0, PRD v0.5
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -291,6 +291,11 @@ TRD v0.12 17.1절에 같은 내용이 있다.
 ### Phase 19 — v1 안정화·출시
 
 - 전체 게이트·부하·번들, TRD v1.0, PRD 7절 v1 지표 수치 제안.
+- **완료(2026-10-31)**: TRD 20.1. 실제 모델 게이트 eval_run 19 통과(정답률 0.97·불변식 0), 부하 232건 실패 0(8명 p95 18.0초,
+  ADR-0011), **Phase 13 에서 남은 업그레이드·롤백 왕복**: 시험 키로 서명한 MVP(2098e81) 전체 번들 설치 → v1 앱 번들 업그레이드
+  (0008→0020) → DB 복원 롤백, 모두 18·①. 발견: 업그레이드가 운영자의 `config/llm.yaml` 을 덮지 않아 `embedder` 역할·bge-m3 가
+  빠짐 → `ontobotctl` 설정 차이 알림·`build_bundle --with-models`·문서 넣기 409 로 고치고, 모델을 담은 번들로 다시 올려 문서
+  질문 ① 까지 확인. PRD v0.5 7.1 수치 제안. 시험 설치(`/opt/ontobot`·볼륨·워크트리)는 지웠고 번들은 `D:\OntoBot_bundles` 에 남겼다.
 
 ---
 
