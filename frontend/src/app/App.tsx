@@ -10,6 +10,7 @@ import { TracesPage } from "../features/traces/TracesPage";
 import { VersionDetailPage } from "../features/ontology/VersionDetailPage";
 import { VersionsPage } from "../features/ontology/VersionsPage";
 import { SourcesPage } from "../features/sources/SourcesPage";
+import { DemoPage } from "../features/workshop/DemoPage";
 import { SessionPage } from "../features/workshop/SessionPage";
 import { WorkshopPage } from "../features/workshop/WorkshopPage";
 import { LoginPage, RequireAuth } from "./auth";
@@ -44,6 +45,7 @@ export function App() {
         <Route path="/eval/:setId" element={<EvalPage />} />
         <Route path="/eval/:setId/runs/:runId" element={<EvalPage />} />
         <Route path="/workshop/:sessionId" element={<SessionPage />} />
+        <Route path="/workshop/demo/:versionId" element={<DemoPage />} />
       </Route>
     </Routes>
   );

@@ -235,6 +235,9 @@ export function SessionPage() {
               <Link to={`/ontology/versions/${published?.version_id ?? s.published_version_id}`}>
                 {t.openDraft}
               </Link>
+              {isModeler && (
+                <Link to={`/workshop/demo/${published?.version_id ?? s.published_version_id}`}>{t.demo.open}</Link>
+              )}
             </div>
           )}
         </aside>

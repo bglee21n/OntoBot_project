@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 17 완료 · Phase 18 진행 중(a 화면·b 세션 병합 완료 — 다음 c 샘플 데이터 시연) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.32, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 17 완료 · Phase 18 완료 · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.33, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -281,6 +281,12 @@ TRD v0.12 17.1절에 같은 내용이 있다.
   - **18b 완료(2026-10-31)**: TRD 17.15. `workshop/merge.py`(후보, 순수)·`publish.publish_many`, API 후보·병합,
     워크숍 목록의 병합 패널. 통합 테스트: 인터뷰 2개 → 후보(타입·속성 일치, 속성 자료형 충돌) → 병합 막힘 → 한쪽 거절 →
     draft 하나. 브라우저는 개발 DB 에 제출된 인터뷰가 없어 목록·후보 API 까지만 확인했다.
+  - **18c 완료(2026-10-31)**: TRD 17.16. `objects/demo_store.py`(격리 스키마·`search_path`)·`workshop/demo.py`(CSV·질문),
+    API·화면 `/workshop/demo/:versionId`. 통합 테스트: 시연 행은 운영 표에 없고 요청 뒤 `search_path` 가 풀리며, 파이프라인
+    그대로 ①, 운영 행은 시연에서 0건, 삭제 → 404. 브라우저(개발 DB, 실제 gemma4:e4b): draft #3 에 시설 4행 → "위험등급 4 이상
+    몇 개" 3건 ①(운영 30건과 무관)·"변전소 목록" 시연 2건 ①. 완료 기준의 "인터뷰 2개 병합 → draft → 시연"은 병합(18b 통합
+    테스트)과 시연(18c)을 따로 확인했다 — 한 흐름으로 브라우저에서 잇지는 않았다(개발 DB 에 제출된 인터뷰가 없다).
+    한계: 그래프 없음(탐색 질문 실패), 시연 표는 만든 때의 표 모양.
 
 ### Phase 19 — v1 안정화·출시
 

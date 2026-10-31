@@ -1803,6 +1803,208 @@
         "title": "DeliveryOut",
         "type": "object"
       },
+      "DemoAnswerOut": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/CitationData"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "empty",
+              "failed",
+              "not_query",
+              "action_preview"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "answer",
+          "grade",
+          "failure_reason",
+          "conditions",
+          "citations"
+        ],
+        "title": "DemoAnswerOut",
+        "type": "object"
+      },
+      "DemoAskIn": {
+        "properties": {
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "DemoAskIn",
+        "type": "object"
+      },
+      "DemoOut": {
+        "properties": {
+          "exists": {
+            "title": "Exists",
+            "type": "boolean"
+          },
+          "issues": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/DemoTypeOut"
+            },
+            "title": "Types",
+            "type": "array"
+          },
+          "version_id": {
+            "title": "Version Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_id",
+          "ready",
+          "issues",
+          "exists",
+          "types"
+        ],
+        "title": "DemoOut",
+        "type": "object"
+      },
+      "DemoRowsIn": {
+        "properties": {
+          "csv": {
+            "maxLength": 1000000,
+            "minLength": 1,
+            "title": "Csv",
+            "type": "string"
+          },
+          "object_type": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Object Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "object_type",
+          "csv"
+        ],
+        "title": "DemoRowsIn",
+        "type": "object"
+      },
+      "DemoRowsOut": {
+        "properties": {
+          "changed": {
+            "title": "Changed",
+            "type": "integer"
+          },
+          "links": {
+            "title": "Links",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "changed",
+          "links"
+        ],
+        "title": "DemoRowsOut",
+        "type": "object"
+      },
+      "DemoTypeOut": {
+        "properties": {
+          "api_name": {
+            "title": "Api Name",
+            "type": "string"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "pk_property": {
+            "title": "Pk Property",
+            "type": "string"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "api_name",
+          "display_name",
+          "pk_property",
+          "columns",
+          "rows"
+        ],
+        "title": "DemoTypeOut",
+        "type": "object"
+      },
       "DocumentDetail": {
         "properties": {
           "chars": {
@@ -14536,6 +14738,188 @@
           }
         },
         "summary": "Action Candidates",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/demo/{version_id}": {
+      "delete": {
+        "operationId": "demo_drop_api_v1_workshop_demo__version_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Drop",
+        "tags": [
+          "workshop"
+        ]
+      },
+      "get": {
+        "description": "시연 준비 상태 — 게시 전 검사, 타입별 CSV 열·넣은 행 수.",
+        "operationId": "demo_status_api_v1_workshop_demo__version_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Status",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/demo/{version_id}/ask": {
+      "post": {
+        "description": "운영과 같은 파이프라인으로 답한다(시연 스키마·그래프 없음).\n\n기록(대화·트레이스)은 남기지 않는다.",
+        "operationId": "demo_ask_api_v1_workshop_demo__version_id__ask_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoAskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoAnswerOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Ask",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/demo/{version_id}/rows": {
+      "post": {
+        "description": "샘플 행(CSV) → 이 버전의 격리 스키마. 같은 pk 는 덮어쓴다.",
+        "operationId": "demo_rows_api_v1_workshop_demo__version_id__rows_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoRowsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRowsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Rows",
         "tags": [
           "workshop"
         ]

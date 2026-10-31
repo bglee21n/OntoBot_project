@@ -1857,6 +1857,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workshop/demo/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Demo Status
+         * @description 시연 준비 상태 — 게시 전 검사, 타입별 CSV 열·넣은 행 수.
+         */
+        get: operations["demo_status_api_v1_workshop_demo__version_id__get"];
+        put?: never;
+        post?: never;
+        /** Demo Drop */
+        delete: operations["demo_drop_api_v1_workshop_demo__version_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/demo/{version_id}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demo Ask
+         * @description 운영과 같은 파이프라인으로 답한다(시연 스키마·그래프 없음).
+         *
+         *     기록(대화·트레이스)은 남기지 않는다.
+         */
+        post: operations["demo_ask_api_v1_workshop_demo__version_id__ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/demo/{version_id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demo Rows
+         * @description 샘플 행(CSV) → 이 버전의 격리 스키마. 같은 pk 는 덮어쓴다.
+         */
+        post: operations["demo_rows_api_v1_workshop_demo__version_id__rows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workshop/elements/{element_id}": {
         parameters: {
             query?: never;
@@ -2615,6 +2678,71 @@ export interface components {
              * @enum {string}
              */
             status: "pending" | "sent" | "failed" | "cancelled";
+        };
+        /** DemoAnswerOut */
+        DemoAnswerOut: {
+            /** Answer */
+            answer: string;
+            /** Citations */
+            citations: components["schemas"]["CitationData"][];
+            /** Conditions */
+            conditions: string | null;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Grade */
+            grade: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "failed" | "not_query" | "action_preview";
+        };
+        /** DemoAskIn */
+        DemoAskIn: {
+            /** Question */
+            question: string;
+        };
+        /** DemoOut */
+        DemoOut: {
+            /** Exists */
+            exists: boolean;
+            /** Issues */
+            issues: {
+                [key: string]: string;
+            }[];
+            /** Ready */
+            ready: boolean;
+            /** Types */
+            types: components["schemas"]["DemoTypeOut"][];
+            /** Version Id */
+            version_id: number;
+        };
+        /** DemoRowsIn */
+        DemoRowsIn: {
+            /** Csv */
+            csv: string;
+            /** Object Type */
+            object_type: string;
+        };
+        /** DemoRowsOut */
+        DemoRowsOut: {
+            /** Changed */
+            changed: number;
+            /** Links */
+            links: number;
+        };
+        /** DemoTypeOut */
+        DemoTypeOut: {
+            /** Api Name */
+            api_name: string;
+            /** Columns */
+            columns: string[];
+            /** Display Name */
+            display_name: string;
+            /** Pk Property */
+            pk_property: string;
+            /** Rows */
+            rows: number;
         };
         /** DocumentDetail */
         DocumentDetail: {
@@ -8600,6 +8728,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionCandidateOut"][];
+                };
+            };
+        };
+    };
+    demo_status_api_v1_workshop_demo__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    demo_drop_api_v1_workshop_demo__version_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    demo_ask_api_v1_workshop_demo__version_id__ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoAskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoAnswerOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    demo_rows_api_v1_workshop_demo__version_id__rows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRowsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRowsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

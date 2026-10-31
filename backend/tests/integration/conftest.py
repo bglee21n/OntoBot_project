@@ -61,6 +61,13 @@ async def test_database() -> AsyncIterator[str]:
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA public CASCADE"))
         await conn.execute(text("CREATE SCHEMA public"))
+        # 워크숍 시연 스키마(demo_v<버전 id>, Phase 18c) — 버전 id 가 처음부터 다시 매겨지므로
+        # 함께 지운다.
+        demos = await conn.scalars(
+            text("SELECT nspname FROM pg_namespace WHERE nspname ~ '^demo_v[0-9]+$'")
+        )
+        for schema in list(demos):
+            await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
     await engine.dispose()
 
     cfg = Config(str(BACKEND / "alembic.ini"))

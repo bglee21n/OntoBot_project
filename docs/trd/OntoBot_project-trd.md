@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.32                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.33                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -935,6 +935,21 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - API `POST /workshop/merge/candidates`·`POST /workshop/merge`(`session_ids` 2~20), 화면: 워크숍 목록에서 제출된 인터뷰를
   골라 병합 후보 표(충돌은 빨간 줄·병합 단추 끔) → 병합.
 
+### 17.16 샘플 데이터 질의 시연 (v0.33, Phase 18c, PRD 5.8 P1)
+
+- **격리 저장소**(`objects.demo_store`): 버전마다 스키마 `demo_v<버전 id>` 에 `object`·`link`·`object_edit`(`LIKE public.…
+  INCLUDING DEFAULTS·CONSTRAINTS·INDEXES`, FK 는 베끼지 않음). 요청 트랜잭션의 `search_path` 맨 앞에 그 스키마를 넣는다
+  (`set_config(..., true)` — 트랜잭션이 끝나면 풀린다). 객체 SQL 이 스키마를 적지 않으므로 **이것이 유일한 주입 지점**이고
+  파이프라인 코드는 운영 그대로다(평가의 장애 주입과 같은 원칙). 스키마 이름은 정수 id 로만 만든다.
+- **시연**(`workshop.demo`, 모델러): 게시 전 검사를 통과한 버전만. 타입별 CSV(첫 줄 = 속성 이름, pk 필수, 최대 1000행) —
+  정의에 없는 열·자료형 오류·pk 빈칸·겹침은 모두 모아 그 표 전체를 받지 않는다(동기화와 같은 전체 실패). FK 링크 규칙을
+  돌린다. 질문은 `pipeline.run` 그대로(읽기 = 그 버전의 모든 타입, 그래프 없음 → 탐색 조건은 `graph_unavailable`, 문서 없음),
+  대화·트레이스는 남기지 않는다.
+- API `GET /workshop/demo/{version_id}`(준비·검사 결과·타입별 열·행 수)·`POST …/rows`·`POST …/ask`·`DELETE …`(스키마째 지움).
+  화면 `/workshop/demo/:versionId`(인터뷰 게시·병합 결과에서 링크).
+- 한계: 시연 표는 만든 때의 `public` 표 모양을 베낀다 — 업그레이드로 객체 표가 바뀌면 지우고 다시 넣는다. 스키마는 지우기 전까지
+  남는다(백업에 들어간다). 통합 테스트는 세션 시작 때 `demo_v*` 를 함께 지운다(버전 id 가 다시 매겨진다).
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -1025,6 +1040,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.30 | 2026-10-31 | Phase 17b 공개 REST API(17.13) — 서비스 계정(`app_user.kind`)·API 키(해시·스코프·만료·폐기, 0020), Bearer 만 받는 `/api/v1/public`(질의 JSON·객체 읽기·Action 요청 → 사람 승인), 공개 OpenAPI |
 | v0.31 | 2026-10-31 | Phase 18a 워크숍 확장형 화면(17.14) — 대화 \| 실시간 미리보기(검토·요소 그래프·Action 정의서), 모바일 한 열·탭, 기능 플래그 `GET /config/features`(음성 입력은 폐쇄망이면 그리지 않음), 미리보기 갱신 시간 측정 |
 | v0.32 | 2026-10-31 | Phase 18b 인터뷰 병합(17.15) — 세션 간 이름 정확 일치 후보(일치·충돌·한 세션만, 같은 표시 이름 알림), 모델러가 제출 세션 여럿을 draft 하나로(`publish_many`) |
+| v0.33 | 2026-10-31 | Phase 18c 샘플 데이터 시연(17.16) — 버전별 격리 스키마 `demo_v<id>`·`search_path` 주입 하나로 운영 파이프라인 그대로 질의, CSV 샘플 행(전체 실패 규칙), 그래프 없음 |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

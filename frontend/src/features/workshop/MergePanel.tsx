@@ -44,7 +44,8 @@ export function MergePanel({ ids }: { ids: number[] }) {
       {merge.data && (
         <p className="notice">
           {t.done(merge.data.version_id, merge.data.golden_items)}{" "}
-          <Link to={`/ontology/versions/${merge.data.version_id}`}>{ko.workshop.openDraft}</Link>
+          <Link to={`/ontology/versions/${merge.data.version_id}`}>{ko.workshop.openDraft}</Link>{" "}
+          <Link to={`/workshop/demo/${merge.data.version_id}`}>{ko.workshop.demo.open}</Link>
         </p>
       )}
       {data && (

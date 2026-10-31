@@ -19,12 +19,15 @@ from sqlalchemy import select
 
 from ontobot.api.deps import CurrentUser, Db, SettingsDep, require_role
 from ontobot.api.errors import ProblemError
+from ontobot.chat.stream import CitationData
 from ontobot.db.models.workshop import DraftElement, InterviewSession, InterviewUtterance
 from ontobot.llm.config import load as load_llm_config
 from ontobot.llm.gateway import LLMGateway, LlmUnavailable
+from ontobot.objects import demo_store
+from ontobot.ontology import versioning
 from ontobot.security import rbac
 from ontobot.security.rbac import ROLE_DOMAIN_EXPERT, ROLE_MODELER
-from ontobot.workshop import elements, publish, review, sessions, topics
+from ontobot.workshop import demo, elements, publish, review, sessions, topics
 from ontobot.workshop import merge as merge_mod
 
 router = APIRouter(prefix="/workshop", tags=["workshop"])
@@ -405,6 +408,135 @@ async def merge_publish(body: MergeIn, db: Db, user: Modeler) -> PublishOut:
         added=done.added,
         reused=done.reused,
     )
+
+
+# ---------------------------------------------------------------- 샘플 데이터 시연(Phase 18c)
+
+
+class DemoTypeOut(BaseModel):
+    api_name: str
+    display_name: str
+    pk_property: str
+    columns: list[str]
+    rows: int
+
+
+class DemoOut(BaseModel):
+    version_id: int
+    ready: bool
+    issues: list[dict[str, str]]
+    exists: bool
+    types: list[DemoTypeOut]
+
+
+class DemoRowsIn(BaseModel):
+    object_type: str = Field(min_length=1, max_length=64)
+    csv: str = Field(min_length=1, max_length=demo.MAX_CSV_CHARS)
+
+
+class DemoRowsOut(BaseModel):
+    changed: int
+    links: int
+
+
+class DemoAskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+
+
+class DemoAnswerOut(BaseModel):
+    status: Literal["ok", "empty", "failed", "not_query", "action_preview"]
+    answer: str
+    grade: int | None
+    failure_reason: str | None
+    conditions: str | None
+    citations: list[CitationData]
+
+
+@contextmanager
+def _demo_errors() -> Iterator[None]:
+    try:
+        yield
+    except versioning.VersionNotFound as e:
+        raise ProblemError(404, "버전을 찾을 수 없습니다", code="version_not_found") from e
+    except demo.DemoNotReady as e:
+        raise ProblemError(
+            409,
+            "게시 전 검사를 통과한 draft 만 시연할 수 있습니다",
+            code="demo_not_ready",
+            extra={"issues": [i.__dict__ for i in e.issues]},
+        ) from e
+    except demo.RowsInvalid as e:
+        raise ProblemError(
+            422, "샘플 행을 받지 못했습니다", code="demo_rows_invalid", extra={"errors": e.errors}
+        ) from e
+    except demo_store.DemoNotFound as e:
+        raise ProblemError(404, "샘플 데이터를 먼저 넣으세요", code="demo_not_found") from e
+
+
+@router.get("/demo/{version_id}", response_model=DemoOut)
+async def demo_status(version_id: int, db: Db, _: Modeler) -> DemoOut:
+    """시연 준비 상태 — 게시 전 검사, 타입별 CSV 열·넣은 행 수."""
+    with _demo_errors():
+        version = await versioning.get_version(db, version_id)
+    doc = versioning.to_document(version)
+    try:
+        await demo.schema_of(db, version_id)
+        issues: list[dict[str, str]] = []
+    except demo.DemoNotReady as e:
+        issues = [i.__dict__ for i in e.issues]
+    counts = await demo_store.counts(db, version_id)
+    return DemoOut(
+        version_id=version_id,
+        ready=not issues,
+        issues=issues,
+        exists=await demo_store.exists(db, version_id),
+        types=[
+            DemoTypeOut(
+                api_name=t.api_name,
+                display_name=t.display_name,
+                pk_property=t.pk_property,
+                columns=[p.api_name for p in t.properties],
+                rows=counts.get(t.api_name, 0),
+            )
+            for t in doc.active().object_types
+        ],
+    )
+
+
+@router.post("/demo/{version_id}/rows", response_model=DemoRowsOut)
+async def demo_rows(version_id: int, body: DemoRowsIn, db: Db, _: Modeler) -> DemoRowsOut:
+    """샘플 행(CSV) → 이 버전의 격리 스키마. 같은 pk 는 덮어쓴다."""
+    with _demo_errors():
+        schema = await demo.schema_of(db, version_id)
+        changed, links = await demo.load_rows(db, schema, body.object_type, body.csv)
+    return DemoRowsOut(changed=changed, links=links)
+
+
+@router.post("/demo/{version_id}/ask", response_model=DemoAnswerOut)
+async def demo_ask(
+    version_id: int, body: DemoAskIn, db: Db, settings: SettingsDep, _: Modeler
+) -> DemoAnswerOut:
+    """운영과 같은 파이프라인으로 답한다(시연 스키마·그래프 없음).
+
+    기록(대화·트레이스)은 남기지 않는다.
+    """
+    with _demo_errors():
+        schema = await demo.schema_of(db, version_id)
+        llm = LLMGateway(load_llm_config(settings.llm_config_path))
+        res = await demo.ask(db, llm, schema, body.question)
+    return DemoAnswerOut(
+        status=res.status,
+        answer=res.answer,
+        grade=res.grade,
+        failure_reason=res.failure_reason,
+        conditions=res.conditions,
+        citations=[CitationData.model_validate(c) for c in res.citations],
+    )
+
+
+@router.delete("/demo/{version_id}", status_code=204)
+async def demo_drop(version_id: int, db: Db, _: Modeler) -> None:
+    await demo_store.drop(db, version_id)
 
 
 # ---------------------------------------------------------------- Action 후보(v1, PRD 5.3)
