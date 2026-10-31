@@ -22,6 +22,7 @@ from pydantic import BaseModel
 
 from ontobot.api.deps import CurrentUser, Db, User, require_role
 from ontobot.api.errors import ProblemError
+from ontobot.documents import links as document_links
 from ontobot.explorer import limits as explorer_limits
 from ontobot.explorer import service as explorer
 from ontobot.objects import edits
@@ -431,3 +432,30 @@ async def clear_edit(edit_id: int, db: Db, user: Curator) -> None:
         target=f"object_edit:{edit_id}",
         payload={"type": target[0], "pk": target[1], "property": target[2]},
     )
+
+
+class RelatedDocumentOut(BaseModel):
+    document_id: int
+    title: str
+    group_name: str
+    match_text: str
+    first_chunk_no: int
+
+
+@router.get("/{object_type}/{pk}/documents", response_model=list[RelatedDocumentOut])
+async def related_documents(
+    object_type: str, pk: str, db: Db, user: User
+) -> list[RelatedDocumentOut]:
+    """확정된 문서 링크(Phase 16c) — 객체를 볼 수 있고, 문서 그룹에 속한 문서만."""
+    schema = registry.current()
+    if schema is None:
+        raise _not_found()
+    access = await rbac.access(db, user.id)
+    try:
+        await explorer.check_start(db, schema.document, access, object_type, pk)
+    except explorer.NotFound as e:
+        raise _not_found() from e
+    rows = await document_links.related_documents(
+        db, object_type, pk, await rbac.document_groups(db, user.id)
+    )
+    return [RelatedDocumentOut.model_validate(r, from_attributes=True) for r in rows]

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../../api/client";
-import type { CitationData, FieldOut, MessageOut, ObjectCard } from "../../api/types";
+import type { CitationData, FieldOut, MessageOut, ObjectCard, RelatedDocumentOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 
@@ -252,9 +252,35 @@ export function ObjectCardPanel({
                   .join(" · ")
               : t.card.lineageNone}
           </div>
+          <RelatedDocuments type={card.data.type} pk={card.data.pk} />
         </>
       )}
     </aside>
+  );
+}
+
+/** 확정된 문서 링크(Phase 16c) — 내가 속한 그룹의 문서만 온다. 없으면 아무것도 그리지 않는다. */
+function RelatedDocuments({ type, pk }: { type: string; pk: string }) {
+  const docs = useQuery({
+    queryKey: ["object", type, pk, "documents"],
+    queryFn: () =>
+      api.get<RelatedDocumentOut[]>(`/objects/${encodeURIComponent(type)}/${encodeURIComponent(pk)}/documents`),
+  });
+  if (!docs.data?.length) return null;
+  return (
+    <div className="stack">
+      <strong>{t.card.documents}</strong>
+      <ul>
+        {docs.data.map((d) => (
+          <li key={d.document_id}>
+            <Link to={`/documents/${d.document_id}`}>{d.title}</Link>{" "}
+            <span className="muted">
+              {d.group_name} · {t.card.documentAt(d.first_chunk_no)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

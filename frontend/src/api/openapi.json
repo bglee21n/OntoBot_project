@@ -1646,6 +1646,86 @@
         "title": "DocumentDetail",
         "type": "object"
       },
+      "DocumentLinkOut": {
+        "properties": {
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "first_chunk_no": {
+            "title": "First Chunk No",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "match_kind": {
+            "enum": [
+              "title",
+              "pk"
+            ],
+            "title": "Match Kind",
+            "type": "string"
+          },
+          "match_text": {
+            "title": "Match Text",
+            "type": "string"
+          },
+          "object_pk": {
+            "title": "Object Pk",
+            "type": "string"
+          },
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "occurrences": {
+            "title": "Occurrences",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "candidate",
+              "confirmed",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type_display_name": {
+            "title": "Type Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "object_type",
+          "type_display_name",
+          "object_pk",
+          "title",
+          "match_kind",
+          "match_text",
+          "occurrences",
+          "first_chunk_no",
+          "status",
+          "decided_at"
+        ],
+        "title": "DocumentLinkOut",
+        "type": "object"
+      },
       "DocumentOut": {
         "properties": {
           "chars": {
@@ -4579,6 +4659,57 @@
         "title": "LayoutOut",
         "type": "object"
       },
+      "LinkDecisionIn": {
+        "properties": {
+          "status": {
+            "enum": [
+              "candidate",
+              "confirmed",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "LinkDecisionIn",
+        "type": "object"
+      },
+      "LinkScanOut": {
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "found": {
+            "title": "Found",
+            "type": "integer"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "integer"
+          },
+          "scanned_objects": {
+            "title": "Scanned Objects",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "found",
+          "added",
+          "removed",
+          "scanned_objects",
+          "truncated"
+        ],
+        "title": "LinkScanOut",
+        "type": "object"
+      },
       "LinkSource": {
         "additionalProperties": false,
         "description": "링크를 원천에서 어떻게 만드는가. ``join_mapping`` 의 상세는 Phase 2(동기화)에서 정한다.",
@@ -6388,6 +6519,39 @@
           }
         },
         "title": "RejectRequest",
+        "type": "object"
+      },
+      "RelatedDocumentOut": {
+        "properties": {
+          "document_id": {
+            "title": "Document Id",
+            "type": "integer"
+          },
+          "first_chunk_no": {
+            "title": "First Chunk No",
+            "type": "integer"
+          },
+          "group_name": {
+            "title": "Group Name",
+            "type": "string"
+          },
+          "match_text": {
+            "title": "Match Text",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "title",
+          "group_name",
+          "match_text",
+          "first_chunk_no"
+        ],
+        "title": "RelatedDocumentOut",
         "type": "object"
       },
       "RoleOut": {
@@ -9884,6 +10048,149 @@
         ]
       }
     },
+    "/api/v1/documents/{doc_id}/links": {
+      "get": {
+        "operationId": "document_links_api_v1_documents__doc_id__links_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentLinkOut"
+                  },
+                  "title": "Response Document Links Api V1 Documents  Doc Id  Links Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Document Links",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{doc_id}/links/scan": {
+      "post": {
+        "description": "본문에서 객체 제목·pk 를 그대로 찾아 후보로 둔다(찾는 사람의 권한으로).",
+        "operationId": "scan_links_api_v1_documents__doc_id__links_scan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkScanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scan Links",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{doc_id}/links/{link_id}": {
+      "put": {
+        "operationId": "decide_link_api_v1_documents__doc_id__links__link_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkDecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide Link",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/api/v1/documents/{doc_id}/reindex": {
       "post": {
         "operationId": "reindex_api_v1_documents__doc_id__reindex_post",
@@ -11086,6 +11393,62 @@
           }
         },
         "summary": "Card",
+        "tags": [
+          "objects"
+        ]
+      }
+    },
+    "/api/v1/objects/{object_type}/{pk}/documents": {
+      "get": {
+        "description": "확정된 문서 링크(Phase 16c) — 객체를 볼 수 있고, 문서 그룹에 속한 문서만.",
+        "operationId": "related_documents_api_v1_objects__object_type___pk__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "title": "Pk",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RelatedDocumentOut"
+                  },
+                  "title": "Response Related Documents Api V1 Objects  Object Type   Pk  Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Related Documents",
         "tags": [
           "objects"
         ]

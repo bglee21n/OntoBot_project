@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.26                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.27                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -845,6 +845,21 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
   임베딩 점수만으로 "답 없음"을 가르지 않는다 — 같은 분야의 답 없는 질문이 답 있는 질문보다 높게 나왔다(16d 는 답변·정확
   일치 근거 대조로 판정, 점수 문턱은 후보 줄이기에만).
 
+### 17.10 문서 ↔ 객체 링크 (v0.27, Phase 16c)
+
+- **저장**(마이그레이션 0019): `document_link(문서, 객체 타입·pk, 맞은 종류 title|pk, 맞은 글, 횟수, 처음 나온 청크, 상태
+  candidate|confirmed|rejected, 결정자·시각)`, 문서·객체 쌍마다 하나. 객체는 이름(타입·pk)으로만 가리키고, 지워졌거나
+  권한 밖이면 읽을 때 걸러진다.
+- **후보 찾기**(`documents.matching`, 순수): 본문(NFC)에 객체 제목·pk 가 **그대로** 있으면 후보 — 유사도·형태소 없음.
+  제목 2자 미만, pk 3자 미만·숫자만은 뺀다. 더 긴 다른 이름의 일치 안에 통째로 든 일치는 세지 않는다. 찾는 사람의 권한으로
+  (`rbac.access` — 읽을 수 있는 타입·행 정책 안), 제목이 PII 인 타입은 pk 로만. 한 번에 객체 50,000개까지(넘으면
+  `truncated`, 그때는 사라진 후보를 지우지 않는다). 동기 요청이다(`POST /documents/{id}/links/scan`, 모델러·관리자 + 그룹 구성원).
+- **다시 찾기**: 확정·거부는 그대로, 거부한 것은 되살리지 않고, 찾은 사람이 읽을 수 있는 타입 안에서 더는 맞지 않는 후보만 지운다.
+- **결정**: `PUT /documents/{id}/links/{link_id}`(확정·거부·후보로), 감사 `documents.link_decided`(찾기는 `documents.links_scanned`).
+- **보기**: `GET /documents/{id}/links` — 보는 사람이 읽을 수 있는 객체만, 모델러·관리자가 아니면 확정만.
+  `GET /objects/{type}/{pk}/documents` — 객체를 볼 수 있고(탐색기와 같은 확인) 문서 그룹에 속한 확정 링크만.
+  화면: 문서 상세 "연결된 객체", 근거 카드 "관련 문서".
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -929,6 +944,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
 | v0.25 | 2026-10-31 | Phase 16a 문서 등록·색인(17.9) — `document`·`document_chunk`(마이그레이션 0018), 문서 = 데이터 그룹 소유, 글 추출(txt·md·PDF 글자 층, HWP 제외)·겹침 없는 청크·`embedder` 역할·임베딩 작업, pgvector 를 `extensions` 스키마에 |
 | v0.26 | 2026-10-31 | Phase 16b 임베딩 측정(ADR-0016) — `embedder` = `bge-m3` 확정, 모델별 부분 HNSW 인덱스(`documents.vector_index`, 런타임 DDL), 임베딩 점수로 답 없음을 가르지 않는다 |
+| v0.27 | 2026-10-31 | Phase 16c 문서 ↔ 객체 링크(17.10) — `document_link`(0019), 본문의 제목·pk 정확 일치 후보(찾는 사람 권한, 긴 이름 안의 짧은 이름 제외) → 모델러 확정·거부, 근거 카드 "관련 문서" |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

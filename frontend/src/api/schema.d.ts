@@ -647,6 +647,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/{doc_id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Document Links */
+        get: operations["document_links_api_v1_documents__doc_id__links_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{doc_id}/links/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scan Links
+         * @description 본문에서 객체 제목·pk 를 그대로 찾아 후보로 둔다(찾는 사람의 권한으로).
+         */
+        post: operations["scan_links_api_v1_documents__doc_id__links_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{doc_id}/links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Decide Link */
+        put: operations["decide_link_api_v1_documents__doc_id__links__link_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/{doc_id}/reindex": {
         parameters: {
             query?: never;
@@ -1062,6 +1116,26 @@ export interface paths {
         };
         /** Card */
         get: operations["card_api_v1_objects__object_type___pk__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/objects/{object_type}/{pk}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Related Documents
+         * @description 확정된 문서 링크(Phase 16c) — 객체를 볼 수 있고, 문서 그룹에 속한 문서만.
+         */
+        get: operations["related_documents_api_v1_objects__object_type___pk__documents_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2285,6 +2359,37 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** DocumentLinkOut */
+        DocumentLinkOut: {
+            /** Decided At */
+            decided_at: string | null;
+            /** First Chunk No */
+            first_chunk_no: number;
+            /** Id */
+            id: number;
+            /**
+             * Match Kind
+             * @enum {string}
+             */
+            match_kind: "title" | "pk";
+            /** Match Text */
+            match_text: string;
+            /** Object Pk */
+            object_pk: string;
+            /** Object Type */
+            object_type: string;
+            /** Occurrences */
+            occurrences: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "candidate" | "confirmed" | "rejected";
+            /** Title */
+            title: string;
+            /** Type Display Name */
+            type_display_name: string;
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Chars */
@@ -3179,6 +3284,27 @@ export interface components {
             /** Nodes */
             nodes: components["schemas"]["NodePositionIn"][];
         };
+        /** LinkDecisionIn */
+        LinkDecisionIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "candidate" | "confirmed" | "rejected";
+        };
+        /** LinkScanOut */
+        LinkScanOut: {
+            /** Added */
+            added: number;
+            /** Found */
+            found: number;
+            /** Removed */
+            removed: number;
+            /** Scanned Objects */
+            scanned_objects: number;
+            /** Truncated */
+            truncated: boolean;
+        };
         /**
          * LinkSource
          * @description 링크를 원천에서 어떻게 만드는가. ``join_mapping`` 의 상세는 Phase 2(동기화)에서 정한다.
@@ -3782,6 +3908,19 @@ export interface components {
         RejectRequest: {
             /** Reason */
             reason?: string | null;
+        };
+        /** RelatedDocumentOut */
+        RelatedDocumentOut: {
+            /** Document Id */
+            document_id: number;
+            /** First Chunk No */
+            first_chunk_no: number;
+            /** Group Name */
+            group_name: string;
+            /** Match Text */
+            match_text: string;
+            /** Title */
+            title: string;
         };
         /** RoleOut */
         RoleOut: {
@@ -5510,6 +5649,102 @@ export interface operations {
             };
         };
     };
+    document_links_api_v1_documents__doc_id__links_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentLinkOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    scan_links_api_v1_documents__doc_id__links_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkScanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_link_api_v1_documents__doc_id__links__link_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: number;
+                link_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkDecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reindex_api_v1_documents__doc_id__reindex_post: {
         parameters: {
             query?: never;
@@ -6359,6 +6594,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObjectCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    related_documents_api_v1_objects__object_type___pk__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                object_type: string;
+                pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelatedDocumentOut"][];
                 };
             };
             /** @description Validation Error */

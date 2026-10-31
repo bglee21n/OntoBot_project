@@ -19,6 +19,7 @@ from sqlalchemy import (
     BigInteger,
     CheckConstraint,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -90,3 +91,31 @@ class DocumentChunk(IdMixin, Base):
     text: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float] | None] = mapped_column(Vector())
     embedding_model: Mapped[str | None] = mapped_column(String(128))
+
+
+class DocumentLink(IdMixin, Base):
+    """문서 ↔ 객체 링크(Phase 16c). 후보는 본문에 객체 제목·pk 가 **그대로** 있을 때만 생기고
+    모델러가 확정·거부한다. 거부한 후보는 다시 찾아도 되살리지 않는다.
+    객체는 이름(타입·pk)으로만 가리킨다 — 객체가 삭제·권한 밖이면 읽을 때 걸러진다."""
+
+    __tablename__ = "document_link"
+    __table_args__ = (
+        CheckConstraint("status IN ('candidate','confirmed','rejected')", name="status"),
+        CheckConstraint("match_kind IN ('title','pk')", name="match_kind"),
+        UniqueConstraint("document_id", "object_type", "object_pk", name="uq_document_link_object"),
+        Index("ix_document_link_object", "object_type", "object_pk"),
+    )
+
+    document_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("document.id", ondelete="CASCADE"), index=True
+    )
+    object_type: Mapped[str] = mapped_column(String(64))
+    object_pk: Mapped[str] = mapped_column(String(255))
+    match_kind: Mapped[str] = mapped_column(String(8))
+    match_text: Mapped[str] = mapped_column(Text)
+    occurrences: Mapped[int] = mapped_column(Integer)
+    # 처음 나온 청크 — 화면이 근거 위치를 보여 준다.
+    first_chunk_no: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="candidate", server_default="candidate")
+    decided_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    decided_at: Mapped[datetime | None] = mapped_column(tz())

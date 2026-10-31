@@ -3,7 +3,7 @@ import { type FormEvent, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../../api/client";
-import type { DocumentDetail, DocumentOut, GroupChoice } from "../../api/types";
+import type { DocumentDetail, DocumentLinkOut, DocumentOut, GroupChoice, LinkScanOut } from "../../api/types";
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
@@ -185,6 +185,7 @@ function DocumentView({ id, canEdit }: { id: number; canEdit: boolean }) {
         {d.embedding_model && ` · ${t.model(d.embedding_model)}`}
       </div>
       {(reindex.isError || remove.isError) && <ErrorBox error={reindex.error ?? remove.error} />}
+      <DocumentLinks id={id} canEdit={canEdit} />
       <h3>{t.chunks(d.chunk_list.length)}</h3>
       <p className="muted">{t.chunkHint}</p>
       <ol className="doc-chunks">
@@ -200,3 +201,117 @@ function DocumentView({ id, canEdit }: { id: number; canEdit: boolean }) {
     </div>
   );
 }
+
+/** 문서 ↔ 객체 링크(Phase 16c). 모델러·관리자는 후보 찾기·확정·거부, 그 밖에는 확정된 링크만 본다. */
+function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const links = useQuery({
+    queryKey: ["documents", id, "links"],
+    queryFn: () => api.get<DocumentLinkOut[]>(`/documents/${id}/links`),
+  });
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["documents", id, "links"] });
+  const scan = useMutation({
+    mutationFn: () => api.post<LinkScanOut>(`/documents/${id}/links/scan`),
+    onSuccess: refresh,
+  });
+  const decide = useMutation({
+    mutationFn: ({ link, status }: { link: number; status: DocumentLinkOut["status"] }) =>
+      api.put<null>(`/documents/${id}/links/${link}`, { status }),
+    onSuccess: () => {
+      refresh();
+      void qc.invalidateQueries({ queryKey: ["object"] });
+    },
+  });
+  // pk 는 URL 이 아니라 라우터 상태로 넘긴다(개인정보 규칙).
+  const explore = (l: DocumentLinkOut) =>
+    navigate("/explore", {
+      state: { explore: { type: l.object_type, typeDisplayName: l.type_display_name, pk: l.object_pk, title: l.title } },
+    });
+  const r = scan.data;
+  const choices: { status: DocumentLinkOut["status"]; label: string }[] = [
+    { status: "confirmed", label: t.confirm },
+    { status: "rejected", label: t.reject },
+    { status: "candidate", label: t.undo },
+  ];
+  return (
+    <div className="stack">
+      <div className="row">
+        <h3>{t.links}</h3>
+        <span className="spacer" />
+        {canEdit && (
+          <button type="button" disabled={scan.isPending} onClick={() => scan.mutate()}>
+            {scan.isPending ? t.scanning : t.scan}
+          </button>
+        )}
+      </div>
+      <p className="muted">{canEdit ? t.linksHint : t.linksReaderHint}</p>
+      {r && (
+        <p className={r.truncated ? "notice warn" : "notice"}>
+          {t.scanResult(r.found, r.added, r.removed, r.scanned_objects)}
+          {r.truncated && ` ${t.scanTruncated}`}
+        </p>
+      )}
+      {(links.isError || scan.isError || decide.isError) && (
+        <ErrorBox error={links.error ?? scan.error ?? decide.error} />
+      )}
+      {links.data?.length === 0 && <p className="muted">{t.noLinks}</p>}
+      {links.data && links.data.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              <th>{t.object}</th>
+              <th>{t.match}</th>
+              <th>{t.linkState}</th>
+              {canEdit && <th />}
+            </tr>
+          </thead>
+          <tbody>
+            {links.data.map((l) => (
+              <tr key={l.id}>
+                <td>
+                  <button type="button" className="link" onClick={() => explore(l)}>
+                    {l.title}
+                  </button>
+                  <div className="muted">{l.type_display_name}</div>
+                </td>
+                <td>
+                  <code>{l.match_text}</code>
+                  <div className="muted">{t.matchAt(t.matchKind[l.match_kind] ?? l.match_kind, l.occurrences, l.first_chunk_no)}</div>
+                </td>
+                <td>
+                  <span className={`badge ${STATUS_CLASS[l.status]}`}>{t.linkStatus[l.status]}</span>
+                </td>
+                {canEdit && (
+                  <td>
+                    <div className="row">
+                      {choices
+                        .filter((c) => c.status !== l.status)
+                        .map((c) => (
+                          <button
+                            key={c.status}
+                            type="button"
+                            className="link"
+                            disabled={decide.isPending}
+                            onClick={() => decide.mutate({ link: l.id, status: c.status })}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+const STATUS_CLASS: Record<DocumentLinkOut["status"], string> = {
+  candidate: "running",
+  confirmed: "succeeded",
+  rejected: "failed",
+};

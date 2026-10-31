@@ -2,6 +2,9 @@
 
 문서는 데이터 그룹 하나에 속하고 그 구성원만 본다(읽을 수 없는 문서는 없는 문서와 같은 404).
 등록·삭제·다시 색인은 모델러·관리자이면서 그 그룹 구성원이어야 한다.
+
+객체 링크(Phase 16c): 후보 찾기·확정·거부는 같은 조건. 목록은 보는 사람이 읽을 수 있는 객체만 —
+모델러·관리자는 후보·거부까지, 그 밖의 사용자는 확정된 링크만 본다.
 """
 
 from __future__ import annotations
@@ -17,7 +20,8 @@ from ontobot.api.deps import CurrentUser, Db, User, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.documents import Document
 from ontobot.db.models.security import DataGroup
-from ontobot.documents import extract, store
+from ontobot.documents import extract, links, store
+from ontobot.ontology import registry
 from ontobot.security import rbac
 from ontobot.security.rbac import ROLE_ADMIN, ROLE_MODELER
 
@@ -148,3 +152,82 @@ async def reindex(doc_id: int, db: Db, user: Curator) -> DocumentOut:
     doc = await _readable(db, user, doc_id)
     await store.reindex(db, doc, actor_id=user.id)
     return _out(await store.view(db, doc))
+
+
+class DocumentLinkOut(BaseModel):
+    id: int
+    object_type: str
+    type_display_name: str
+    object_pk: str
+    title: str
+    match_kind: Literal["title", "pk"]
+    match_text: str
+    occurrences: int
+    first_chunk_no: int
+    status: Literal["candidate", "confirmed", "rejected"]
+    decided_at: datetime | None
+
+
+class LinkScanOut(BaseModel):
+    found: int
+    added: int
+    removed: int
+    scanned_objects: int
+    truncated: bool
+
+
+class LinkDecisionIn(BaseModel):
+    status: Literal["candidate", "confirmed", "rejected"]
+
+
+def _schema() -> registry.PublishedSchema:
+    schema = registry.current()
+    if schema is None:
+        raise ProblemError(409, "게시된 온톨로지가 없습니다", code="no_published_ontology")
+    return schema
+
+
+@router.get("/{doc_id}/links", response_model=list[DocumentLinkOut])
+async def document_links(doc_id: int, db: Db, user: User) -> list[DocumentLinkOut]:
+    doc = await _readable(db, user, doc_id)
+    schema = registry.current()
+    if schema is None:
+        return []
+    rows = await links.listing(db, doc.id, schema.document, await rbac.access(db, user.id))
+    curator = rbac.has_role(user.roles, ROLE_MODELER, ROLE_ADMIN)
+    return [
+        DocumentLinkOut.model_validate(r, from_attributes=True)
+        for r in rows
+        if curator or r.status == "confirmed"
+    ]
+
+
+@router.post("/{doc_id}/links/scan", response_model=LinkScanOut)
+async def scan_links(doc_id: int, db: Db, user: Curator) -> LinkScanOut:
+    """본문에서 객체 제목·pk 를 그대로 찾아 후보로 둔다(찾는 사람의 권한으로)."""
+    doc = await _readable(db, user, doc_id)
+    schema = _schema()
+    access = await rbac.access(db, user.id)
+    res = await links.scan(db, doc, schema.document.active(), access, actor_id=user.id)
+    return LinkScanOut.model_validate(res, from_attributes=True)
+
+
+@router.put("/{doc_id}/links/{link_id}", status_code=204)
+async def decide_link(
+    doc_id: int, link_id: int, body: LinkDecisionIn, db: Db, user: Curator
+) -> Response:
+    doc = await _readable(db, user, doc_id)
+    schema = _schema()
+    try:
+        await links.decide(
+            db,
+            doc.id,
+            link_id,
+            body.status,
+            schema.document,
+            await rbac.access(db, user.id),
+            actor_id=user.id,
+        )
+    except links.NotFound as e:
+        raise ProblemError(404, "링크를 찾을 수 없습니다", code="link_not_found") from e
+    return Response(status_code=204)
