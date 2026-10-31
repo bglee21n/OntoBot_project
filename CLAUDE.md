@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.29) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.30) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-Phase 17b(REST API 공개 — 17a 게시 영향 완료), Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+Phase 18(인터뷰 워크숍 확장형) — Phase 17(게시 영향·공개 REST API) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -241,6 +241,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   (`OntologyDocument.without_properties`)로 — 요약·검증·데이터 블록·카드가 같은 문서를 봐야 한다. 행 정책은
   `check_scopes` → `ValidatedPlan.scopes` → 컴파일러 주입뿐이다(값 바인드). **잘못된 정책은 닫힌 쪽**(볼 행 없음)으로
   실패해야 한다 — 정책 오류로 제한이 풀리는 경로를 만들지 말 것. 평가 역할도 같은 `rbac.merge` 로 만든다.
+- **공개 REST API(Phase 17b)는 `Authorization: Bearer` API 키만 받는다** — 세션 쿠키로 부르는 길을 열지 말 것(다른 사이트가
+  로그인한 브라우저로 부른다). 키는 서비스 계정에만, DB 에는 해시만(원문을 로그·감사·응답 목록에 내지 말 것). 스코프는
+  `rbac.has_scope` 로만 보고 데이터 권한을 **좁히기만** 한다. 공개 경로는 화면과 같은 함수(파이프라인·카드·`runner.preview`)를
+  부른다 — 공개용 우회 경로를 만들지 말 것. Action 은 요청까지만(승인은 사람).
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

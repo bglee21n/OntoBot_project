@@ -138,6 +138,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Api Keys */
+        get: operations["list_api_keys_api_v1_admin_api_keys_get"];
+        put?: never;
+        /** Issue Api Key */
+        post: operations["issue_api_key_api_v1_admin_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/api-keys/{key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Api Key */
+        delete: operations["revoke_api_key_api_v1_admin_api_keys__key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/audit-chain": {
         parameters: {
             query?: never;
@@ -319,6 +354,26 @@ export interface paths {
         get: operations["roles_api_v1_admin_roles_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/service-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Service Account
+         * @description API 키로만 부르는 계정 — 역할·데이터 그룹은 사용자 관리에서 준다.
+         */
+        post: operations["create_service_account_api_v1_admin_service_accounts_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1517,6 +1572,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/actions/requests/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Action Request
+         * @description 요청의 지금 상태(미리보기 → 승인·실행·거부·실패).
+         */
+        get: operations["action_request_api_v1_public_actions_requests__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/actions/{name}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Action
+         * @description Action 요청 = 미리보기 기록. 승인·실행은 사람이 화면에서 한다.
+         *
+         *     같은 ``request_id`` 는 한 번만 받는다.
+         */
+        post: operations["request_action_api_v1_public_actions__name__requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/objects/{object_type}/{pk}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Object Card
+         * @description 근거 카드와 같은 읽기(권한·숨김·행 정책·편집 레이어 그대로).
+         */
+        get: operations["object_card_api_v1_public_objects__object_type___pk__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Query
+         * @description 질문 하나를 화면 채팅과 같은 파이프라인으로 답한다(근거 대조·등급 포함, JSON 한 번).
+         */
+        post: operations["query_api_v1_public_query_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sources": {
         parameters: {
             query?: never;
@@ -2126,6 +2263,71 @@ export interface components {
             estimated_sentences: number[];
             /** Text */
             text: string;
+        };
+        /** ApiKeyIn */
+        ApiKeyIn: {
+            /** Expires Days */
+            expires_days?: number | null;
+            /** Name */
+            name: string;
+            /** Scopes */
+            scopes: string[];
+            /** User Id */
+            user_id: number;
+        };
+        /** ApiKeyIssued */
+        ApiKeyIssued: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Id */
+            id: number;
+            /** Key */
+            key: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Scopes */
+            scopes: string[];
+            /** User Id */
+            user_id: number;
+            /** Username */
+            username: string | null;
+        };
+        /** ApiKeyOut */
+        ApiKeyOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Id */
+            id: number;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Scopes */
+            scopes: string[];
+            /** User Id */
+            user_id: number;
+            /** Username */
+            username: string | null;
         };
         /** AuditChainOut */
         AuditChainOut: {
@@ -3928,6 +4130,48 @@ export interface components {
             /** Version Id */
             version_id: number;
         };
+        /**
+         * QueryActionOut
+         * @description 질문이 Action 요청 말이었을 때 — 대조 결과와 (만들었으면) 미리보기 기록 id.
+         */
+        QueryActionOut: {
+            /** Action Type */
+            action_type: string;
+            /** Issues */
+            issues: string[];
+            /** Ready */
+            ready: boolean;
+            /** Run Id */
+            run_id?: number | null;
+        };
+        /** QueryIn */
+        QueryIn: {
+            /** Question */
+            question: string;
+        };
+        /** QueryOut */
+        QueryOut: {
+            action?: components["schemas"]["QueryActionOut"] | null;
+            /** Answer */
+            answer: string;
+            /** Citations */
+            citations: components["schemas"]["CitationData"][];
+            /** Conditions */
+            conditions: string | null;
+            /** Estimated Sentences */
+            estimated_sentences: number[];
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Grade */
+            grade: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "empty" | "failed" | "not_query" | "action_preview";
+            /** Trace Id */
+            trace_id: number;
+        };
         /** ReadinessOut */
         ReadinessOut: {
             llm: components["schemas"]["ComponentOut"];
@@ -3990,6 +4234,13 @@ export interface components {
             type: string;
             /** Type Display Name */
             type_display_name: string;
+        };
+        /** ServiceAccountIn */
+        ServiceAccountIn: {
+            /** Display Name */
+            display_name: string;
+            /** Username */
+            username: string;
         };
         /** SessionCreate */
         SessionCreate: {
@@ -4398,7 +4649,7 @@ export interface components {
              * Auth
              * @enum {string}
              */
-            auth: "local" | "oidc";
+            auth: "local" | "oidc" | "service";
             /**
              * Created At
              * Format: date-time
@@ -4768,6 +5019,88 @@ export interface operations {
             };
         };
     };
+    list_api_keys_api_v1_admin_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyOut"][];
+                };
+            };
+        };
+    };
+    issue_api_key_api_v1_admin_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiKeyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyIssued"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_api_key_api_v1_admin_api_keys__key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     audit_chain_check_api_v1_admin_audit_chain_get: {
         parameters: {
             query?: never;
@@ -5095,6 +5428,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoleOut"][];
+                };
+            };
+        };
+    };
+    create_service_account_api_v1_admin_service_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceAccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -7602,6 +7968,137 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReferencesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    action_request_api_v1_public_actions_requests__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_action_api_v1_public_actions__name__requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionRunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    object_card_api_v1_public_objects__object_type___pk__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                object_type: string;
+                pk: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    query_api_v1_public_query_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QueryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryOut"];
                 };
             };
             /** @description Validation Error */

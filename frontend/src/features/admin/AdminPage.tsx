@@ -21,6 +21,7 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { TraceDetail } from "../traces/TracesPage";
+import { ApiKeysPanel } from "./ApiKeysPanel";
 import { GroupsPanel } from "./GroupsPanel";
 
 const t = ko.admin;
@@ -51,6 +52,7 @@ export function AdminPage() {
       </nav>
       {tab === "users" && <UsersPanel />}
       {tab === "permissions" && <GroupsPanel />}
+      {tab === "apiKeys" && <ApiKeysPanel />}
       {tab === "audit" && <AuditPanel />}
       {tab === "trace" && <TracePanel />}
     </section>

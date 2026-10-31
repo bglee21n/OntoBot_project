@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.29                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.30                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -890,6 +890,24 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - API `GET /ontology/versions/{id}/impact`(게시본이 없거나 그 버전이 게시본이면 빈 목록), 화면: draft 의 "게시 영향" 카드
   (막는 줄은 빨간 표시, 게시 단추를 끈다).
 
+### 17.13 공개 REST API (v0.30, Phase 17b — 결정 14, PRD 5.11 P1)
+
+- **서비스 계정**: `app_user.kind = service`(마이그레이션 0020) — 비밀번호·SSO 없이 로그인하지 않는다. 역할·데이터 그룹은
+  사람과 같은 관리(사용자·데이터 그룹)로 받고, 권한 판정도 같은 `rbac`. 감사 `security.service_account_created`.
+- **API 키**(`api_key`): 원문 `obk_<prefix 8>_<secret>`, DB 에는 SHA-256 만(원문은 발급 응답에 한 번), 서비스 계정에만 발급,
+  스코프 `query`·`objects:read`·`actions:request`(`rbac.has_scope` — 스코프는 데이터 권한을 **좁히기만** 한다), 만료(선택,
+  1~3650일)·폐기. 정지 계정·폐기·만료 키는 401 `invalid_api_key`. `last_used_at` 은 1분에 한 번. 감사
+  `security.api_key_issued`·`security.api_key_revoked`(prefix 만).
+- **인증**: 공개 경로는 `Authorization: Bearer <키>` 만 받는다 — 세션 쿠키로는 부를 수 없다(다른 사이트가 로그인한 브라우저로
+  부르는 길을 만들지 않는다). 스코프 없음은 403 `missing_scope`.
+- **경로**(`/api/v1/public`): `POST /query`(화면 채팅과 같은 파이프라인, JSON 한 번 — 상태·답·등급·조건·근거·추정 문장·
+  `trace_id`, 대화 맥락 없음, 트레이스는 남긴다. Action 요청 말이면 `actions:request` 스코프가 있을 때만 미리보기를 만든다),
+  `GET /objects/{type}/{pk}`(근거 카드와 같은 읽기), `POST /actions/{name}/requests`(미리보기 = 요청, `request_id` 로 한 번만,
+  `origin=api`), `GET /actions/requests/{run_id}`. **승인·실행은 사람이 화면에서**(채팅 Action 과 같은 규칙).
+- **문서**: `GET /api/v1/public/openapi.json`(공개 경로만 붙인 앱으로 만든다 — 내부 스키마가 섞이지 않게, 인증 없음). 폐쇄망이라
+  문서 화면(Swagger UI)은 두지 않는다. 호출 빈도 제한은 아직 없다(연결 풀이 동시 질의 상한이다 — 17.1 결정 14 재검토 거리).
+- **화면**: 관리 → API 키 탭(서비스 계정 만들기·키 발급(원문 한 번)·목록·폐기).
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -977,6 +995,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.27 | 2026-10-31 | Phase 16c 문서 ↔ 객체 링크(17.10) — `document_link`(0019), 본문의 제목·pk 정확 일치 후보(찾는 사람 권한, 긴 이름 안의 짧은 이름 제외) → 모델러 확정·거부, 근거 카드 "관련 문서" |
 | v0.28 | 2026-10-31 | Phase 16d 문서 질문(17.11) — 플래너 `kind: document`(문서가 있을 때만), 그룹 안 벡터 검색, `[[d:N/M]]` 인용과 청크 원문 정확 일치 대조(숫자·단위·6자 구간), 평가 문서 문항·임베딩 녹화 |
 | v0.29 | 2026-10-31 | Phase 17a 게시 영향 분석(17.12) — draft 의 지우기·바꾸기마다 참조처(정의·매핑·골든·행 정책·숨김·권한·워크숍·문서 링크·데이터), 행 정책이 지우는·자료형을 바꾸는 속성을 쓰면 게시를 막는다 |
+| v0.30 | 2026-10-31 | Phase 17b 공개 REST API(17.13) — 서비스 계정(`app_user.kind`)·API 키(해시·스코프·만료·폐기, 0020), Bearer 만 받는 `/api/v1/public`(질의 JSON·객체 읽기·Action 요청 → 사람 승인), 공개 OpenAPI |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

@@ -7,12 +7,13 @@ from dataclasses import dataclass
 from typing import Annotated, Any
 
 from fastapi import Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.api.errors import ProblemError
 from ontobot.config import Settings, get_settings
 from ontobot.db.session import session_scope
-from ontobot.security import rbac
+from ontobot.security import api_keys, rbac
 from ontobot.security.auth import resolve_session
 
 
@@ -62,6 +63,47 @@ def require_role(*roles: str) -> Callable[..., Coroutine[Any, Any, CurrentUser]]
                 "이 기능을 쓸 권한이 없습니다",
                 code="forbidden",
                 extra={"required_roles": list(roles)},
+            )
+        return user
+
+    return _dep
+
+
+# ---------------------------------------------------------------- 공개 API(Phase 17b)
+
+_bearer = HTTPBearer(auto_error=False, description="API 키 — `obk_<prefix>_<secret>`")
+
+
+async def api_caller(
+    db: Db,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> tuple[CurrentUser, frozenset[str]]:
+    """``Authorization: Bearer <API 키>`` 만 받는다 — 세션 쿠키로는 공개 API 를 부를 수 없다
+    (다른 사이트가 로그인한 사람의 브라우저로 부르는 길을 만들지 않는다)."""
+    caller = await api_keys.resolve(db, credentials.credentials) if credentials else None
+    if caller is None:
+        raise ProblemError(401, "유효한 API 키가 필요합니다", code="invalid_api_key")
+    user = CurrentUser(
+        id=caller.user.id,
+        display_name=caller.user.display_name,
+        roles=await rbac.role_names(db, caller.user.id),
+    )
+    return user, caller.scopes
+
+
+def require_scope(scope: str) -> Callable[..., Coroutine[Any, Any, CurrentUser]]:
+    """키에 그 스코프가 있어야 한다. 판정은 ``rbac.has_scope`` 하나뿐이다."""
+
+    async def _dep(
+        caller: Annotated[tuple[CurrentUser, frozenset[str]], Depends(api_caller)],
+    ) -> CurrentUser:
+        user, scopes = caller
+        if not rbac.has_scope(scopes, scope):
+            raise ProblemError(
+                403,
+                "이 API 키에 없는 스코프입니다",
+                code="missing_scope",
+                extra={"required_scope": scope},
             )
         return user
 

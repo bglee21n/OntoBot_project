@@ -255,3 +255,17 @@ def can_withdraw_action(*, is_requester: bool) -> bool:
 def can_rollback_action(roles: Iterable[str], approval_roles: Iterable[str]) -> bool:
     """롤백은 승인 역할 또는 관리자. 요청자가 혼자 실행한 Action(allow_self)도 관리자는 되돌린다."""
     return has_role(roles, *approval_roles, ROLE_ADMIN)
+
+
+# ---------------------------------------------------------------- 공개 API 스코프(Phase 17b)
+
+SCOPE_QUERY = "query"
+SCOPE_OBJECTS_READ = "objects:read"
+SCOPE_ACTIONS_REQUEST = "actions:request"
+SCOPES = (SCOPE_QUERY, SCOPE_OBJECTS_READ, SCOPE_ACTIONS_REQUEST)
+
+
+def has_scope(granted: Iterable[str], needed: str) -> bool:
+    """API 키가 그 일을 할 수 있는가. 스코프는 **더 좁히기만** 한다 — 데이터 권한(그룹)·역할은
+    서비스 계정의 것을 그대로 보고, 스코프가 그것을 넓히지 않는다."""
+    return needed in set(granted)

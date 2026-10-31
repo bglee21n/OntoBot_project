@@ -24,7 +24,10 @@ from ontobot.db.models.base import Base, IdMixin, tz
 
 class AppUser(IdMixin, Base):
     __tablename__ = "app_user"
-    __table_args__ = (CheckConstraint("status IN ('active','disabled')", name="status"),)
+    __table_args__ = (
+        CheckConstraint("status IN ('active','disabled')", name="status"),
+        CheckConstraint("kind IN ('person','service')", name="kind"),
+    )
 
     # OIDC 사용자는 oidc_sub, 로컬 계정은 username + password_hash 를 가진다.
     oidc_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
@@ -35,6 +38,9 @@ class AppUser(IdMixin, Base):
     # Action 알림(메일·SMS) 연락처 — PII. 화면·로그·감사에서는 마스킹한다.
     email: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(32))
+    # 서비스 계정(Phase 17b, TRD 17.1 결정 14)은 로그인하지 않는다 — API 키로만 부른다. 역할·데이터
+    # 그룹은 사람 계정과 같은 규칙으로 받는다(권한 판정은 rbac 하나).
+    kind: Mapped[str] = mapped_column(String(16), default="person", server_default="person")
 
 
 class Role(IdMixin, Base):
@@ -214,3 +220,26 @@ class AuthRequest(IdMixin, Base):
     code_verifier: Mapped[str] = mapped_column(String(128))
     return_to: Mapped[str] = mapped_column(String(512), default="/")
     expires_at: Mapped[datetime] = mapped_column(tz())
+
+
+class ApiKey(IdMixin, Base):
+    """공개 REST API 키(Phase 17b, TRD 17.1 결정 14) — 서비스 계정 하나에 매인다.
+
+    키 원문은 발급 응답에 한 번만 나가고, DB 에는 SHA-256 만 둔다(세션 토큰과 같다). ``prefix`` 는
+    화면·감사에서 키를 가리키는 앞부분(비밀 아님). 스코프는 ``query``·``objects:read``·
+    ``actions:request`` 중 몇 개 — 판정은 ``security.rbac.has_scope`` 하나.
+    """
+
+    __tablename__ = "api_key"
+
+    name: Mapped[str] = mapped_column(String(64))
+    prefix: Mapped[str] = mapped_column(String(16), unique=True)
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("app_user.id", ondelete="CASCADE"), index=True
+    )
+    scopes: Mapped[list[str]] = mapped_column(JSONB)
+    created_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    expires_at: Mapped[datetime | None] = mapped_column(tz())
+    revoked_at: Mapped[datetime | None] = mapped_column(tz())
+    last_used_at: Mapped[datetime | None] = mapped_column(tz())

@@ -59,7 +59,7 @@ class UserView:
     username: str | None
     display_name: str
     status: str
-    auth: str  # local / oidc
+    auth: str  # local / oidc / service(API 키로만 부르는 계정, Phase 17b)
     roles: list[str]
     created_at: datetime
     groups: list[str] = field(default_factory=list)
@@ -94,7 +94,7 @@ async def _view(db: AsyncSession, u: AppUser) -> UserView:
         username=u.username,
         display_name=u.display_name,
         status=u.status,
-        auth="oidc" if u.oidc_sub else "local",
+        auth="service" if u.kind == "service" else "oidc" if u.oidc_sub else "local",
         roles=await _roles_of(db, u.id),
         created_at=u.created_at,
         groups=await _groups_of(db, u.id),

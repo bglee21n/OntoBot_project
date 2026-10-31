@@ -21,7 +21,7 @@ from ontobot.db.models.chat import Trace
 from ontobot.evaluation import targets
 from ontobot.explorer import limits as explorer_limits
 from ontobot.ontology import registry
-from ontobot.security import admin, audit, audit_chain
+from ontobot.security import admin, api_keys, audit, audit_chain
 from ontobot.security.rbac import ROLE_ADMIN
 from ontobot.tracing import views as trace_views
 
@@ -41,7 +41,7 @@ class UserOut(BaseModel):
     username: str | None
     display_name: str
     status: Literal["active", "disabled"]
-    auth: Literal["local", "oidc"]
+    auth: Literal["local", "oidc", "service"]
     roles: list[str]
     groups: list[str]
     created_at: datetime
@@ -509,3 +509,75 @@ async def trace(trace_id: int, db: Db, me: Admin) -> TraceOut:
     out.question = await trace_views.question_of(db, t.message_id)
     audit.record(db, audit.TRACE_VIEWED, actor_id=me.id, target=f"trace:{trace_id}")
     return out
+
+
+# ---------------------------------------------------------------- 서비스 계정·API 키(Phase 17b)
+
+
+class ServiceAccountIn(BaseModel):
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[a-z][a-z0-9_.-]{2,63}$")
+    display_name: str = Field(min_length=1, max_length=128)
+
+
+class ApiKeyIn(BaseModel):
+    user_id: int
+    name: str = Field(min_length=1, max_length=64)
+    scopes: list[str] = Field(min_length=1, max_length=8)
+    expires_days: int | None = Field(default=None, ge=1, le=3650)
+
+
+class ApiKeyOut(BaseModel):
+    id: int
+    name: str
+    prefix: str
+    user_id: int
+    username: str | None
+    scopes: list[str]
+    created_at: datetime
+    expires_at: datetime | None
+    revoked_at: datetime | None
+    last_used_at: datetime | None
+
+
+class ApiKeyIssued(ApiKeyOut):
+    # 키 원문 — 이 응답에만 있다. DB 에는 해시만 남는다.
+    key: str
+
+
+@router.post("/admin/service-accounts", response_model=UserOut, status_code=201)
+async def create_service_account(body: ServiceAccountIn, db: Db, me: Admin) -> UserOut:
+    """API 키로만 부르는 계정 — 역할·데이터 그룹은 사용자 관리에서 준다."""
+    user = await _call(
+        api_keys.create_service_account(
+            db, actor_id=me.id, username=body.username, display_name=body.display_name
+        )
+    )
+    return _user(next(v for v in await admin.list_users(db) if v.id == user.id))
+
+
+@router.get("/admin/api-keys", response_model=list[ApiKeyOut])
+async def list_api_keys(db: Db, _: Admin) -> list[ApiKeyOut]:
+    return [ApiKeyOut.model_validate(k, from_attributes=True) for k in await api_keys.listing(db)]
+
+
+@router.post("/admin/api-keys", response_model=ApiKeyIssued, status_code=201)
+async def issue_api_key(body: ApiKeyIn, db: Db, me: Admin) -> ApiKeyIssued:
+    key, plain = await _call(
+        api_keys.issue(
+            db,
+            actor_id=me.id,
+            user_id=body.user_id,
+            name=body.name,
+            scopes=body.scopes,
+            expires_days=body.expires_days,
+        )
+    )
+    view = next(k for k in await api_keys.listing(db) if k.id == key.id)
+    return ApiKeyIssued(
+        **ApiKeyOut.model_validate(view, from_attributes=True).model_dump(), key=plain
+    )
+
+
+@router.delete("/admin/api-keys/{key_id}", status_code=204)
+async def revoke_api_key(key_id: int, db: Db, me: Admin) -> None:
+    await _call(api_keys.revoke(db, actor_id=me.id, key_id=key_id))
