@@ -130,7 +130,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument(
         "--with-models",
         action="store_true",
-        help="앱 번들에도 config/llm.yaml 의 Ollama 모델을 담는다(새 역할·모델이 생긴 업그레이드용)",
+        help="앱 번들에도 config/llm.yaml 의 Ollama 모델을 담는다(새 모델이 생긴 업그레이드용)",
     )
     ap.add_argument(
         "--label", help="버전 끝에 붙일 표시(시험용 — 같은 커밋으로 두 번 만들 때)"
