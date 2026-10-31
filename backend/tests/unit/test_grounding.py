@@ -179,6 +179,66 @@ def test_restating_the_query_condition_is_not_a_fact() -> None:
     assert grade("2015년 이전 철탑은 7개입니다.", ctx).fact_sentences == 1
 
 
+def _count_ctx(
+    count: str, terms: set[str], fields: dict[str, set[str]] | None = None
+) -> GroundingContext:
+    return GroundingContext(
+        evidence={
+            **CTX.evidence,
+            "q:1": Evidence("q:1", None, "결과 1", {"value": (count, count)}),
+        },
+        readable=CTX.readable,
+        titles=CTX.titles,
+        enum_values=CTX.enum_values,
+        condition_terms=frozenset(terms),
+        field_conditions={k: frozenset(v) for k, v in (fields or {}).items()},
+    )
+
+
+def test_condition_value_echo_does_not_prove_a_different_count() -> None:
+    # 매뉴얼 촬영 트레이스 #72: 건수 2인데 "1개"라고 쓰고 [[q:1#value]] 를 붙였다. 문장의 "2"는
+    # 조건 "2 이하"의 되풀이일 뿐인데 결과 값 2와 같아 ① 이 붙었다.
+    ctx = _count_ctx("2", {"2"})
+    g = grade("위험등급이 2 이하인 철탑은 1개입니다. [[q:1#value]]", ctx)
+    assert g.grade == 3
+    assert [(r.citation, r.reason) for r in g.removed] == [("q:1#value", "value_mismatch")]
+
+
+def test_condition_value_echo_still_leaves_a_matching_count() -> None:
+    # 조건 값은 한 번만 걷어 낸다 — 결과가 조건 값과 같은 숫자여도 결과로 다시 쓰면 통과한다.
+    assert (
+        grade("위험등급이 2 이하인 철탑은 2개입니다. [[q:1#value]]", _count_ctx("2", {"2"})).grade
+        == 1
+    )
+
+
+def test_condition_value_removal_respects_number_boundaries() -> None:
+    # "12" 안의 "2"는 조건 값이 아니다.
+    assert (
+        grade("위험등급 2 이하 시설은 12개입니다. [[q:1#value]]", _count_ctx("12", {"2"})).grade
+        == 1
+    )
+    assert (
+        grade(
+            "시설 12개 중 위험등급 2 이하는 3개입니다. [[q:1#value]]", _count_ctx("12", {"2"})
+        ).grade
+        == 1
+    )
+
+
+def test_filtered_property_may_restate_its_own_condition_value() -> None:
+    # 대상 필터 risk_grade = 2 — 그 속성의 값은 조건과 같을 수밖에 없고, 레코드 값으로 확인된다.
+    ctx = _count_ctx("18", {"2"}, {"risk_grade": {"2"}})
+    answer = "강남 변전소 01호의 위험등급은 2입니다. [[o:Facility/F-0001#risk_grade]]"
+    assert grade(answer, ctx).grade == 1
+    # 다른 속성의 조건 값(예: 관계 끝 객체의 조건)과 우연히 같으면 되풀이와 구별할 수 없다 —
+    # 통과시키지 않는다(잘못 붙은 근거가 근거 없음보다 나쁘다). 그 문장은 추정이 된다.
+    g = grade(answer, _count_ctx("18", {"2"}, {"capacity_kw": {"2"}}))
+    assert [(r.citation, r.reason) for r in g.removed] == [
+        ("o:Facility/F-0001#risk_grade", "value_mismatch")
+    ]
+
+
 # ---------------------------------------------------------------- Phase 3 완료 기준(계획 문서)
 
 TWO = GroundingContext(

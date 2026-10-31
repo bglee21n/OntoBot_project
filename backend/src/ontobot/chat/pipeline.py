@@ -23,7 +23,7 @@ Function 을 부르는 말(``kind: function``)은 ``functions.binding`` 으로 �
 from __future__ import annotations
 
 import time
-from collections.abc import Awaitable, Callable, Set
+from collections.abc import Awaitable, Callable, Mapping, Set
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -133,17 +133,29 @@ def _all_filters(vp: ValidatedPlan) -> list[CheckedFilter]:
     return [*vp.filters, *(f for h in vp.hops for f in h.filters)]
 
 
-def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
+def _filter_terms(f: CheckedFilter) -> set[str]:
     terms: set[str] = set()
-    for f in _all_filters(vp):
-        values = f.value if isinstance(f.value, tuple) else (f.value,)
-        for v in values:
-            if isinstance(v, bool):
-                continue
-            terms.update({str(v), records.display(f.prop, v)})
-            if hasattr(v, "year"):  # 날짜 조건은 "2015년 이전"처럼 연도만 되풀이하는 경우가 흔하다
-                terms.add(str(v.year))
-    return frozenset(terms)
+    values = f.value if isinstance(f.value, tuple) else (f.value,)
+    for v in values:
+        if isinstance(v, bool):
+            continue
+        terms.update({str(v), records.display(f.prop, v)})
+        if hasattr(v, "year"):  # 날짜 조건은 "2015년 이전"처럼 연도만 되풀이하는 경우가 흔하다
+            terms.add(str(v.year))
+    return terms
+
+
+def _condition_terms(vp: ValidatedPlan) -> frozenset[str]:
+    return frozenset(t for f in _all_filters(vp) for t in _filter_terms(f))
+
+
+def _field_conditions(vp: ValidatedPlan) -> dict[str, frozenset[str]]:
+    """대상 타입 필터의 속성 → 조건 값. 관계 끝 객체의 필터는 넣지 않는다 — 속성 이름이
+    대상의 것과 겹칠 수 있다."""
+    out: dict[str, set[str]] = {}
+    for f in vp.filters:
+        out.setdefault(f.prop.api_name, set()).update(_filter_terms(f))
+    return {k: frozenset(v) for k, v in out.items()}
 
 
 def _function_terms(vf: fn_binding.ValidatedFunction) -> frozenset[str]:
@@ -208,7 +220,10 @@ def _pii_values(vp: ValidatedPlan, rs: records.RecordSet | None = None) -> list[
 
 
 def _evidence(
-    rs: records.RecordSet, readable: Set[str], condition_terms: frozenset[str] = frozenset()
+    rs: records.RecordSet,
+    readable: Set[str],
+    condition_terms: frozenset[str] = frozenset(),
+    field_conditions: Mapping[str, frozenset[str]] | None = None,
 ) -> GroundingContext:
     ev = {
         r.ref: Evidence(
@@ -225,6 +240,7 @@ def _evidence(
         titles=frozenset(rs.titles),
         enum_values=frozenset(rs.enum_values),
         condition_terms=condition_terms,
+        field_conditions=field_conditions or {},
     )
 
 
@@ -498,7 +514,9 @@ async def run(
         await emit("stage", {"stage": "verifying"})
         with timer.stage("verifying"):
             g = grade(
-                raw, _evidence(rs, readable, _condition_terms(vp)), grade2_enabled=grade2_enabled
+                raw,
+                _evidence(rs, readable, _condition_terms(vp), _field_conditions(vp)),
+                grade2_enabled=grade2_enabled,
             )
     except LlmUnavailable:
         return _failed(res, "llm_unavailable")

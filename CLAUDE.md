@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.1) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
@@ -142,7 +142,9 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   `return` 하면 트랜잭션이 열린 채 남는다 — 워커가 그 상태로 `CREATE INDEX CONCURRENTLY` 를 실행해 자기 자신을 기다렸다.
   워커는 작업을 집은 세션을 닫은 뒤 처리기를 돌린다(`queue.claim` 은 ORM 이 아니라 값을 돌려준다).
 - **근거 대조에 유사도를 넣지 않는다.** 정규화는 NFC·공백·천 단위 구분·날짜 ISO 뿐이고 판정은 "그대로 포함". 등급은 LLM 이
-  매기지 않는다. 사실 문장 판정 전에 조회 조건 값을 걷어 낸다(TRD 8.2-2 v0.5).
+  매기지 않는다. 사실 문장 판정 전에 조회 조건 값을 걷어 낸다(TRD 8.2-2 v0.5). 인용 값 대조도 조건 값을 값마다 한 번씩
+  걷어 낸 뒤 본다 — 인용 속성이 대상 필터의 속성일 때만 그 조건 값을 남긴다(`field_conditions`, 8.2-3 v1.0.1). 이 예외를
+  넓히면 "2 이하인 철탑은 1개"처럼 조건 값이 틀린 숫자를 증명한다.
 - **LLM 은 SQL·Cypher 를 쓰지 않는다.** 값·속성 키는 바인드, 라벨·관계 타입은 바인드할 수 없으므로 식별자 정규식
   (`ontology/models.py` 의 `TYPE_NAME`/`MEMBER_NAME`)을 **조립 직전에 다시** 확인한다. 정규식을 느슨하게 하지 말 것.
 - 데이터 블록은 줄마다 `인용키 | 이름 | 값` 이다(ADR-0004). 라벨을 키 옆에 괄호로 적으면 모델이 인용에 베낀다.

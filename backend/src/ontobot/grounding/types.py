@@ -30,3 +30,6 @@ class GroundingContext:
     # 조회 조건에 쓰인 값(원값·표시 문자열). 문장에서 이 값을 걷어 낸 뒤 사실 여부를 본다 —
     # "2015년 이전에 설치된 철탑은 다음과 같습니다"는 조건을 되풀이할 뿐 결과에 대한 주장이 아니다.
     condition_terms: Set[str] = field(default_factory=frozenset)
+    # 대상 타입 필터의 속성 → 그 조건 값. 인용한 속성이 바로 그 필터의 속성이면 값이 조건과
+    # 같을 수밖에 없으므로, 인용 대조에서 그 값은 걷어 내지 않는다(8.2-3).
+    field_conditions: Mapping[str, Set[str]] = field(default_factory=dict)
