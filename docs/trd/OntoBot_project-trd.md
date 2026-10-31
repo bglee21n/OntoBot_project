@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.31                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.32                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -922,6 +922,19 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - **미리보기 갱신 시간**(측정, 개발 PC·gemma4:e4b): 답을 보낸 때부터 요소 목록을 다시 받을 때까지 5.7(첫 턴, 모델 적재)·3.5·
   2.9·4.4초. 화면이 턴마다 보여 준다. PRD 수치 제안: **첫 턴 뒤 p50 5초 이하**(가안 5초와 맞다).
 
+### 17.15 인터뷰 병합 (v0.32, Phase 18b, PRD 5.8 P1)
+
+- **후보**(`workshop.merge.candidates`, 순수): 고른 세션들의 확정 요소를 종류별 이름 **정확 일치**로 묶는다(타입 `api_name`,
+  속성 `타입.이름`, 링크 `api_name`, Action 후보 이름, 골든 질문 문장). 상태 — `agree`(정의 필드까지 같다), `conflict`(같은
+  이름·다른 정의: 속성 `data_type`·`enum_values`, 링크 `from_type`·`to_type` — `publish.merge` 가 막는 것과 같다), `single`.
+  이름은 다른데 표시 이름이 정확히 같은 것은 `same_display` 로 알리기만 한다(유사도로 묶지 않는다).
+- **병합**(`publish.publish_many`, 모델러): 제출된 세션들(잠금 순서는 id 순)의 확정 요소를 세션 순서대로 이어 한 번의 `merge`
+  로 draft 하나를 만든다. 충돌은 `publish_blocked`(409) — 세션 검토에서 고치거나 거절한 뒤 다시. 골든 질의 초안은 같은 질문을
+  한 번만(`workshop-merge-<ids>`). 세션 모두 `published`·같은 `published_version_id`, 감사는 세션마다(`merged_sessions`).
+  단일 세션 게시(`publish`)는 이것의 한 세션짜리다.
+- API `POST /workshop/merge/candidates`·`POST /workshop/merge`(`session_ids` 2~20), 화면: 워크숍 목록에서 제출된 인터뷰를
+  골라 병합 후보 표(충돌은 빨간 줄·병합 단추 끔) → 병합.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -1011,6 +1024,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.29 | 2026-10-31 | Phase 17a 게시 영향 분석(17.12) — draft 의 지우기·바꾸기마다 참조처(정의·매핑·골든·행 정책·숨김·권한·워크숍·문서 링크·데이터), 행 정책이 지우는·자료형을 바꾸는 속성을 쓰면 게시를 막는다 |
 | v0.30 | 2026-10-31 | Phase 17b 공개 REST API(17.13) — 서비스 계정(`app_user.kind`)·API 키(해시·스코프·만료·폐기, 0020), Bearer 만 받는 `/api/v1/public`(질의 JSON·객체 읽기·Action 요청 → 사람 승인), 공개 OpenAPI |
 | v0.31 | 2026-10-31 | Phase 18a 워크숍 확장형 화면(17.14) — 대화 \| 실시간 미리보기(검토·요소 그래프·Action 정의서), 모바일 한 열·탭, 기능 플래그 `GET /config/features`(음성 입력은 폐쇄망이면 그리지 않음), 미리보기 갱신 시간 측정 |
+| v0.32 | 2026-10-31 | Phase 18b 인터뷰 병합(17.15) — 세션 간 이름 정확 일치 후보(일치·충돌·한 세션만, 같은 표시 이름 알림), 모델러가 제출 세션 여럿을 draft 하나로(`publish_many`) |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

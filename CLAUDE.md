@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.31) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v0.32) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-Phase 18b(워크숍 세션 병합)·18c(샘플 데이터 시연) — 17(게시 영향·공개 REST API)·18a(워크숍 분할 화면) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+Phase 18c(워크숍 샘플 데이터 시연) — 17(게시 영향·공개 REST API)·18a(워크숍 분할 화면)·18b(세션 병합) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -103,6 +103,7 @@ backend/src/ontobot/
   jobs/       queue(job 표 + SKIP LOCKED)·handlers·schedules·worker
   evaluation/ golden(팩 ↔ DB)·runner(파이프라인 인프로세스)·faults(실행기 주입)·metrics·gate(+gate.yaml)·replay(카세트)
   workshop/   topics(주제 상태기계, 순수)·interviewer·extractor·evidence(순수)·elements(payload 검증)·sessions(턴)·review·publish
+              merge(세션 간 병합 후보 — 이름 정확 일치, 순수)
   actions/    rules(파라미터·사전 조건·바뀔 값·템플릿, 순수) · params(채팅 Action 제안 대조) · runner(미리보기 → 승인 = 실행 → 거부 → 롤백)
   notify/     config(notify.yaml, 채널 꺼짐이 기본) · channels(SMTP·SMS 게이트웨이 — 네트워크는 여기만) · delivery(아웃박스)
   functions/  binding(인자·내부 계획 검증, 순수) · evaluator(식 트리·근거 행·조건 문장, 순수) · runner(파이프라인 실행기로 내부 조회)

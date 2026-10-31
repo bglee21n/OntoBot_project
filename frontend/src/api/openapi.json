@@ -5496,6 +5496,115 @@
         "title": "MembersIn",
         "type": "object"
       },
+      "MergeCandidatesOut": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/MergeGroupOut"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "same_display": {
+            "items": {
+              "$ref": "#/components/schemas/SameDisplayOut"
+            },
+            "title": "Same Display",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groups",
+          "same_display"
+        ],
+        "title": "MergeCandidatesOut",
+        "type": "object"
+      },
+      "MergeGroupOut": {
+        "properties": {
+          "differs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Differs",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MergeMemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "agree",
+              "conflict",
+              "single"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "key",
+          "state",
+          "members",
+          "differs"
+        ],
+        "title": "MergeGroupOut",
+        "type": "object"
+      },
+      "MergeIn": {
+        "properties": {
+          "session_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Session Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "session_ids"
+        ],
+        "title": "MergeIn",
+        "type": "object"
+      },
+      "MergeMemberOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "element_id": {
+            "title": "Element Id",
+            "type": "integer"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "element_id",
+          "display_name"
+        ],
+        "title": "MergeMemberOut",
+        "type": "object"
+      },
       "MessageMeta": {
         "properties": {
           "action": {
@@ -7055,6 +7164,32 @@
           "description"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "SameDisplayOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keys",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "display_name",
+          "keys"
+        ],
+        "title": "SameDisplayOut",
         "type": "object"
       },
       "SearchHitOut": {
@@ -14453,6 +14588,90 @@
           }
         },
         "summary": "Review Element",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/merge": {
+      "post": {
+        "description": "제출된 인터뷰 여럿을 draft 하나로.\n\n이름이 같고 정의가 다르면 막힌다(검토에서 고친 뒤 다시).",
+        "operationId": "merge_publish_api_v1_workshop_merge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Publish",
+        "tags": [
+          "workshop"
+        ]
+      }
+    },
+    "/api/v1/workshop/merge/candidates": {
+      "post": {
+        "description": "고른 인터뷰들의 확정 요소를 이름 정확 일치로 묶어 보인다 — 병합하지 않는다.",
+        "operationId": "merge_candidates_api_v1_workshop_merge_candidates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeCandidatesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Merge Candidates",
         "tags": [
           "workshop"
         ]

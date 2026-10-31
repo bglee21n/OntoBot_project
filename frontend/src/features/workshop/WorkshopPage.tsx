@@ -5,13 +5,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import type { SessionDetail, SessionSummary } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
+import { useMe } from "../../app/auth";
 import { ko } from "../../i18n/ko";
+import { MergePanel } from "./MergePanel";
 
 const t = ko.workshop;
 
 export function WorkshopPage() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
+  const me = useMe();
+  const isModeler = me.data?.roles.includes("modeler") ?? false;
+  // 병합할 제출 인터뷰(모델러만, Phase 18b)
+  const [picked, setPicked] = useState<number[]>([]);
+  const toggle = (id: number) => setPicked((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
   const sessions = useQuery({
     queryKey: ["workshop", "sessions"],
     queryFn: () => api.get<SessionSummary[]>("/workshop/sessions"),
@@ -49,10 +56,12 @@ export function WorkshopPage() {
       {sessions.isPending && <p>{ko.common.loading}</p>}
       {sessions.isError && <ErrorBox error={sessions.error} />}
       {sessions.data?.length === 0 && <p className="muted">{t.noSessions}</p>}
+      {isModeler && picked.length > 0 && <MergePanel key={picked.join(",")} ids={picked} />}
       {sessions.data && sessions.data.length > 0 && (
         <table>
           <thead>
             <tr>
+              {isModeler && <th title={ko.workshop.merge.pickHint}>{ko.workshop.merge.pick}</th>}
               <th>id</th>
               <th>{t.sessionTitle}</th>
               <th>{ko.admin.status}</th>
@@ -63,6 +72,18 @@ export function WorkshopPage() {
           <tbody>
             {sessions.data.map((s) => (
               <tr key={s.id}>
+                {isModeler && (
+                  <td>
+                    {s.status === "submitted" && (
+                      <input
+                        type="checkbox"
+                        aria-label={ko.workshop.merge.pick}
+                        checked={picked.includes(s.id)}
+                        onChange={() => toggle(s.id)}
+                      />
+                    )}
+                  </td>
+                )}
                 <td>{s.id}</td>
                 <td>{s.title ?? "—"}</td>
                 <td>

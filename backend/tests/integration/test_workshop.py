@@ -314,3 +314,82 @@ async def test_publish_blocked_on_conflicting_property(
     assert (r.status_code, r.json()["code"]) == (409, "publish_blocked")
     assert r.json()["issues"][0]["path"] == f"draft_element.{prop['id']}"
     assert (await client.get(f"{API}/sessions/{sid}")).json()["status"] == "submitted"
+
+
+async def _session_with(
+    client: httpx.AsyncClient, script: Script, type_name: str, props: list[tuple[str, str]]
+) -> tuple[int, dict[str, int]]:
+    """역할 답 → 업무 흐름 답 하나로 타입·속성 후보를 만들고 모두 확정·제출한다."""
+    sid = (await client.post(f"{API}/sessions", json={"title": "병합 시험"})).json()["id"]
+    await _say(client, sid, "변전소 점검을 담당합니다.")
+    answer = f"{type_name} 시설마다 " + ", ".join(n for n, _ in props) + " 을 봐요."
+    script.extract.append(
+        {
+            "object_types": [
+                {"quote": f"{type_name} 시설마다", "api_name": type_name, "display_name": "시설"}
+            ],
+            "properties": [
+                {
+                    "quote": name,
+                    "object_type": type_name,
+                    "api_name": name,
+                    "display_name": f"{name} 항목",
+                    "data_type": data_type,
+                }
+                for name, data_type in props
+            ],
+        }
+    )
+    turn = await _say(client, sid, answer)
+    ids = {e["payload"].get("api_name"): e["id"] for e in turn["added"]}
+    for eid in ids.values():
+        r = await client.patch(f"{API}/elements/{eid}", json={"status": "confirmed"})
+        assert r.status_code == 200, r.text
+    assert (await client.post(f"{API}/sessions/{sid}/submit")).status_code == 200
+    return sid, ids
+
+
+async def test_merge_two_interviews_into_one_draft(
+    client: httpx.AsyncClient, script: Script, make_user: MakeUser
+) -> None:
+    """완료 기준(Phase 18) 앞부분 — 인터뷰 2개 → 병합 후보(정확 일치) → 충돌 고치기 → draft 하나."""
+    type_name = _uniq()
+    await _as(client, make_user, "domain_expert")
+    a, _ = await _session_with(client, script, type_name, [("grade", "int"), ("note", "string")])
+    await _as(client, make_user, "domain_expert")
+    b, b_ids = await _session_with(client, script, type_name, [("grade", "int"), ("note", "int")])
+
+    await _as(client, make_user, "modeler")
+    r = await client.post(f"{API}/merge/candidates", json={"session_ids": [a, b]})
+    assert r.status_code == 200, r.text
+    groups = {(g["kind"], g["key"]): g for g in r.json()["groups"]}
+    assert groups[("object_type", type_name)]["state"] == "agree"
+    assert groups[("property", f"{type_name}.grade")]["state"] == "agree"
+    note = groups[("property", f"{type_name}.note")]
+    assert (note["state"], note["differs"]) == ("conflict", ["data_type"])
+    assert {m["session_id"] for m in note["members"]} == {a, b}
+    # 같은 표시 이름("시설")이지만 이름이 같으니 따로 알리지 않는다.
+    assert r.json()["same_display"] == []
+
+    # 정의가 다른 같은 이름 — 병합이 막힌다(조용히 덮지 않는다).
+    r = await client.post(f"{API}/merge", json={"session_ids": [a, b]})
+    assert (r.status_code, r.json()["code"]) == (409, "publish_blocked")
+    assert (await client.get(f"{API}/sessions/{a}")).json()["status"] == "submitted"
+    # 모델러가 한쪽을 거절하면 병합된다.
+    r = await client.patch(f"{API}/elements/{b_ids['note']}", json={"status": "rejected"})
+    assert r.status_code == 200, r.text
+    r = await client.post(f"{API}/merge", json={"session_ids": [a, b]})
+    assert r.status_code == 200, r.text
+    version_id = r.json()["version_id"]
+    assert f"{type_name}.grade" in r.json()["added"]["property"]
+    for sid in (a, b):
+        s = (await client.get(f"{API}/sessions/{sid}")).json()
+        assert (s["status"], s["published_version_id"]) == ("published", version_id)
+    async with session_scope() as db:
+        doc = versioning.to_document(await versioning.get_version(db, version_id))
+    t = doc.object_type(type_name)
+    assert t is not None
+    assert {p.api_name: p.data_type for p in t.properties} == {"grade": "int", "note": "string"}
+    # 이미 게시된 세션은 다시 병합할 수 없다.
+    r = await client.post(f"{API}/merge", json={"session_ids": [a, b]})
+    assert (r.status_code, r.json()["code"]) == (409, "not_submitted")

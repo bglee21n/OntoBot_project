@@ -25,6 +25,7 @@ from ontobot.llm.gateway import LLMGateway, LlmUnavailable
 from ontobot.security import rbac
 from ontobot.security.rbac import ROLE_DOMAIN_EXPERT, ROLE_MODELER
 from ontobot.workshop import elements, publish, review, sessions, topics
+from ontobot.workshop import merge as merge_mod
 
 router = APIRouter(prefix="/workshop", tags=["workshop"])
 
@@ -322,6 +323,81 @@ async def publish_session(session_id: int, db: Db, user: Modeler) -> PublishOut:
         done = await publish.publish(
             db, s, await sessions.session_elements(db, s.id), actor_id=user.id
         )
+    return PublishOut(
+        version_id=done.version_id,
+        golden_set_id=done.golden_set_id,
+        golden_items=done.golden_items,
+        added=done.added,
+        reused=done.reused,
+    )
+
+
+# ---------------------------------------------------------------- 세션 병합(Phase 18b)
+
+
+class MergeIn(BaseModel):
+    session_ids: list[int] = Field(min_length=2, max_length=20)
+
+
+class MergeMemberOut(BaseModel):
+    session_id: int
+    element_id: int
+    display_name: str
+
+
+class MergeGroupOut(BaseModel):
+    kind: str
+    key: str
+    state: Literal["agree", "conflict", "single"]
+    members: list[MergeMemberOut]
+    differs: list[str]
+
+
+class SameDisplayOut(BaseModel):
+    kind: str
+    display_name: str
+    keys: list[str]
+
+
+class MergeCandidatesOut(BaseModel):
+    groups: list[MergeGroupOut]
+    same_display: list[SameDisplayOut]
+
+
+async def _merge_sessions(
+    db: Db, user: CurrentUser, ids: list[int], *, lock: bool
+) -> list[tuple[InterviewSession, list[DraftElement]]]:
+    if len(set(ids)) != len(ids):
+        raise ProblemError(422, "같은 인터뷰를 두 번 고를 수 없습니다", code="duplicate_session")
+    out = []
+    for sid in sorted(ids):  # 잠그는 순서를 고정한다(교착 방지)
+        s = await _session(db, user, sid, lock=lock)
+        out.append((s, await sessions.session_elements(db, s.id)))
+    return out
+
+
+@router.post("/merge/candidates", response_model=MergeCandidatesOut)
+async def merge_candidates(body: MergeIn, db: Db, user: Modeler) -> MergeCandidatesOut:
+    """고른 인터뷰들의 확정 요소를 이름 정확 일치로 묶어 보인다 — 병합하지 않는다."""
+    picked = await _merge_sessions(db, user, body.session_ids, lock=False)
+    groups, same = merge_mod.candidates(
+        [(s.id, [(e.id, e.kind, e.payload, e.status) for e in els]) for s, els in picked]
+    )
+    return MergeCandidatesOut(
+        groups=[MergeGroupOut.model_validate(g, from_attributes=True) for g in groups],
+        same_display=[SameDisplayOut.model_validate(x, from_attributes=True) for x in same],
+    )
+
+
+@router.post("/merge", response_model=PublishOut)
+async def merge_publish(body: MergeIn, db: Db, user: Modeler) -> PublishOut:
+    """제출된 인터뷰 여럿을 draft 하나로.
+
+    이름이 같고 정의가 다르면 막힌다(검토에서 고친 뒤 다시).
+    """
+    picked = await _merge_sessions(db, user, body.session_ids, lock=True)
+    with _domain_errors():
+        done = await publish.publish_many(db, picked, actor_id=user.id)
     return PublishOut(
         version_id=done.version_id,
         golden_set_id=done.golden_set_id,

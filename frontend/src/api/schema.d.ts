@@ -1874,6 +1874,48 @@ export interface paths {
         patch: operations["review_element_api_v1_workshop_elements__element_id__patch"];
         trace?: never;
     };
+    "/api/v1/workshop/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Publish
+         * @description 제출된 인터뷰 여럿을 draft 하나로.
+         *
+         *     이름이 같고 정의가 다르면 막힌다(검토에서 고친 뒤 다시).
+         */
+        post: operations["merge_publish_api_v1_workshop_merge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workshop/merge/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge Candidates
+         * @description 고른 인터뷰들의 확정 요소를 이름 정확 일치로 묶어 보인다 — 병합하지 않는다.
+         */
+        post: operations["merge_candidates_api_v1_workshop_merge_candidates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workshop/sessions": {
         parameters: {
             query?: never;
@@ -3742,6 +3784,43 @@ export interface components {
             /** User Ids */
             user_ids: number[];
         };
+        /** MergeCandidatesOut */
+        MergeCandidatesOut: {
+            /** Groups */
+            groups: components["schemas"]["MergeGroupOut"][];
+            /** Same Display */
+            same_display: components["schemas"]["SameDisplayOut"][];
+        };
+        /** MergeGroupOut */
+        MergeGroupOut: {
+            /** Differs */
+            differs: string[];
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Members */
+            members: components["schemas"]["MergeMemberOut"][];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "agree" | "conflict" | "single";
+        };
+        /** MergeIn */
+        MergeIn: {
+            /** Session Ids */
+            session_ids: number[];
+        };
+        /** MergeMemberOut */
+        MergeMemberOut: {
+            /** Display Name */
+            display_name: string;
+            /** Element Id */
+            element_id: number;
+            /** Session Id */
+            session_id: number;
+        };
         /** MessageMeta */
         MessageMeta: {
             action?: components["schemas"]["ActionPreviewData"] | null;
@@ -4247,6 +4326,15 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+        };
+        /** SameDisplayOut */
+        SameDisplayOut: {
+            /** Display Name */
+            display_name: string;
+            /** Keys */
+            keys: string[];
+            /** Kind */
+            kind: string;
         };
         /** SearchHitOut */
         SearchHitOut: {
@@ -8538,6 +8626,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ElementOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_publish_api_v1_workshop_merge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    merge_candidates_api_v1_workshop_merge_candidates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MergeCandidatesOut"];
                 };
             };
             /** @description Validation Error */

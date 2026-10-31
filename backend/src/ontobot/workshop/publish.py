@@ -10,6 +10,9 @@
   기대 답변은 현업이 확정한 문장이고, 채점용 ``required_values`` 는 비워 둔다(Phase 7 에서
   모델러가 채운다).
 - Action 후보는 복사하지 않는다 — ``draft_element`` 에 남아 v1 Action Type 정의에 쓰인다.
+- 여러 세션을 한 draft 로(Phase 18b, ``publish_many``): 세션 순서대로 확정 요소를 이어 같은
+  ``merge`` 에 넣는다 — 세션끼리 같은 이름은 정의가 같을 때만 하나가 되고, 다르면 막힌다. 병합 후보
+  보기는 ``workshop.merge``.
 """
 
 from __future__ import annotations
@@ -168,10 +171,21 @@ async def publish(
     *,
     actor_id: int,
 ) -> Published:
-    """``session`` 은 잠근 행이어야 한다(같은 세션을 두 번 게시하지 않게)."""
-    if session.status != "submitted":
-        raise NotSubmitted(session.id)
-    confirmed = [e for e in els if e.status in CONFIRMED]
+    """세션 하나 — ``publish_many`` 의 한 세션짜리."""
+    return await publish_many(db, [(session, els)], actor_id=actor_id)
+
+
+async def publish_many(
+    db: AsyncSession,
+    sessions: list[tuple[InterviewSession, list[DraftElement]]],
+    *,
+    actor_id: int,
+) -> Published:
+    """세션들은 잠근 행이어야 한다(같은 세션을 두 번 게시하지 않게). 모두 제출된 상태여야 한다."""
+    for session, _ in sessions:
+        if session.status != "submitted":
+            raise NotSubmitted(session.id)
+    confirmed = [e for _, els in sessions for e in els if e.status in CONFIRMED]
     parent_id = await versioning.published_version_id(db)
     base = (
         versioning.to_document(await versioning.get_version(db, parent_id))
@@ -185,10 +199,19 @@ async def publish(
     draft = await versioning.create_draft(db, actor_id=actor_id, parent_id=parent_id)
     await versioning.replace_document(db, draft.id, merged.document, actor_id=actor_id)
 
-    queries = [e for e in confirmed if e.kind == "golden_query"]
+    ids = [session.id for session, _ in sessions]
+    # 같은 질문(정확 일치)은 한 번만 — 여러 세션이 같은 질문을 확정할 수 있다.
+    queries = list(
+        {e.payload["question"]: e for e in confirmed if e.kind == "golden_query"}.values()
+    )
     golden_set_id: int | None = None
     if queries:
-        gs = GoldenSet(name=f"workshop-session-{session.id}", ontology_version_id=draft.id)
+        name = (
+            f"workshop-session-{ids[0]}"
+            if len(ids) == 1
+            else "workshop-merge-" + "-".join(map(str, ids))
+        )
+        gs = GoldenSet(name=name, ontology_version_id=draft.id)
         db.add(gs)
         await db.flush()
         golden_set_id = gs.id
@@ -207,22 +230,26 @@ async def publish(
                     source="workshop",
                 )
             )
-    session.status = "published"
-    session.published_version_id = draft.id
-    audit.record(
-        db,
-        audit.WORKSHOP_PUBLISHED,
-        actor_id=actor_id,
-        target=f"interview_session:{session.id}",
-        payload={
-            "version_id": draft.id,
-            "parent_id": parent_id,
-            "added": merged.added,
-            "reused": merged.reused,
-            "golden_set_id": golden_set_id,
-            "golden_items": len(queries),
-            "action_candidates": sum(1 for e in confirmed if e.kind == "action_candidate"),
-        },
-    )
+    for session, els in sessions:
+        session.status = "published"
+        session.published_version_id = draft.id
+        audit.record(
+            db,
+            audit.WORKSHOP_PUBLISHED,
+            actor_id=actor_id,
+            target=f"interview_session:{session.id}",
+            payload={
+                "version_id": draft.id,
+                "parent_id": parent_id,
+                "merged_sessions": ids,
+                "added": merged.added,
+                "reused": merged.reused,
+                "golden_set_id": golden_set_id,
+                "golden_items": len(queries),
+                "action_candidates": sum(
+                    1 for e in els if e.kind == "action_candidate" and e.status in CONFIRMED
+                ),
+            },
+        )
     await db.flush()
     return Published(draft.id, golden_set_id, len(queries), merged.added, merged.reused)
