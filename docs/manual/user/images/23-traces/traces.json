@@ -7,7 +7,7 @@
  {
   "image": "t2-list",
   "question": "변전소 목록 보여줘",
-  "trace": "150"
+  "trace": "2"
  },
  {
   "image": "t3-traverse",
@@ -42,6 +42,6 @@
  {
   "image": "t9-grade3",
   "question": "지역은 몇 개 등록돼 있어?",
-  "trace": "173"
+  "trace": "75"
  }
 ]

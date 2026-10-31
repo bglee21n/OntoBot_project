@@ -23,9 +23,12 @@ ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "backend"
 PG_CONTAINER = "ontobot-test-postgres-1"
 
+# compose.test 의 PG 포트 — Windows 예약 범위에 걸리면 task.py 처럼 ONTOBOT_TEST_PG_PORT 로 바꾼다.
+PG_PORT = os.environ.get("ONTOBOT_TEST_PG_PORT", "55432")
+
 ENV = {
     "ONTOBOT_DB_HOST": "127.0.0.1",
-    "ONTOBOT_DB_PORT": "55432",
+    "ONTOBOT_DB_PORT": PG_PORT,
     "ONTOBOT_DB_USER": "ontobot",
     "ONTOBOT_DB_PASSWORD": "ontobot-test",
     "ONTOBOT_DB_NAME": "ontobot_manual",
@@ -34,7 +37,7 @@ ENV = {
     "ONTOBOT_NEO4J_PASSWORD": "ontobot-test-graph",
     # 데이터 소스 실습: 시크릿 참조 env:ONTOBOT_SRC_FAC
     "ONTOBOT_SRC_FAC_HOST": "127.0.0.1",
-    "ONTOBOT_SRC_FAC_PORT": "55432",
+    "ONTOBOT_SRC_FAC_PORT": PG_PORT,
     "ONTOBOT_SRC_FAC_DB": "ontobot_manual_src",
     "ONTOBOT_SRC_FAC_USER": "ontobot",
     "ONTOBOT_SRC_FAC_PASSWORD": "ontobot-test",
@@ -121,7 +124,13 @@ def prepare() -> None:
         psql(db, "CREATE EXTENSION IF NOT EXISTS vector;")
     psql("ontobot_manual_src", source_sql(), user="ontobot")
     run([uv, "run", "alembic", "upgrade", "head"], cwd=BACKEND)
-    run([uv, "run", "--project", "backend", "python", "scripts/seed_domain_pack.py", "--pack", "sample"])
+    # 합성 문서(v1 문서 질문, 18.8·5.3)는 user 그룹에 — 색인(임베딩)은 워커가 한다.
+    run(
+        [
+            uv, "run", "--project", "backend", "python", "scripts/seed_domain_pack.py",
+            "--pack", "sample", "--documents", "user",
+        ]
+    )
     run([uv, "run", "--project", "backend", "python", "scripts/graph_rebuild.py"])
     cli = [uv, "run", "python", "-m", "ontobot.security.cli"]
     # 데이터 권한은 그룹(Phase 14) — 역할과 같은 이름의 그룹을 먼저 만들고 사용자를 넣는다.

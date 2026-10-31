@@ -20,7 +20,7 @@
 
 `위험등급이 5인 전주는 몇 개야?`
 
-![전주를 철탑으로 이해한 답](images/05-question-types/count-2.png)
+![전주를 철탑으로 이해한 답](images/05-question-types/count-2-misread.png)
 
 | 확인할 것 | 질문 | 조회 조건 | 판정 |
 | --- | --- | --- | --- |

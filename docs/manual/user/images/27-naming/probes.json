@@ -75,7 +75,7 @@
   "phase": "before",
   "question": "지역별 시설 수 알려줘",
   "round": 1,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  },
@@ -83,7 +83,7 @@
   "phase": "before",
   "question": "지역별 시설 수 알려줘",
   "round": 2,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  },
@@ -91,7 +91,7 @@
   "phase": "before",
   "question": "지역별 시설 수 알려줘",
   "round": 3,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  },
@@ -171,7 +171,7 @@
   "phase": "after",
   "question": "지역별 시설 수 알려줘",
   "round": 1,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  },
@@ -179,7 +179,7 @@
   "phase": "after",
   "question": "지역별 시설 수 알려줘",
   "round": 2,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  },
@@ -187,7 +187,7 @@
   "phase": "after",
   "question": "지역별 시설 수 알려줘",
   "round": 3,
-  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 내림차순 · 최대 100건",
+  "conditions": "조회 조건: 지역 · 지역명별 건수 · 건수 오름차순 · 최대 100건",
   "failure": null,
   "badge": "① 근거 확인"
  }

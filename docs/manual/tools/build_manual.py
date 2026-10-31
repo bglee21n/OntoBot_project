@@ -1,6 +1,6 @@
 """사용자 매뉴얼 빌드 — docs/manual/user/*.md(번호 순)를 Word(.docx)와 PDF 로 묶는다.
 
-    uv run --with python-docx --with markdown --with playwright python docs/manual/tools/build_manual.py
+    uv run --with python-docx --with markdown --with playwright --with pillow python docs/manual/tools/build_manual.py
 
 산출물은 ``dist/manual/``(git 이 무시한다). 원본은 Markdown 이 정본이다 — Word 를 직접 고치지 말 것.
 Markdown 은 이 매뉴얼이 쓰는 만큼만 읽는다: 제목(#~####), 문단, 굵게(**), 코드(`), 목록(-, 1.), 표(|),

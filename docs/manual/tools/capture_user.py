@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 
 import subprocess
@@ -1090,7 +1091,10 @@ def ch_admin(s: Shooter) -> None:
         f.locator("label", has_text="아이디").locator("input").fill("han.new")
         f.locator("label", has_text="표시 이름").locator("input").fill("한신입")
         f.locator("label", has_text="초기 비밀번호").locator("input").fill(s_password())
-        f.locator("label.check", has_text="user").locator("input").check()
+        # 역할 user 와 같은 이름의 데이터 그룹 user(Phase 14) — 앞이 역할, 뒤가 그룹이다.
+        user_checks = f.locator("label.check", has_text="user").locator("input")
+        user_checks.first.check()
+        user_checks.last.check()
         s.shot(pg, "add-user", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(2000)
@@ -1115,11 +1119,24 @@ def ch_admin(s: Shooter) -> None:
         s.shot(pg, "contacts-saved", clip=pg.locator("tbody tr", has_text="kim.user").first)
         s.shot(pg, "self-row", clip=pg.locator("tbody tr", has_text="park.admin").first)
         tabs = pg.locator("main nav button, main [role=tablist] button")
-        tabs.filter(has_text="역할별 읽기 권한").first.click()
+        # 데이터 그룹(Phase 14). user 그룹에 점검 기록 읽기를 준다 — 24장(점검 기록 질문)이 이 상태에 기댄다.
+        tabs.filter(has_text="데이터 그룹").first.click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "permissions", full=True)
-        card = pg.locator(".card", has=pg.locator("strong", has_text="user")).first
-        card.locator("label.check", has_text="점검 기록").locator("input").check()
+        card = pg.locator(".card.stack", has=pg.locator("code", has_text=re.compile(r"^user$"))).first
+        card.locator("details summary").first.click()
+        pg.wait_for_timeout(500)
+        s.shot(
+            pg,
+            "group-card",
+            clip=card,
+            marks=[
+                (card.locator("details summary").first, 1, "right"),
+                (card.locator("table").first, 2),
+                (card.get_by_role("button", name="권한 저장"), 3, "right"),
+            ],
+        )
+        card.get_by_label("Inspection 읽기").check()
         s.shot(pg, "permission-change", clip=card, marks=[(card.get_by_role("button", name="권한 저장"), 1, "right")])
         card.get_by_role("button", name="권한 저장").click()
         pg.wait_for_timeout(1500)
