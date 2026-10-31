@@ -13,6 +13,11 @@ Action 요청 말(플래너 ``kind: action``)은 조회하지 않는다. 제안�
 
 Function 을 부르는 말(``kind: function``)은 ``functions.binding`` 으로 인자·내부 조회를 검증하고
 (호출자 권한), 내부 조회를 **같은 실행기**로 돌려 식을 계산한다. 결과는 집계와 같이 ``q:N`` 근거다.
+
+문서 질문(``kind: document``, Phase 16d)은 보는 사람의 문서 그룹(``documents``) 안에서 질문
+문장 그대로 벡터 검색한다(``query.retrievers.vector``). 찾은 청크가 ``d:N/M`` 근거이고, 대조는
+청크 원문과의 정확 일치다(``grounding.document``). 읽을 수 있는 색인된 문서가 없으면 플래너 요약에
+``documents`` 를 싣지 않는다.
 """
 
 from __future__ import annotations
@@ -41,12 +46,13 @@ from ontobot.ontology.summary import schema_summary
 from ontobot.query import conditions, planner, records
 from ontobot.query.coverage import coverage_errors, uncovered_in
 from ontobot.query.executor import ExecResult, execute_plan
-from ontobot.query.plan import FunctionCall, FunctionPlannerOutput
+from ontobot.query.plan import FullPlannerOutput, FunctionCall
 from ontobot.query.references import (
     check_raw_references,
     check_references,
     rewrite_fk_names,
 )
+from ontobot.query.retrievers import vector
 from ontobot.query.validator import (
     CheckedFilter,
     PlanInvalid,
@@ -222,6 +228,20 @@ def _evidence(
     )
 
 
+EMBEDDER = "embedder"
+
+
+@dataclass(frozen=True)
+class DocumentSearch:
+    """플래너가 문서 질문이라고 한 것 — 검색어는 질문 그대로다."""
+
+
+async def _document_titles(db: AsyncSession, llm: LLMGateway, groups: Set[int]) -> list[str]:
+    if not groups or EMBEDDER not in llm.config.roles:
+        return []
+    return await vector.has_documents(db, groups, llm.model_for(EMBEDDER))
+
+
 async def _plan_and_validate(
     db: AsyncSession,
     llm: LLMGateway,
@@ -232,7 +252,14 @@ async def _plan_and_validate(
     res: PipelineResult,
     actions: Set[str],
     access: rbac.Access | None,
-) -> ValidatedPlan | fn_binding.ValidatedFunction | action_params.ProposalCheck | PipelineResult:
+    documents: Set[int],
+) -> (
+    ValidatedPlan
+    | fn_binding.ValidatedFunction
+    | action_params.ProposalCheck
+    | DocumentSearch
+    | PipelineResult
+):
     # 계획은 폐기되지 않은 요소로만 세운다 — 폐기 타입은 '없는 것'이라 재계획 대상이다
     # (권한 없음이 아니다). 숨긴 속성(Phase 14b)도 이 사용자에게는 없는 것이다 — 요약·검증·데이터
     # 블록·Function 이 모두 이 "보이는 문서"를 본다.
@@ -242,13 +269,16 @@ async def _plan_and_validate(
         doc = doc.without_properties(access.hidden())
         scopes = check_scopes(schema.document, access.read_scopes())
     summary = schema_summary(doc, readable, actions)
+    titles = await _document_titles(db, llm, documents)
+    if titles:
+        summary = {**summary, "documents": titles}
     allowed = frozenset((c["type"], c["pk"]) for c in context)
     errors: list[str] | None = None
     proposal: action_params.ProposalCheck | None = None
     for _ in range(2):  # 최초 + 검증 오류를 붙인 재계획 1회(TRD 7.1 3단계)
         proposal = None
         try:
-            out: FunctionPlannerOutput = await planner.plan(llm, summary, question, errors, context)
+            out: FullPlannerOutput = await planner.plan(llm, summary, question, errors, context)
         except StructuredOutputError as e:
             res.plan_attempts.append({"structured_ok": False, "errors": e.errors})
             return _failed(res, "plan_invalid")
@@ -261,6 +291,16 @@ async def _plan_and_validate(
             res.plan_attempts.append({"structured_ok": True, "not_query": True})
             res.status, res.answer = "not_query", templates.NOT_QUERY
             return res
+        if out.kind == "document":
+            if not titles:  # 요약에 없던 종류 — 스키마가 막지만 한 번 더
+                errors = [
+                    "문서 검색을 쓸 수 없습니다 — query 로 계획하거나 cannot_answer 를 내세요"
+                ]
+                res.plan_attempts.append({"structured_ok": True, "errors": errors})
+                continue
+            res.plan_attempts.append({"structured_ok": True, "document": True, "errors": []})
+            res.plan = {"document": {"query": question}}
+            return DocumentSearch()
         if out.kind == "action":
             if out.action is None:
                 errors = ["kind 가 action 이면 action 이 있어야 합니다"]
@@ -377,12 +417,14 @@ async def run(
     executor: Executor = execute_plan,
     actions: Set[str] = frozenset(),
     access: rbac.Access | None = None,
+    documents: Set[int] = frozenset(),
 ) -> PipelineResult:
     """``context`` 는 대화 맥락(플래너용 제목이 붙은 식별자, ``chat.context.with_titles``).
 
     ``actions`` 는 이 사용자가 요청할 수 있는 Action 이름(``actions.params.requestable``). 비면
     플래너는 Action 을 모른다. ``access`` 는 속성 숨김·행 정책(``security.rbac.access``) — None 이면
-    타입 단위(``readable``)만 본다.
+    타입 단위(``readable``)만 본다. ``documents`` 는 읽을 수 있는 문서 그룹
+    (``rbac.document_groups``) — 비면 문서 검색을 하지 않는다.
     """
     res = PipelineResult(status="failed", answer="")
     timer = _Timer(res.stage_latency_ms)
@@ -392,12 +434,25 @@ async def run(
         await emit("stage", {"stage": "planning"})
         with timer.stage("planning"):
             planned = await _plan_and_validate(
-                db, llm, schema, readable, question, context or [], res, actions, access
+                db,
+                llm,
+                schema,
+                readable,
+                question,
+                context or [],
+                res,
+                actions,
+                access,
+                documents,
             )
         if isinstance(planned, PipelineResult):
             return planned
         if isinstance(planned, action_params.ProposalCheck):
             return _action(res, planned)
+        if isinstance(planned, DocumentSearch):
+            return await _run_documents(
+                db, llm, documents, question, res, timer, emit, grade2_enabled=grade2_enabled
+            )
         if isinstance(planned, fn_binding.ValidatedFunction):
             return await _run_function(
                 db,
@@ -530,4 +585,75 @@ async def _run_function(
     with timer.stage("verifying"):
         g = grade(raw, _evidence(rs, readable, _function_terms(vf)), grade2_enabled=grade2_enabled)
     _finish(res, g, rs)
+    return res
+
+
+def _document_block(hits: list[vector.Hit]) -> str:
+    """문서 청크 데이터 블록 — 줄마다 ``인용키 | 이름 | 값``.
+
+    ADR-0004 와 같은 모양이고 값은 청크 원문이다.
+    """
+    lines = ["<data>"]
+    for h in hits:
+        lines.append(f"## {h.ref} — {h.title} (조각 {h.chunk_no})")
+        lines.append(f"{h.ref} | {h.title} | {' '.join(h.text.split())}")
+    lines.append("</data>")
+    return "\n".join(lines)
+
+
+async def _run_documents(
+    db: AsyncSession,
+    llm: LLMGateway,
+    groups: Set[int],
+    question: str,
+    res: PipelineResult,
+    timer: _Timer,
+    emit: Emit,
+    *,
+    grade2_enabled: bool,
+) -> PipelineResult:
+    """문서 검색 → 답변 → 청크 원문 대조. LLM 오류는 호출부의 ``try`` 가 받는다.
+
+    대화 맥락은 바꾸지 않는다(객체 답이 아니다).
+    """
+    res.conditions = templates.DOCUMENT_CONDITIONS
+    await emit("stage", {"stage": "querying"})
+    with timer.stage("querying"):
+        (qv,) = await llm.embed(EMBEDDER, [question])
+        hits = await vector.search(db, groups, llm.model_for(EMBEDDER), qv)
+    res.row_count = len(hits)
+    await emit("conditions", {"text": res.conditions, "graph_as_of": None})
+    if not hits:
+        res.status, res.grade, res.answer = "empty", 1, templates.DOCUMENT_EMPTY
+        return res
+    await emit("stage", {"stage": "answering"})
+    with timer.stage("answering"):
+        raw = await answerer.answer(
+            llm, question, res.conditions, _document_block(hits), documents=True
+        )
+    res.raw_answer = raw
+    await emit("stage", {"stage": "verifying"})
+    ctx = GroundingContext(
+        evidence={h.ref: Evidence(h.ref, None, h.title, {}, text=h.text) for h in hits},
+        readable=frozenset(),
+    )
+    with timer.stage("verifying"):
+        g = grade(raw, ctx, grade2_enabled=grade2_enabled)
+    by_ref = {h.ref: h for h in hits}
+    res.status, res.grade = "ok", g.grade
+    res.answer = g.text if g.text is not None else templates.DOCUMENT_UNGROUNDED
+    res.citations = [
+        {
+            "ref": f"{c.ref}#chunk",
+            "title": f"{h.title} · 조각 {h.chunk_no}",
+            "synced_at": None,
+            # 대조한 그 청크 원문을 남긴다 — 문서가 지워져도 답의 근거를 보여 줄 수 있다.
+            "values": [{"name": "chunk", "label": h.title, "display": h.text}],
+        }
+        for c in g.citations
+        if (h := by_ref.get(c.ref)) is not None
+    ]
+    res.removed_citations = [r.__dict__ for r in g.removed]
+    res.estimated_sentences = g.estimated_sentences
+    res.fact_sentences, res.verified_sentences = g.fact_sentences, g.verified_sentences
     return res

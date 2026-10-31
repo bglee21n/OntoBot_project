@@ -198,3 +198,4 @@ tr.selected-row td { background: #eff6ff; }
 /* 문서(Phase 16a) */
 .doc-chunks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .doc-chunks pre { white-space: pre-wrap; word-break: break-word; margin: 0.2rem 0 0; max-height: 14rem; overflow: auto; font-size: 0.85em; }
+.doc-quote { white-space: pre-wrap; word-break: break-word; margin: 0.4rem 0; max-height: 18rem; overflow: auto; font-size: 0.85em; }

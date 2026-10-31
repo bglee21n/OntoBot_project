@@ -7,6 +7,10 @@
    import 하지 않는다, 16.3-2)
 3. 그 속성의 원값 또는 표시 문자열이 **인용이 붙은 문장 안에** 그대로 있다 — 다른 문장·다른 객체의
    값을 증명할 수 없다
+
+문서 청크(``d:N/M``)는 3 대신 ``grounding.document.supports`` 로 본다(문장의 숫자가 모두
+청크에 있고, 청크의 말을 그대로 옮긴 데가 있다). 문서 권한은 검색 단계가 이미 걸렀다(보는 사람의
+그룹 안에서만 찾는다).
 """
 
 from __future__ import annotations
@@ -15,6 +19,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ontobot.grounding.citations import ANY_BRACKET, CITATION, Citation, find
+from ontobot.grounding.document import supports
 from ontobot.grounding.normalize import contains
 from ontobot.grounding.types import GroundingContext
 
@@ -37,6 +42,12 @@ def check(c: Citation, sentence_plain: str, ctx: GroundingContext) -> RemovalRea
         return "unknown_ref"
     if ev.object_type is not None and ev.object_type not in ctx.readable:
         return "forbidden_type"
+    if ev.text is not None:  # 문서 청크 — 속성이 없다
+        if c.field:
+            return "unknown_field"
+        return None if supports(sentence_plain, ev.text) else "value_mismatch"
+    if not c.field:  # 객체·집계 근거에 속성 없는 인용
+        return "unknown_field"
     pair = ev.values.get(c.field)
     if pair is None:
         return "unknown_field"

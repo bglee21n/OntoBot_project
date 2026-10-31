@@ -36,6 +36,17 @@ def distance_sql(model: str, dims: int, param: str = "q") -> str:
     return f"(embedding::vector({dims})) <=> CAST(:{param} AS vector({dims}))"
 
 
+def model_predicate(model: str, alias: str | None = None) -> str:
+    """부분 인덱스와 같은 모델 조건.
+
+    상수여야 플래너가 부분 인덱스에 맞춘다(형식 확인 뒤 글자로 넣는다).
+    """
+    if not MODEL_RE.match(model):
+        raise ValueError(f"벡터 인덱스를 만들 수 없는 모델·차원: {model!r}")
+    col = f"{alias}.embedding_model" if alias else "embedding_model"
+    return f"{col} = '{model}'"
+
+
 async def ensure_vector_index(engine: AsyncEngine, model: str, dims: int) -> str:
     _check(model, dims)
     name = index_name(model)

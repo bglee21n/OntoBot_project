@@ -19,15 +19,17 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.actions import params as action_params
 from ontobot.chat import context as chat_context
 from ontobot.chat import pipeline
+from ontobot.db.models.documents import Document, DocumentChunk
 from ontobot.db.models.evaluation import EvalResult, EvalRun, GoldenItem, GoldenSet
 from ontobot.db.models.jobs import Job
 from ontobot.db.session import session_scope
+from ontobot.documents.indexing import embed_document
 from ontobot.evaluation import faults, gate, golden, metrics
 from ontobot.graph import client as graph
 from ontobot.llm.config import LlmConfig
@@ -188,6 +190,31 @@ async def reap_orphans(db: AsyncSession, golden_set_id: int) -> list[int]:
     return closed
 
 
+async def document_groups_for(db: AsyncSession, test_role: str | None) -> frozenset[int]:
+    """평가 문항이 읽는 문서 그룹(Phase 16d) — 역할을 정하지 않은 문항은 모든 타입을 읽는 것처럼
+    문서가 있는 모든 그룹을, 역할을 정한 문항(제한된 권한 시험)은 문서를 읽지 않는다."""
+    if test_role is not None:
+        return frozenset()
+    return frozenset(await db.scalars(select(Document.group_id).distinct()))
+
+
+async def reindex_documents(llm_cfg: LlmConfig) -> int:
+    """평가 DB 의 문서를 모두 다시 임베딩한다 — 녹화·재생이 같은 임베딩 요청을 거치게.
+
+    이미 색인된 문서를 그대로 두면 녹화에 임베딩 응답이 남지 않아, 빈 DB 에서 도는 CI 재생이
+    문서 색인에서 카세트를 놓친다.
+    """
+    async with session_scope() as db:
+        ids = list(await db.scalars(select(Document.id).order_by(Document.id)))
+        await db.execute(update(DocumentChunk).values(embedding=None, embedding_model=None))
+        await db.execute(update(Document).values(status="pending"))
+        await db.commit()
+    llm = LLMGateway(llm_cfg)
+    for doc_id in ids:
+        await embed_document(doc_id, llm)
+    return len(ids)
+
+
 async def _one(
     item: GoldenItem,
     roles: dict[str, list[str]],
@@ -208,6 +235,7 @@ async def _one(
             else []
         )
         llm = LLMGateway(cfg.llm, overrides=cfg.overrides)
+        doc_groups = await document_groups_for(db, item.test_role)
         async with faults.injected(item.fault, driver) as (executor, drv):
             res = await pipeline.run(
                 db,
@@ -221,6 +249,7 @@ async def _one(
                 executor=executor,
                 actions=actions,
                 access=access_for(roles, restrictions, item.test_role),
+                documents=doc_groups,
             )
         await db.rollback()
     stats = {

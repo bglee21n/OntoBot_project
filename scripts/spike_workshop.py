@@ -39,10 +39,16 @@ def _expectations(item: dict[str, Any], found: list[extractor.Candidate]) -> lis
         if len(mine) < rule.get("min", 0):
             misses.append(f"{kind}: {len(mine)} < {rule['min']}")
         names = " ".join(str(c.payload.get("api_name", "")).lower() for c in mine)
-        misses += [f"{kind}: '{n}' 없음" for n in rule.get("names", []) if n not in names]
+        misses += [
+            f"{kind}: '{n}' 없음" for n in rule.get("names", []) if n not in names
+        ]
     for display, allowed in (item.get("expect_types") or {}).items():
         p = next(
-            (c for c in found if c.kind == "property" and c.payload.get("display_name") == display),
+            (
+                c
+                for c in found
+                if c.kind == "property" and c.payload.get("display_name") == display
+            ),
             None,
         )
         if p is None:
@@ -76,7 +82,9 @@ async def _one(llm: LLMGateway, item: dict[str, Any]) -> dict[str, Any]:
     t2 = time.perf_counter()
     calls = llm.calls[started:]
     ev_ok = [evidence.verify(c.quote, item["text"]) for c in found]
-    schema_kinds = [c for c in found if c.kind in ("object_type", "property", "link_type")]
+    schema_kinds = [
+        c for c in found if c.kind in ("object_type", "property", "link_type")
+    ]
     valid = 0
     for c in schema_kinds:
         try:
@@ -94,7 +102,9 @@ async def _one(llm: LLMGateway, item: dict[str, Any]) -> dict[str, Any]:
         "extract_error": extract_error,
         "verdict": verdict,
         "verdict_ok": verdict == item.get("expect_verdict", verdict),
-        "found": [{"kind": c.kind, "payload": c.payload, "quote": c.quote} for c in found],
+        "found": [
+            {"kind": c.kind, "payload": c.payload, "quote": c.quote} for c in found
+        ],
         "evidence_ok": sum(ev_ok),
         "evidence_total": len(ev_ok),
         "schema_valid": valid,
@@ -123,17 +133,23 @@ async def run(models: list[str]) -> dict[str, Any]:
             "evidence_ok_rate": round(sum(r["evidence_ok"] for r in rows) / ev_total, 3)
             if ev_total
             else None,
-            "schema_valid_rate": round(sum(r["schema_valid"] for r in rows) / sc_total, 3)
+            "schema_valid_rate": round(
+                sum(r["schema_valid"] for r in rows) / sc_total, 3
+            )
             if sc_total
             else None,
-            "p50_turn_ms": int(statistics.median(r["extract_ms"] + r["assess_ms"] for r in rows)),
+            "p50_turn_ms": int(
+                statistics.median(r["extract_ms"] + r["assess_ms"] for r in rows)
+            ),
             "max_turn_ms": max(r["extract_ms"] + r["assess_ms"] for r in rows),
         }
         report["models"][model] = {"summary": summary, "rows": rows}
         print(model, json.dumps(summary, ensure_ascii=False))
         for r in rows:
             if r["misses"] or not r["verdict_ok"] or r["extract_error"]:
-                print("  ", r["id"], r["verdict"], r["misses"], r["extract_error"] or "")
+                print(
+                    "  ", r["id"], r["verdict"], r["misses"], r["extract_error"] or ""
+                )
     return report
 
 

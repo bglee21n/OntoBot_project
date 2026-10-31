@@ -26,11 +26,15 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from ontobot.db.models.documents import Document
+from ontobot.db.models.security import DataGroup
 from ontobot.db.session import dispose_engine, session_scope
+from ontobot.documents import store as documents
 from ontobot.objects.store import seed_fk_links, upsert_objects
 from ontobot.ontology import importer, registry, versioning
 from ontobot.ontology.models import PropertyDef
 from ontobot.security import admin, rbac
+from sqlalchemy import select
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,6 +59,43 @@ async def grant_read(group_name: str, types: list[str], *, edit: bool = False) -
         readable = await rbac.readable_types_for_group(db, group_name)
         await db.commit()
     print(f"  그룹 {group_name} 읽기 권한: {', '.join(sorted(readable))}")
+
+
+async def seed_documents(pack_dir: Path, group_name: str) -> None:
+    """팩의 합성 문서(documents/*.md)를 데이터 그룹에 넣는다(Phase 16d). 색인은 워커·평가가 한다."""
+    folder = pack_dir / "documents"
+    async with session_scope() as db:
+        group = await db.scalar(select(DataGroup).where(DataGroup.name == group_name))
+        if group is None:
+            group = DataGroup(name=group_name, display_name=group_name)
+            db.add(group)
+            await db.flush()
+        added = 0
+        for path in sorted(folder.glob("*.md")):
+            if path.name == "README.md":
+                continue
+            # 제목은 첫 머리글(# …) — 플래너 요약에 문서 제목이 실린다.
+            text = path.read_text(encoding="utf-8")
+            title = next(
+                (ln[2:].strip() for ln in text.splitlines() if ln.startswith("# ")),
+                path.stem,
+            )
+            try:
+                await documents.create(
+                    db,
+                    title=title,
+                    filename=path.name,
+                    data=path.read_bytes(),
+                    group_id=group.id,
+                    actor_id=None,
+                )
+                added += 1
+            except documents.Duplicate as e:
+                existing = await db.get(Document, e.existing_id)
+                if existing is not None:
+                    existing.title = title
+        await db.commit()
+    print(f"  문서 → 그룹 {group_name}: 새로 {added}건")
 
 
 async def seed(pack: str, grant: list[str], grant_edit: list[str]) -> None:
@@ -124,6 +165,11 @@ def main() -> None:
         help="이 데이터 그룹의 읽기 권한에 팩의 타입을 더한다(없으면 만든다, 여러 번)",
     )
     parser.add_argument(
+        "--documents",
+        metavar="GROUP",
+        help="팩의 합성 문서(documents/*.md)를 이 데이터 그룹에 넣는다(없으면 만든다)",
+    )
+    parser.add_argument(
         "--grant-edit",
         action="append",
         default=[],
@@ -135,6 +181,8 @@ def main() -> None:
     async def run() -> None:
         try:
             await seed(args.pack, args.grant_read, args.grant_edit)
+            if args.documents:
+                await seed_documents(ROOT / "domain-packs" / args.pack, args.documents)
         finally:
             await dispose_engine()
 

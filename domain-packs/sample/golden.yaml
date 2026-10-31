@@ -292,3 +292,51 @@ items:
     expected_status: ok
     required_values: ["7"]
     note: 집계에도 행 정책 — 철탑 중 위험등급 4 이상 7곳(전체로 세면 다른 수)
+
+  # ---- Phase 16d: 문서 질문 — 합성 문서(documents/*.md, eval-prepare 가 sample_documents 그룹에 넣는다).
+  # 역할을 정하지 않은 문항만 문서를 읽는다(evaluation.runner.document_groups_for). 답은 청크 원문과 정확 일치로 대조한다.
+  - id: d01
+    question: 위험등급 3인 시설은 얼마나 자주 정기 점검을 해야 하나요?
+    expected_status: ok
+    required_values: ["반기마다 1회"]
+    note: 문서 질문 — 시설 속성(위험등급)이 들어 있어도 묻는 것은 기준 문서의 점검 주기
+  - id: d02
+    question: 변전소 접지 저항 허용 한도가 몇 옴이야?
+    expected_status: ok
+    required_values: ["10옴"]
+  - id: d03
+    question: 사고 경위서는 언제까지 내야 하나요?
+    expected_status: ok
+    required_values: ["72시간"]
+  - id: d04
+    question: 바닷가 철탑은 몇 년마다 다시 칠하나요?
+    expected_status: ok
+    required_values: ["7년"]
+    note: 바꿔 말한 질문(해안 → 바닷가, 재도장 → 다시 칠)
+  - id: d05
+    question: 신규 작업자 안전 교육은 몇 시간이야?
+    expected_status: ok
+    required_values: ["16시간"]
+  - id: d06
+    question: 위험등급 4 이상인 시설 목록 보여줘
+    expected_status: ok
+    required_values: ["대구 전주 03호", "강남 철탑 29호"]
+    absent_values: ["강남 변전소 01호"]
+    note: 문서가 있어도 객체 질문은 query 로 — 문서 규칙이 객체 계획을 빼앗지 않는지
+  - id: d07
+    question: 태양광 발전소 인버터 점검 주기는?
+    expected_status: ok
+    answerable: false
+    note: 문서에 없는 내용(같은 분야) — 검색 점수가 높게 나온다(ADR-0016). ①·② 로 답하면 지어낸 것
+  - id: d08
+    question: 광주 지역의 올해 안전관리 계획은?
+    expected_status: ok
+    answerable: false
+    note: 지역별 계획 문서에 광주는 없다 — 다른 지역 계획으로 답하면 안 된다
+  - id: d09
+    question: 위험등급 3인 시설은 얼마나 자주 정기 점검을 해야 하나요?
+    test_role: eval_facility_only
+    expected_status: failed
+    answerable: false
+    forbidden_values: ["반기마다"]
+    note: 문서 그룹 밖 — 문서 내용이 답에 나오면 권한 위반(플래너 요약에 문서가 없다)

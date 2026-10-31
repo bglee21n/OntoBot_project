@@ -160,9 +160,11 @@ export function ObjectCardPanel({
   explore?: boolean;
 }) {
   const navigate = useNavigate();
-  // 대상: o:Type/pk (pk 에 / 가 있을 수 있어 첫 / 만 가른다) 또는 q:n(집계 행)
+  // 대상: o:Type/pk (pk 에 / 가 있을 수 있어 첫 / 만 가른다), q:n(집계 행) 또는 d:문서/조각
   const { target, fields } = selection;
   const isObject = target.startsWith("o:");
+  const isDocument = target.startsWith("d:");
+  const docId = isDocument ? target.slice(2, target.indexOf("/")) : "";
   const slash = target.indexOf("/");
   const type = target.slice(2, slash);
   const pk = target.slice(slash + 1);
@@ -181,7 +183,15 @@ export function ObjectCardPanel({
           {t.card.close}
         </button>
       </div>
-      {!isObject && (
+      {isDocument && (
+        <>
+          <h3>{selection.title}</h3>
+          <pre className="doc-quote">{selection.values?.[0]?.display}</pre>
+          <p className="muted">{t.card.documentChunk}</p>
+          <Link to={`/documents/${docId}`}>{t.card.openDocument}</Link>
+        </>
+      )}
+      {!isObject && !isDocument && (
         <>
           <h3>{selection.title}</h3>
           {selection.values?.length ? (

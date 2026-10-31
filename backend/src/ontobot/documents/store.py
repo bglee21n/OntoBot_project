@@ -61,7 +61,7 @@ async def create(
     filename: str,
     data: bytes,
     group_id: int,
-    actor_id: int,
+    actor_id: int | None,
 ) -> Document:
     kind, text = extract.extract(filename, data)  # ExtractError 는 호출부가 422 로
     digest = hashlib.sha256(data).hexdigest()

@@ -47,7 +47,9 @@ def _line(r: EvalResult, item: GoldenItem) -> str:
         if on
     ]
     detail = (
-        v.get("missing_values") or v.get("present_absent_values") or v.get("missing_conditions")
+        v.get("missing_values")
+        or v.get("present_absent_values")
+        or v.get("missing_conditions")
     )
     mark = "O" if v.get("correct") else "X"
     return (
@@ -60,10 +62,16 @@ def _report(run: EvalRun, rows: list[tuple[EvalResult, GoldenItem]]) -> None:
     for r, item in rows:
         print(_line(r, item))
     m = run.metrics or {}
-    print(json.dumps({k: v for k, v in m.items() if k != "gate"}, ensure_ascii=False, indent=1))
+    print(
+        json.dumps(
+            {k: v for k, v in m.items() if k != "gate"}, ensure_ascii=False, indent=1
+        )
+    )
     for c in m.get("gate", {}).get("checks", []):
         mark = "통과" if c["passed"] else "실패"
-        print(f"  {mark} [{c['kind']}] {c['metric']} {c['op']} {c['limit']} — 값 {c['value']}")
+        print(
+            f"  {mark} [{c['kind']}] {c['metric']} {c['op']} {c['limit']} — 값 {c['value']}"
+        )
     print(f"게이트: {'통과' if run.gate_passed else '실패'} (eval_run {run.id})")
 
 
@@ -116,7 +124,9 @@ async def main(args: argparse.Namespace) -> int:
             **gate_cfg,
             "invariants": {**gate_cfg["invariants"], "cassette_misses": {"max": 0}},
         }
-    cassette_path = Path(args.cassette) if args.cassette else pack_dir / "llm_cassette.json"
+    cassette_path = (
+        Path(args.cassette) if args.cassette else pack_dir / "llm_cassette.json"
+    )
     driver = graph_driver()
     try:
         async with session_scope() as db:
@@ -129,15 +139,24 @@ async def main(args: argparse.Namespace) -> int:
             )
             run = await runner.create_run(db, gs.id, cfg)
             await db.commit()
-        print(f"골든셋 '{gs.name}' 적재 {counts} · 실행 {run.id} · 모드 {args.mode}", flush=True)
+        print(
+            f"골든셋 '{gs.name}' 적재 {counts} · 실행 {run.id} · 모드 {args.mode}",
+            flush=True,
+        )
         with replay.use(args.mode, cassette_path) as cassette:
+            # 문서 색인도 녹화·재생을 거친다(빈 DB 에서 도는 CI 재생이 같은 임베딩을 받게).
+            n = await runner.reindex_documents(cfg.llm)
+            if n:
+                print(f"문서 {n}건 다시 색인", flush=True)
             run = await runner.execute(
                 run.id,
                 cfg,
                 graph_driver=driver,
                 gate_cfg=gate_cfg,
                 skip=skip,
-                extra=(lambda: {"cassette_misses": cassette.misses}) if cassette else None,
+                extra=(lambda: {"cassette_misses": cassette.misses})
+                if cassette
+                else None,
             )
         async with session_scope() as db:
             result = await db.execute(
@@ -163,8 +182,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--pack", default="sample")
     parser.add_argument("--mode", choices=["live", "record", "replay"], default="live")
-    parser.add_argument("--cassette", help="기본: domain-packs/<pack>/llm_cassette.json")
-    parser.add_argument("--model", help="planner·answerer 모델 덮어쓰기(모델 교체 시험)")
+    parser.add_argument(
+        "--cassette", help="기본: domain-packs/<pack>/llm_cassette.json"
+    )
+    parser.add_argument(
+        "--model", help="planner·answerer 모델 덮어쓰기(모델 교체 시험)"
+    )
     parser.add_argument("--override", nargs="*", default=[], help="역할=모델 …")
     parser.add_argument("--out", help="결과 JSON 경로")
     sys.exit(asyncio.run(main(parser.parse_args())))

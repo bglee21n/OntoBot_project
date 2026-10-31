@@ -52,7 +52,9 @@ def run(*cmd: str, capture: bool = False) -> str:
 
 
 def version(label: str | None) -> tuple[str, str, bool]:
-    app = tomllib.loads((ROOT / "backend" / "pyproject.toml").read_text(encoding="utf-8"))
+    app = tomllib.loads(
+        (ROOT / "backend" / "pyproject.toml").read_text(encoding="utf-8")
+    )
     commit = run("git", "rev-parse", "--short=10", "HEAD", capture=True)
     dirty = bool(run("git", "status", "--porcelain", capture=True))
     ver = f"{app['project']['version']}-{commit}"
@@ -79,17 +81,24 @@ def ollama_models(models_dir: Path, out: Path) -> list[str]:
     """
     cfg = yaml.safe_load((ROOT / "config" / "llm.yaml").read_text(encoding="utf-8"))
     local = {n for n, p in cfg["providers"].items() if p["adapter"] == "ollama"}
-    models = sorted({r["model"] for r in cfg["roles"].values() if r["provider"] in local})
+    models = sorted(
+        {r["model"] for r in cfg["roles"].values() if r["provider"] in local}
+    )
     with tarfile.open(out, "w", format=tarfile.PAX_FORMAT) as tar:
         for m in models:
             name, _, tag = m.partition(":")
-            rel = Path("manifests", "registry.ollama.ai", "library", name, tag or "latest")
+            rel = Path(
+                "manifests", "registry.ollama.ai", "library", name, tag or "latest"
+            )
             manifest = models_dir / rel
             if not manifest.is_file():
                 sys.exit(f"Ollama 모델이 없습니다: {m} ({manifest}) — ollama pull {m}")
             tar.add(manifest, arcname=f"models/{rel.as_posix()}")
             data = json.loads(manifest.read_text(encoding="utf-8"))
-            digests = [data["config"]["digest"], *(layer["digest"] for layer in data["layers"])]
+            digests = [
+                data["config"]["digest"],
+                *(layer["digest"] for layer in data["layers"]),
+            ]
             for d in digests:
                 blob = d.replace(":", "-")
                 tar.add(models_dir / "blobs" / blob, arcname=f"models/blobs/{blob}")
@@ -106,11 +115,21 @@ def copy_lf(src: Path, dst: Path) -> None:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, default=ROOT / "dist" / "bundle")
-    ap.add_argument("--app-only", action="store_true", help="앱·배포 콘솔 이미지만(업그레이드용)")
-    ap.add_argument("--signing-key", type=Path, help="Ed25519 개인키(PEM). 없으면 서명하지 않는다")
-    ap.add_argument("--zip", action="store_true", help="브라우저 업로드용 zip 도 만든다")
-    ap.add_argument("--ollama-models", type=Path, default=Path.home() / ".ollama" / "models")
-    ap.add_argument("--label", help="버전 끝에 붙일 표시(시험용 — 같은 커밋으로 두 번 만들 때)")
+    ap.add_argument(
+        "--app-only", action="store_true", help="앱·배포 콘솔 이미지만(업그레이드용)"
+    )
+    ap.add_argument(
+        "--signing-key", type=Path, help="Ed25519 개인키(PEM). 없으면 서명하지 않는다"
+    )
+    ap.add_argument(
+        "--zip", action="store_true", help="브라우저 업로드용 zip 도 만든다"
+    )
+    ap.add_argument(
+        "--ollama-models", type=Path, default=Path.home() / ".ollama" / "models"
+    )
+    ap.add_argument(
+        "--label", help="버전 끝에 붙일 표시(시험용 — 같은 커밋으로 두 번 만들 때)"
+    )
     a = ap.parse_args(argv)
 
     ver, commit, dirty = version(a.label)
@@ -126,7 +145,10 @@ def main(argv: list[str]) -> int:
     step(f"번들 {bundle} (버전 {ver})")
 
     app_img, dep_img = f"ontobot-app:{ver}", f"ontobot-deployer:{ver}"
-    for dockerfile, tag in (("app.Dockerfile", app_img), ("deployer.Dockerfile", dep_img)):
+    for dockerfile, tag in (
+        ("app.Dockerfile", app_img),
+        ("deployer.Dockerfile", dep_img),
+    ):
         step(f"이미지 빌드 {tag}")
         run(
             "docker",
@@ -140,7 +162,9 @@ def main(argv: list[str]) -> int:
             ".",
         )
     step("이미지 저장 images/ontobot.tar")
-    run("docker", "save", "-o", str(bundle / "images" / "ontobot.tar"), app_img, dep_img)
+    run(
+        "docker", "save", "-o", str(bundle / "images" / "ontobot.tar"), app_img, dep_img
+    )
 
     lock = read_lock()
     models: list[str] = []
@@ -196,7 +220,10 @@ def main(argv: list[str]) -> int:
         if p.is_file()
     }
     (bundle / "manifest.json").write_text(
-        json.dumps({**meta, "models": models, "files": files}, ensure_ascii=False, indent=1) + "\n",
+        json.dumps(
+            {**meta, "models": models, "files": files}, ensure_ascii=False, indent=1
+        )
+        + "\n",
         encoding="utf-8",
     )
     if a.signing_key:
@@ -216,9 +243,15 @@ def main(argv: list[str]) -> int:
             for p in sorted(bundle.rglob("*")):
                 if p.is_file():
                     # 이미지 tar 는 이미 크고 압축 이득이 적다 — 그대로 담아 빨리 만든다.
-                    method = zipfile.ZIP_STORED if p.suffix == ".tar" else zipfile.ZIP_DEFLATED
+                    method = (
+                        zipfile.ZIP_STORED
+                        if p.suffix == ".tar"
+                        else zipfile.ZIP_DEFLATED
+                    )
                     zf.write(
-                        p, f"{bundle.name}/{p.relative_to(bundle).as_posix()}", compress_type=method
+                        p,
+                        f"{bundle.name}/{p.relative_to(bundle).as_posix()}",
+                        compress_type=method,
                     )
     size = sum(p.stat().st_size for p in bundle.rglob("*") if p.is_file()) >> 20
     step(f"완료: {bundle} ({size:,} MB)")

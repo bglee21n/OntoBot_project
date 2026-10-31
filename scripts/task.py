@@ -26,7 +26,12 @@ NPM = shutil.which("npm") or "npm"
 UV = ["uv", "run", "--project", str(BACKEND)]
 UVD = ["uv", "run", "--project", str(DEPLOYER)]
 UVC = ["uv", "run", "--project", str(DEVCONSOLE)]
-TEST_COMPOSE = ["docker", "compose", "-f", str(ROOT / "deploy" / "docker" / "compose.test.yaml")]
+TEST_COMPOSE = [
+    "docker",
+    "compose",
+    "-f",
+    str(ROOT / "deploy" / "docker" / "compose.test.yaml"),
+]
 DEV_COMPOSE = [
     "docker",
     "compose",
@@ -90,7 +95,11 @@ TASKS: dict[str, list[Step]] = {
     # 컨테이너가 이미 떠 있으면 그대로 쓴다. 다 쓴 뒤 지우려면 test-down.
     "test-int": [
         TEST_UP,
-        (BACKEND, [*UV, "pytest", "tests/integration", "-q", "-m", "integration"], TEST_ENV),
+        (
+            BACKEND,
+            [*UV, "pytest", "tests/integration", "-q", "-m", "integration"],
+            TEST_ENV,
+        ),
     ],
     "test-up": [TEST_UP],
     "test-down": [(ROOT, [*TEST_COMPOSE, "down", "-v"])],
@@ -100,21 +109,51 @@ TASKS: dict[str, list[Step]] = {
     "eval-prepare": [
         TEST_UP,
         (BACKEND, [*UV, "alembic", "upgrade", "head"], EVAL_ENV),
-        (ROOT, [*UV, "python", "scripts/seed_domain_pack.py", "--pack", "sample"], EVAL_ENV),
+        (
+            ROOT,
+            [
+                *UV,
+                "python",
+                "scripts/seed_domain_pack.py",
+                "--pack",
+                "sample",
+                "--documents",
+                "sample_documents",
+            ],
+            EVAL_ENV,
+        ),
         (ROOT, [*UV, "python", "scripts/graph_rebuild.py"], EVAL_ENV),
     ],
-    "eval": [(ROOT, [*UV, "python", "scripts/run_eval.py", "--pack", "sample"], EVAL_ENV)],
+    "eval": [
+        (ROOT, [*UV, "python", "scripts/run_eval.py", "--pack", "sample"], EVAL_ENV)
+    ],
     "eval-record": [
         (
             ROOT,
-            [*UV, "python", "scripts/run_eval.py", "--pack", "sample", "--mode", "record"],
+            [
+                *UV,
+                "python",
+                "scripts/run_eval.py",
+                "--pack",
+                "sample",
+                "--mode",
+                "record",
+            ],
             EVAL_ENV,
         )
     ],
     "eval-replay": [
         (
             ROOT,
-            [*UV, "python", "scripts/run_eval.py", "--pack", "sample", "--mode", "replay"],
+            [
+                *UV,
+                "python",
+                "scripts/run_eval.py",
+                "--pack",
+                "sample",
+                "--mode",
+                "replay",
+            ],
             EVAL_ENV,
         )
     ],
@@ -130,7 +169,15 @@ TASKS: dict[str, list[Step]] = {
     "image": [
         (
             ROOT,
-            ["docker", "build", "-f", "deploy/docker/app.Dockerfile", "-t", "ontobot-app:dev", "."],
+            [
+                "docker",
+                "build",
+                "-f",
+                "deploy/docker/app.Dockerfile",
+                "-t",
+                "ontobot-app:dev",
+                ".",
+            ],
         ),
         (
             ROOT,
@@ -150,7 +197,9 @@ TASKS: dict[str, list[Step]] = {
         (FRONTEND, [NPM, "run", "build:devconsole"]),
         (ROOT, [*UVC, "python", "-m", "ontobot_devconsole"]),
     ],
-    "dev-api": [(BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])],
+    "dev-api": [
+        (BACKEND, [*UV, "uvicorn", "ontobot.main:app", "--reload", "--port", "8000"])
+    ],
     "dev-web": [(FRONTEND, [NPM, "run", "dev"])],
     "worker": [(BACKEND, [*UV, "python", "-m", "ontobot.jobs.worker"])],
 }

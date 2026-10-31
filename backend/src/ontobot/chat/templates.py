@@ -25,6 +25,15 @@ FAILED = {
 }
 
 
+# 문서 질문(Phase 16d)
+DOCUMENT_CONDITIONS = "문서 검색 — 볼 수 있는 문서에서 질문과 가까운 조각"
+DOCUMENT_EMPTY = "볼 수 있는 문서에서 이 질문과 관련된 내용을 찾지 못했습니다."
+DOCUMENT_UNGROUNDED = (
+    "문서에서 근거를 확인할 수 있는 답을 찾지 못했습니다. 문서에 없는 내용일 수 있습니다. "
+    "질문을 더 구체적으로 다시 물어보거나, 문서 화면에서 직접 확인하세요."
+)
+
+
 def empty(conditions: str) -> str:
     return f"조회 조건({conditions})에 맞는 객체가 없습니다."
 

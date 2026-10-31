@@ -10,7 +10,8 @@ Action 규칙(``ACTION_RULES``)은 요약에 ``action_types`` 가 있을 때만 
 
 Function 도 같다. 요약에 ``functions`` 가 있을 때만 ``FUNCTION_RULES`` 를 붙이고 구조화 출력 스키마를
 ``FunctionPlannerOutput``(``kind: function``)으로 바꾼다. 없으면 스키마·프롬프트 모두 측정한 그대로다.
-호출부는 언제나 ``FunctionPlannerOutput`` 을 받는다(없을 때는 ``PlannerOutput`` 을 옮겨 담는다).
+문서(Phase 16d)도 같다. 요약에 ``documents``(읽을 수 있는 색인된 문서 제목)가 있을 때만 ``DOCUMENT_RULES`` 를
+붙이고 스키마에 ``kind: document`` 를 더한다. 호출부는 언제나 ``FullPlannerOutput`` 을 받는다.
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ from ontobot.query.plan import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
     MAX_TRAVERSE,
+    DocumentPlannerOutput,
+    FullPlannerOutput,
     FunctionPlannerOutput,
     PlannerOutput,
 )
@@ -137,6 +140,24 @@ team_backlog: 팀 미처리 지표, params team:string(필수)):
 """
 
 
+DOCUMENT_RULES = """
+문서(<schema> 의 documents — 업무 기준·지침·절차·계획 문서의 제목):
+- 질문이 규정·기준·절차·주기·기한·방법처럼 문서에 적힌 내용을 묻고, 객체 타입의 속성으로는 답할 수 없으면
+  {"kind":"document"} 를 낸다(plan 은 쓰지 않는다). 문서 검색은 질문 문장 그대로 한다.
+- 객체의 목록·개수·속성 값(위험등급 값, 설치일 등)을 묻는 질문은 document 가 아니라 query 다.
+- 문서에도 스키마에도 없을 것 같은 내용이라도 문서 내용을 묻는 말이면 document 를 낸다 — 답이 없으면 답변 단계가 없다고 말한다.
+
+예시(가상의 문서 "티켓 처리 지침"이 있을 때):
+질문: "긴급 티켓은 몇 시간 안에 답해야 해?"
+{"kind":"document"}
+질문: "티켓을 닫기 전에 무엇을 확인하나요?"
+{"kind":"document"}
+질문: "우선순위 5 티켓 몇 개야?"
+{"kind":"query","plan":{"target":"Ticket","filters":[{"property":"priority","op":"eq","value":5}],
+"aggregate":{"fn":"count","property":null,"group_by":[]}}}
+"""
+
+
 def _context_block(context: list[dict[str, str]]) -> str:
     lines = [f"{c['type']}/{c['pk']} — {c.get('title') or c['pk']}" for c in context]
     return "<context>\n직전 답의 객체(type/pk — 제목):\n" + "\n".join(lines) + "\n</context>"
@@ -151,6 +172,7 @@ def messages(
     schema = json.dumps(summary, ensure_ascii=False)
     system = SYSTEM + (ACTION_RULES if summary.get("action_types") else "")
     system += FUNCTION_RULES if summary.get("functions") else ""
+    system += DOCUMENT_RULES if summary.get("documents") else ""
     system += f"\n<schema>\n{schema}\n</schema>"
     if context:
         # 맥락은 식별자와 (지금 다시 읽은) 제목뿐이다 — 값은 조회 단계에서 다시 읽는다(TRD 7.1 1단계).
@@ -173,8 +195,14 @@ async def plan(
     question: str,
     errors: list[str] | None = None,
     context: list[dict[str, str]] | None = None,
-) -> FunctionPlannerOutput:
+) -> FullPlannerOutput:
     msgs = messages(summary, question, errors, context)
-    if summary.get("functions"):
-        return await llm.structured("planner", msgs, FunctionPlannerOutput)
-    return FunctionPlannerOutput.lift(await llm.structured("planner", msgs, PlannerOutput))
+    functions, documents = bool(summary.get("functions")), bool(summary.get("documents"))
+    schemas: dict[tuple[bool, bool], type[BaseModel]] = {
+        (False, False): PlannerOutput,
+        (True, False): FunctionPlannerOutput,
+        (False, True): DocumentPlannerOutput,
+        (True, True): FullPlannerOutput,
+    }
+    schema = schemas[(functions, documents)]
+    return FullPlannerOutput.lift(await llm.structured("planner", msgs, schema))

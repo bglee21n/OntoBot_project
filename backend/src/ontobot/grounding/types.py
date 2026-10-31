@@ -8,12 +8,16 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Evidence:
-    """레코드 하나. ``values`` 는 속성 → (원값 문자열, 표시 문자열)."""
+    """레코드 하나. ``values`` 는 속성 → (원값 문자열, 표시 문자열).
+
+    문서 청크(``d:N/M``)는 ``values`` 가 비고 ``text`` 에 청크 원문이 있다(Phase 16d).
+    """
 
     ref: str
-    object_type: str | None  # 집계 행(q:n)은 None
+    object_type: str | None  # 집계 행(q:n)·문서 청크는 None
     title: str
     values: Mapping[str, tuple[str, str]]
+    text: str | None = None
 
 
 @dataclass(frozen=True)

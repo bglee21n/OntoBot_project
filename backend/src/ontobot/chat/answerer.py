@@ -27,15 +27,32 @@ SYSTEM = """너는 조회 결과를 근거로 한국어로 답한다.
 """
 
 
+# 문서 청크로 답할 때만 덧붙인다(Phase 16d) — 객체 답의 프롬프트는 측정한 그대로 둔다.
+DOCUMENT_RULES = """
+문서 조각으로 답할 때:
+- <data> 의 줄은 "인용키 | 문서 제목 | 조각 원문" 이다. 근거는 그 줄의 인용키를 그대로 [[ ]] 로 감싸 붙인다.
+  예: "위험등급 3 시설은 반기마다 1회 정기 점검합니다. [[d:4/0]]"
+- 숫자·기한·횟수·단위는 조각에 적힌 표기 그대로 옮긴다. 조각의 문장을 되도록 그대로 옮겨 쓴다.
+- 조각에 질문의 답이 없으면 "문서에서 찾지 못했습니다"라고만 말한다. 비슷한 다른 내용으로 답하지 않는다.
+"""
+
+
 class CompletingLLM(Protocol):
     async def complete(self, role: str, messages: list[Message]) -> Completion: ...
 
 
-async def answer(llm: CompletingLLM, question: str, conditions: str, data_block: str) -> str:
+async def answer(
+    llm: CompletingLLM,
+    question: str,
+    conditions: str,
+    data_block: str,
+    *,
+    documents: bool = False,
+) -> str:
     out = await llm.complete(
         "answerer",
         [
-            Message("system", SYSTEM),
+            Message("system", SYSTEM + (DOCUMENT_RULES if documents else "")),
             Message("user", f"질문: {question}\n조회 조건: {conditions}\n\n{data_block}"),
         ],
     )

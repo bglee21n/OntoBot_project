@@ -169,6 +169,7 @@ async def _answer(
                     emit=emit,
                     actions=actions,
                     access=access,
+                    documents=await rbac.document_groups(db, user.id),
                 )
                 await _request_action(db, user, res, question_id)
                 msg = Message(

@@ -49,7 +49,9 @@ class Sample:
 
 
 def questions(pack: str, *, with_actions: bool = False) -> list[str]:
-    doc = yaml.safe_load((ROOT / "domain-packs" / pack / "golden.yaml").read_text(encoding="utf-8"))
+    doc = yaml.safe_load(
+        (ROOT / "domain-packs" / pack / "golden.yaml").read_text(encoding="utf-8")
+    )
     wanted = {"ok", "action_preview"} if with_actions else {"ok"}
     out = [
         it["question"]
@@ -100,7 +102,9 @@ async def ask(client: httpx.AsyncClient, question: str) -> tuple[str, int, int |
                 if event == "grade":
                     outcome = str(data["status"])
                 elif event == "action_preview":
-                    outcome = "action_preview" if data.get("run_id") else "action_unready"
+                    outcome = (
+                        "action_preview" if data.get("run_id") else "action_unready"
+                    )
                 elif event == "error":
                     outcome = f"failed:{data['reason']}"
                 elif event == "done":
@@ -137,7 +141,9 @@ async def virtual_user(
                     None,
                 )
             samples.append(Sample(users, index, q, outcome, latency, first))
-            print(f"  [{users}명 #{index}] {latency:>6}ms {outcome:<24} {q}", flush=True)
+            print(
+                f"  [{users}명 #{index}] {latency:>6}ms {outcome:<24} {q}", flush=True
+            )
     return samples
 
 
@@ -164,7 +170,9 @@ def summarize(samples: list[Sample]) -> dict[str, Any]:
 
 async def main() -> int:
     sys.stdout.reconfigure(errors="replace")  # type: ignore[union-attr]
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawTextHelpFormatter
+    )
     ap.add_argument("--base-url", default="http://localhost:8000")
     ap.add_argument("--username", required=True)
     ap.add_argument(
@@ -173,7 +181,9 @@ async def main() -> int:
         help="비밀번호를 담은 환경변수 이름(명령줄에 비밀번호를 적지 않는다)",
     )
     ap.add_argument("--users", default="1,2,4", help="동시 사용자 단계(쉼표)")
-    ap.add_argument("--rounds", type=int, default=4, help="사용자 한 명이 보내는 질문 수")
+    ap.add_argument(
+        "--rounds", type=int, default=4, help="사용자 한 명이 보내는 질문 수"
+    )
     ap.add_argument("--pack", default="sample")
     ap.add_argument("--timeout", type=float, default=300.0)
     ap.add_argument("--out", type=Path, default=None)

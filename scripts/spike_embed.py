@@ -63,7 +63,9 @@ def _separation(answerable: list[float], unanswerable: list[float]) -> dict[str,
 
 
 async def _run(llm: LLMGateway, max_chars: int, prefix: bool) -> dict[str, Any]:
-    queries = yaml.safe_load((PACK / "doc_queries.yaml").read_text(encoding="utf-8"))["queries"]
+    queries = yaml.safe_load((PACK / "doc_queries.yaml").read_text(encoding="utf-8"))[
+        "queries"
+    ]
     chunks = _chunks(max_chars)
     qp, dp = PREFIX if prefix else ("", "")
     started = time.perf_counter()
@@ -89,7 +91,9 @@ async def _run(llm: LLMGateway, max_chars: int, prefix: bool) -> dict[str, Any]:
                 if name == item["doc"] and item["expect"] in text
             }
             if not gold:
-                raise SystemExit(f"정답 청크 없음(청크 경계?): {item['q']} @ {max_chars}")
+                raise SystemExit(
+                    f"정답 청크 없음(청크 경계?): {item['q']} @ {max_chars}"
+                )
             rank = next(r for r, j in enumerate(order, 1) if j in gold)
             row |= {"rank": rank}
         row["top1_doc"] = chunks[order[0]][0]
@@ -108,8 +112,14 @@ async def _run(llm: LLMGateway, max_chars: int, prefix: bool) -> dict[str, Any]:
         "hit@3": sum(r["rank"] <= 3 for r in ans),
         "hit@5": sum(r["rank"] <= 5 for r in ans),
         "mrr": round(statistics.mean(1 / r["rank"] for r in ans), 3),
-        "top1_answerable": {"min": min(ans_top), "median": round(statistics.median(ans_top), 4)},
-        "top1_unanswerable": {"max": max(una_top), "median": round(statistics.median(una_top), 4)},
+        "top1_answerable": {
+            "min": min(ans_top),
+            "median": round(statistics.median(ans_top), 4),
+        },
+        "top1_unanswerable": {
+            "max": max(una_top),
+            "median": round(statistics.median(una_top), 4),
+        },
         "separation": _separation(ans_top, una_top),
         "doc_ms_per_chunk": round(doc_ms / len(chunks), 1),
         "query_ms_p50": round(statistics.median(q_ms), 1),
@@ -118,7 +128,9 @@ async def _run(llm: LLMGateway, max_chars: int, prefix: bool) -> dict[str, Any]:
     }
 
 
-async def _measure(models: list[str], sizes: list[int], prefix: bool) -> list[dict[str, Any]]:
+async def _measure(
+    models: list[str], sizes: list[int], prefix: bool
+) -> list[dict[str, Any]]:
     cfg = llm_config.load(get_settings().llm_config_path)
     out: list[dict[str, Any]] = []
     for model in models:

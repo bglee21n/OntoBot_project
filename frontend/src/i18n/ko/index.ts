@@ -218,6 +218,8 @@ export const ko = {
       unknownUser: "알 수 없음",
       documents: "관련 문서",
       documentAt: (chunk: number) => `조각 #${chunk}`,
+      documentChunk: "답을 만들 때 대조한 문서 조각 원문입니다. 답의 숫자·문구가 이 조각에 그대로 있는지 확인했습니다.",
+      openDocument: "문서 열기 →",
     },
     action: {
       badge: "Action 요청",
@@ -576,7 +578,7 @@ export const ko = {
   documents: {
     title: "문서",
     intro:
-      "업무 문서를 넣어 두면 질문에 답할 때 근거로 쓸 수 있게 됩니다(질문에서 문서를 찾는 기능은 준비 중). 문서는 데이터 그룹에 속하고, 그 그룹 구성원만 봅니다.",
+      "업무 문서를 넣어 두면 채팅에서 문서 내용을 물을 때 그 문서의 조각을 근거로 답합니다(색인이 끝난 문서만). 문서는 데이터 그룹에 속하고, 그 그룹 구성원만 봅니다.",
     none: "볼 수 있는 문서가 없습니다.",
     upload: "문서 넣기",
     uploadHint:

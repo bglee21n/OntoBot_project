@@ -105,21 +105,31 @@ async def run_model(model: str, items: list[dict[str, Any]]) -> list[dict[str, A
 
 
 async def _run_items(
-    model: str, items: list[dict[str, Any]], cfg: Any, driver: Any, out: list[dict[str, Any]]
+    model: str,
+    items: list[dict[str, Any]],
+    cfg: Any,
+    driver: Any,
+    out: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     for item in items:
         llm = LLMGateway(cfg, overrides={"planner": model, "answerer": model})
         async with session_scope() as db:
             schema = registry.current() or await registry.reload(db)
-            readable = {t.api_name for t in schema.document.object_types} if schema else set()
+            readable = (
+                {t.api_name for t in schema.document.object_types} if schema else set()
+            )
             # 맥락 문항: 직전 답의 객체를 대화 맥락으로 준다(제목은 지금 다시 읽는다).
             ctx = (
-                await chat_context.with_titles(db, schema.document, readable, item["context"])
+                await chat_context.with_titles(
+                    db, schema.document, readable, item["context"]
+                )
                 if schema and item.get("context")
                 else []
             )
             actions = (
-                action_params.requestable(schema.document, readable, None) if schema else set()
+                action_params.requestable(schema.document, readable, None)
+                if schema
+                else set()
             )
             started = time.perf_counter()
             res = await pipeline.run(
@@ -162,7 +172,9 @@ def summarize(model: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         "action_correct": f"{sum(r['action_ok'] for r in actions)}/{len(actions)}",
         "action_fabrications": sum(r["action_fabricated"] for r in rows),
         "grades": {g: sum(r["grade"] == g for r in rows) for g in (1, 2, 3)},
-        "estimated_ratio": round(sum(r["estimated"] for r in rows) / facts, 3) if facts else None,
+        "estimated_ratio": round(sum(r["estimated"] for r in rows) / facts, 3)
+        if facts
+        else None,
         "removed_citations": sum(len(r["removed_citations"]) for r in rows),
         "p50_ms": int(statistics.median(r["total_ms"] for r in rows)),
         "max_ms": max(r["total_ms"] for r in rows),
@@ -170,11 +182,13 @@ def summarize(model: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 async def main(models: list[str]) -> int:
-    items = yaml.safe_load((ROOT / "domain-packs/sample/golden.yaml").read_text(encoding="utf-8"))[
-        "items"
-    ]
+    items = yaml.safe_load(
+        (ROOT / "domain-packs/sample/golden.yaml").read_text(encoding="utf-8")
+    )["items"]
     # 권한·장애 문항은 평가 러너(scripts/run_eval.py)만 그 조건으로 돌린다 — 모델 비교에서는 뺀다.
-    items = [i for i in items if not i.get("test_role") and i.get("fault", "none") == "none"]
+    items = [
+        i for i in items if not i.get("test_role") and i.get("fault", "none") == "none"
+    ]
     summaries, details = [], {}
     try:
         for model in models:
@@ -189,7 +203,10 @@ async def main(models: list[str]) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
         json.dumps(
-            {"summaries": summaries, "details": details}, ensure_ascii=False, indent=2, default=str
+            {"summaries": summaries, "details": details},
+            ensure_ascii=False,
+            indent=2,
+            default=str,
         ),
         encoding="utf-8",
     )

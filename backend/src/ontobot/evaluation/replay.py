@@ -7,7 +7,8 @@
   고정할 뿐 품질 근거가 아니다).
 
 키는 요청 본문(모델·메시지·형식·옵션)의 정규 JSON 해시다. Ollama 어댑터의 ``transport`` 훅을 쓰므로
-Ollama 공급자만 녹화한다(평가 설정은 로컬 공급자다).
+Ollama 공급자만 녹화한다(평가 설정은 로컬 공급자다). 임베딩(``/api/embed``, Phase 16d)은 본문이
+다르므로 같은 키로 겹치지 않고, 항목에 ``embeddings`` 를 남긴다.
 """
 
 from __future__ import annotations
@@ -63,10 +64,12 @@ class _Recording(httpx.AsyncBaseTransport):
         if res.status_code == 200:
             k = key(body)
             data = json.loads(raw)
-            self.cassette.entries[k] = {
-                "model": body.get("model"),
-                "message": {"content": data["message"]["content"]},
-            }
+            entry: dict[str, Any] = {"model": body.get("model")}
+            if "embeddings" in data:
+                entry["embeddings"] = data["embeddings"]
+            else:
+                entry["message"] = {"content": data["message"]["content"]}
+            self.cassette.entries[k] = entry
             self.cassette.used.add(k)
         # 본문은 이미 풀었다 — content-encoding 등 원래 헤더를 옮기면 다시 풀려다 깨진다.
         return httpx.Response(
@@ -85,6 +88,8 @@ class _Replaying(httpx.AsyncBaseTransport):
             self.cassette.misses += 1
             return httpx.Response(404, json={"error": "cassette miss", "key": k})
         self.cassette.used.add(k)
+        if "embeddings" in hit:
+            return httpx.Response(200, json={"embeddings": hit["embeddings"]})
         return httpx.Response(200, json={"message": hit["message"]})
 
 

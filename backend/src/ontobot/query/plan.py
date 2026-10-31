@@ -134,3 +134,34 @@ class FunctionPlannerOutput(_Plan):
     @classmethod
     def lift(cls, out: PlannerOutput) -> FunctionPlannerOutput:
         return cls.model_validate(out.model_dump())
+
+
+class DocumentPlannerOutput(_Plan):
+    """요약에 문서(``documents``)가 있을 때의 플래너 출력 — ``kind: document`` 를 더한다(Phase 16d).
+
+    문서 질문에는 계획이 없다. 검색은 질문 문장 그대로 한다 — 모델이 검색어를 지어 쓰게 하지 않는다.
+    따로 둔 이유는 ``FunctionPlannerOutput`` 과 같다
+    (문서가 없는 배포의 스키마·녹화 키를 그대로 둔다).
+    """
+
+    kind: Literal["query", "document", "action", "not_query", "cannot_answer"]
+    plan: QueryPlan | None = None
+    action: ActionProposal | None = None
+    reason: str | None = None
+
+
+class FullPlannerOutput(_Plan):
+    """Function 과 문서가 모두 있을 때의 출력.
+
+    호출부가 받는 모양이기도 하다(나머지는 여기로 옮겨 담는다).
+    """
+
+    kind: Literal["query", "function", "document", "action", "not_query", "cannot_answer"]
+    plan: QueryPlan | None = None
+    function: FunctionCall | None = None
+    action: ActionProposal | None = None
+    reason: str | None = None
+
+    @classmethod
+    def lift(cls, out: BaseModel) -> FullPlannerOutput:
+        return cls.model_validate(out.model_dump())

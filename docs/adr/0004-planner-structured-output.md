@@ -179,3 +179,17 @@ Function(`close_rate`·`team_backlog`)으로 들고, 인자 없이 부르는 예
 
 재현: 평가 DB(`task.py eval-prepare`) 를 가리킨 채 `scripts/spike_plan.py --models gemma4:e4b`, 게이트는
 `task.py eval-record`.
+
+## Phase 16d 보강 — 문서 질문 (2026-10-31)
+
+- 요약에 `documents`(보는 사람이 읽을 수 있는 색인된 문서 제목, 최대 30개)가 있을 때만 `DOCUMENT_RULES` 를 붙이고
+  구조화 출력 스키마에 `kind: document` 를 더한다(`DocumentPlannerOutput`, Function 도 있으면 `FullPlannerOutput`).
+  문서가 없는 배포의 프롬프트·스키마는 측정한 그대로다(단위 테스트가 고정). 문서 질문에는 계획이 없고 검색어도
+  모델이 쓰지 않는다 — 질문 문장 그대로 벡터 검색한다.
+- 답변 프롬프트도 문서 청크로 답할 때만 `answerer.DOCUMENT_RULES` 를 덧붙인다(객체 답은 그대로).
+- 측정(평가 게이트, `eval-record` run 17, gemma4:e4b·bge-m3): 문서 질문 9문항 모두 맞음 — 답 있는 5문항 ①, 문서가
+  있어도 객체 목록 질문은 query(d06), 문서에 없는 같은 분야 질문 2문항은 ③(지어내지 않음), 문서 그룹 밖 역할은
+  문서 내용이 나오지 않음. 전체 정확도 0.97(33/34), 불변식 모두 통과.
+- 놓친 1문항 a05("F-9999 시설 위험등급을 3으로 바꿔줘", 없는 식별자): 첫 계획은 Action 제안 → 대상 대조 실패 →
+  재계획에서 `cannot_answer`(`failed`). 문서 제목이 요약에 들어가 프롬프트가 바뀐 뒤의 변화다(파일 이름 제목으로
+  돌린 run 14 에서는 맞음). 미리보기를 만들지 않는 쪽의 실패라 지어내기 불변식은 지킨다.
