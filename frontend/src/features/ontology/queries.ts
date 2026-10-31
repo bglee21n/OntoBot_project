@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../../api/client";
-import type { ChangeOut, LayoutOut, ReferencesOut, VersionDetail, VersionSummary } from "../../api/types";
+import type {
+  ChangeImpactOut,
+  ChangeOut,
+  LayoutOut,
+  ReferencesOut,
+  VersionDetail,
+  VersionSummary,
+} from "../../api/types";
 
 export const V = "/ontology/versions";
 const listKey = ["ontology", "versions"];
@@ -23,6 +30,15 @@ export function useDiff(id: number, base: number | null) {
   });
 }
 
+/** 게시본 → 이 버전의 지우기·바꾸기마다 참조처(Phase 17a). 게시본이 없으면 빈 목록. */
+export function useImpact(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["ontology", "impact", id],
+    queryFn: () => api.get<ChangeImpactOut[]>(`${V}/${id}/impact`),
+    enabled,
+  });
+}
+
 /** 버전을 바꾸는 요청. 성공하면 그 버전과 목록을 다시 읽는다(서버가 정본이다). */
 export function useVersionMutation<TArgs>(id: number, fn: (args: TArgs) => Promise<unknown>) {
   const qc = useQueryClient();
@@ -33,6 +49,7 @@ export function useVersionMutation<TArgs>(id: number, fn: (args: TArgs) => Promi
         qc.invalidateQueries({ queryKey: detailKey(id) }),
         qc.invalidateQueries({ queryKey: listKey }),
         qc.invalidateQueries({ queryKey: ["ontology", "diff", id] }),
+        qc.invalidateQueries({ queryKey: ["ontology", "impact", id] }),
       ]);
     },
   });

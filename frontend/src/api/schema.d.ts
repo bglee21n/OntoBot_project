@@ -1323,6 +1323,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ontology/versions/{version_id}/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Version Impact
+         * @description 게시본 → 이 버전의 지우기·바꾸기마다 참조처(Phase 17a). 게시본이 없으면 빈 목록.
+         */
+        get: operations["version_impact_api_v1_ontology_versions__version_id__impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ontology/versions/{version_id}/import": {
         parameters: {
             query?: never;
@@ -2150,6 +2170,23 @@ export interface components {
             group_id: number;
             /** Title */
             title?: string | null;
+        };
+        /** ChangeImpactOut */
+        ChangeImpactOut: {
+            /**
+             * Element
+             * @enum {string}
+             */
+            element: "object_type" | "property" | "link_type" | "action_type" | "function";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "removed" | "changed";
+            /** Path */
+            path: string;
+            /** Refs */
+            refs: components["schemas"]["ImpactRefOut"][];
         };
         /** ChangeOut */
         ChangeOut: {
@@ -3101,6 +3138,18 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImpactRefOut */
+        ImpactRefOut: {
+            /** Blocking */
+            blocking: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "document" | "mapping" | "golden_item" | "row_policy" | "property_hide" | "type_permission" | "workshop_element" | "document_link" | "data";
+            /** Label */
+            label: string;
         };
         /** ImportBody */
         ImportBody: {
@@ -7049,6 +7098,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    version_impact_api_v1_ontology_versions__version_id__impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeImpactOut"][];
+                };
             };
             /** @description Validation Error */
             422: {

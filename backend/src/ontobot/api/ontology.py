@@ -354,6 +354,39 @@ async def element_references(
     )
 
 
+class ImpactRefOut(BaseModel):
+    kind: impact.RefKind
+    label: str
+    blocking: bool
+
+
+class ChangeImpactOut(BaseModel):
+    kind: Literal["removed", "changed"]
+    element: Literal["object_type", "property", "link_type", "action_type", "function"]
+    path: str
+    refs: list[ImpactRefOut]
+
+
+@router.get("/versions/{version_id}/impact", response_model=list[ChangeImpactOut])
+async def version_impact(version_id: int, db: Db, _: Reader) -> list[ChangeImpactOut]:
+    """게시본 → 이 버전의 지우기·바꾸기마다 참조처(Phase 17a). 게시본이 없으면 빈 목록."""
+    with _domain_errors():
+        target = versioning.to_document(await versioning.get_version(db, version_id))
+        published = await versioning.published_version_id(db)
+        if published is None or published == version_id:
+            return []
+        base = versioning.to_document(await versioning.get_version(db, published))
+    return [
+        ChangeImpactOut(
+            kind=i.change.kind,  # type: ignore[arg-type]  # added 는 change_impact 가 뺀다
+            element=i.change.element,
+            path=i.change.path,
+            refs=[ImpactRefOut(kind=r.kind, label=r.label, blocking=r.blocking) for r in i.refs],
+        )
+        for i in await impact.change_impact(db, base, target)
+    ]
+
+
 class NodePositionIn(BaseModel):
     kind: Literal["object_type"] = "object_type"
     name: str = Field(min_length=1, max_length=64)

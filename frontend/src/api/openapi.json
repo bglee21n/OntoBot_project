@@ -1027,6 +1027,48 @@
         "title": "Body_upload_api_v1_documents_post",
         "type": "object"
       },
+      "ChangeImpactOut": {
+        "properties": {
+          "element": {
+            "enum": [
+              "object_type",
+              "property",
+              "link_type",
+              "action_type",
+              "function"
+            ],
+            "title": "Element",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "removed",
+              "changed"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "refs": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactRefOut"
+            },
+            "title": "Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "element",
+          "path",
+          "refs"
+        ],
+        "title": "ChangeImpactOut",
+        "type": "object"
+      },
       "ChangeOut": {
         "properties": {
           "after": {
@@ -3988,6 +4030,40 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImpactRefOut": {
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "document",
+              "mapping",
+              "golden_item",
+              "row_policy",
+              "property_hide",
+              "type_permission",
+              "workshop_element",
+              "document_link",
+              "data"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "blocking"
+        ],
+        "title": "ImpactRefOut",
         "type": "object"
       },
       "ImportBody": {
@@ -12139,6 +12215,53 @@
           }
         },
         "summary": "Replace Function",
+        "tags": [
+          "ontology"
+        ]
+      }
+    },
+    "/api/v1/ontology/versions/{version_id}/impact": {
+      "get": {
+        "description": "게시본 → 이 버전의 지우기·바꾸기마다 참조처(Phase 17a). 게시본이 없으면 빈 목록.",
+        "operationId": "version_impact_api_v1_ontology_versions__version_id__impact_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "title": "Version Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeImpactOut"
+                  },
+                  "title": "Response Version Impact Api V1 Ontology Versions  Version Id  Impact Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Version Impact",
         "tags": [
           "ontology"
         ]

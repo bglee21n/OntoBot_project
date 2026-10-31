@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.28, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 완료 · Phase 17 진행 중(a 게시 영향 완료 — 다음 b REST API 공개) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.29, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -253,6 +253,10 @@ TRD v0.12 17.1절에 같은 내용이 있다.
   행 정책) 목록, 게시 전 검사 화면에 표시(막지는 않음, 깨지는 참조는 막음).
 - 결정 14: API 키·스코프·서비스 계정, 공개 OpenAPI 문서, 질의(비 SSE JSON 응답)·객체 조회·Action 요청.
 - **완료 기준**: 속성 삭제 draft 에서 영향 목록이 그 속성을 쓰는 Action·Function·문항을 모두 보여 줌, API 키로 질의·Action 요청 → 승인 흐름.
+- **나눔(2026-10-31)**: 17a 게시 영향 분석 → 17b API 키·서비스 계정·공개 API.
+  - **17a 완료(2026-10-31)**: TRD 17.12. `impact.change_impact`·`blocking_issues`, 게시가 행 정책 깨짐을 막는다,
+    `GET /versions/{id}/impact`, draft 화면 "게시 영향" 카드. 기본값으로 정한 것: 막는 것은 정의 안 깨진 참조와 행 정책뿐
+    (매핑·골든·숨김 등은 알림 — 동기화 실패는 시끄럽게 드러나지만 닫힌 행 정책은 조용하다).
 
 ### Phase 18 — 인터뷰 워크숍 확장형 (PRD 5.8 P1)
 

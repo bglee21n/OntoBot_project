@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../../api/client";
-import type { VersionDetail } from "../../api/types";
+import type { ChangeImpactOut, VersionDetail } from "../../api/types";
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
@@ -11,7 +11,7 @@ import { FunctionsSection } from "./Functions";
 import { LinkTypeForm, ObjectTypeForm } from "./forms";
 import { SchemaGraph } from "./graph/SchemaGraph";
 import { ObjectTypeCard } from "./ObjectTypeCard";
-import { useDiff, useVersion, useVersionMutation, useVersions, V } from "./queries";
+import { useDiff, useImpact, useVersion, useVersionMutation, useVersions, V } from "./queries";
 
 export function VersionDetailPage() {
   const id = Number(useParams().id);
@@ -33,6 +33,9 @@ function VersionEditor({ v }: { v: VersionDetail }) {
   const isModeler = me.data?.roles.includes("modeler") ?? false;
   const othersDraft = editable && v.created_by != null && me.data != null && v.created_by !== me.data.id;
   const publish = useVersionMutation(v.id, () => api.post(`${V}/${v.id}/publish`));
+  const impact = useImpact(v.id, editable);
+  // 정의 문서 밖에서 깨지는 참조(행 정책이 지우는 속성을 쓴다)도 게시를 막는다 — 서버가 다시 확인한다.
+  const blocked = impact.data?.some((i) => i.refs.some((r) => r.blocking && r.kind !== "document")) ?? false;
 
   return (
     <section className="stack">
@@ -44,8 +47,8 @@ function VersionEditor({ v }: { v: VersionDetail }) {
         {editable && (
           <button
             type="button"
-            disabled={publish.isPending || v.issues.length > 0}
-            title={v.issues.length > 0 ? ko.ontology.issuesTitle : undefined}
+            disabled={publish.isPending || v.issues.length > 0 || blocked}
+            title={v.issues.length > 0 || blocked ? ko.ontology.issuesTitle : undefined}
             onClick={() => window.confirm(ko.ontology.publishConfirm) && publish.mutate(undefined)}
           >
             {ko.ontology.publish}
@@ -57,6 +60,8 @@ function VersionEditor({ v }: { v: VersionDetail }) {
       {othersDraft && <p className="notice warn">{ko.ontology.draftOwner(v.created_by_name ?? `#${v.created_by}`)}</p>}
 
       {editable && <Issues issues={v.issues} />}
+      {editable && impact.isError && <ErrorBox error={impact.error} />}
+      {editable && impact.data && impact.data.length > 0 && <ImpactPanel impacts={impact.data} />}
       <div className="row tabs" role="tablist">
         {(["list", "graph"] as const).map((x) => (
           <button
@@ -174,6 +179,38 @@ function Issues({ issues }: { issues: VersionDetail["issues"] }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+const IMPACT_KIND = ko.ontology.publishImpact.kind;
+
+/** 게시 영향(Phase 17a) — 바뀌는 요소마다 참조처. 막는 것은 빨간 표시, 나머지는 알리기만 한다. */
+function ImpactPanel({ impacts }: { impacts: ChangeImpactOut[] }) {
+  const t = ko.ontology.publishImpact;
+  return (
+    <div className="card stack">
+      <strong>{t.title}</strong>
+      <p className="muted">{t.hint}</p>
+      <ul>
+        {impacts.map((i) => (
+          <li key={`${i.element}:${i.path}`}>
+            <code>{i.path}</code> {t.change[i.kind]} · {t.element[i.element]}
+            {i.refs.length === 0 ? (
+              <span className="muted"> — {t.noRefs}</span>
+            ) : (
+              <ul>
+                {i.refs.map((r) => (
+                  <li key={`${r.kind}:${r.label}`} className={r.blocking ? "error-text" : undefined}>
+                    <span className="badge">{IMPACT_KIND[r.kind] ?? r.kind}</span> {r.label}
+                    {r.blocking && ` — ${t.blocking}`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

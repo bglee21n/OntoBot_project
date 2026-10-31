@@ -22,6 +22,7 @@ from ontobot.db.models.ontology import (
     OntologyVersion,
     PropertyType,
 )
+from ontobot.ontology import impact
 from ontobot.ontology.models import (
     ActionTypeDef,
     FunctionDef,
@@ -602,6 +603,12 @@ async def publish(db: AsyncSession, version_id: int, *, actor_id: int | None) ->
     if issues:
         raise PublishBlocked(issues)
     previous = await published_version_id(db)
+    if previous is not None:
+        # 정의 문서 밖에서 깨지는 참조(행 정책이 지우는 속성을 쓴다 등, Phase 17a)도 막는다.
+        base = to_document(await get_version(db, previous))
+        blocked = impact.blocking_issues(await impact.change_impact(db, base, doc))
+        if blocked:
+            raise PublishBlocked(blocked)
     if previous is not None:
         await db.execute(
             update(OntologyVersion).where(OntologyVersion.id == previous).values(status="archived")

@@ -39,6 +39,7 @@ export type DocumentOut = S["DocumentOut"];
 export type DocumentDetail = S["DocumentDetail"];
 export type GroupChoice = S["GroupChoice"];
 export type DocumentLinkOut = S["DocumentLinkOut"];
+export type ChangeImpactOut = S["ChangeImpactOut"];
 export type LinkScanOut = S["LinkScanOut"];
 export type RelatedDocumentOut = S["RelatedDocumentOut"];
 export type SearchHitOut = S["SearchHitOut"];
