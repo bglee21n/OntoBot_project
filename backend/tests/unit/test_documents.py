@@ -94,3 +94,16 @@ def test_extract_pdf_text_layer() -> None:
     w.write(buf)
     kind, text = extract.extract("r.pdf", buf.getvalue())
     assert kind == "application/pdf" and "Risk grade 4" in text
+
+
+def test_vector_index_ddl_rejects_unsafe_model_names() -> None:
+    from ontobot.documents import vector_index
+
+    assert vector_index.distance_sql("bge-m3", 1024) == (
+        "(embedding::vector(1024)) <=> CAST(:q AS vector(1024))"
+    )
+    assert vector_index.index_name("bge-m3") != vector_index.index_name("bge-m3:latest")
+    assert len(vector_index.index_name("x" * 128)) <= 63
+    for model, dims in [("a'; DROP TABLE x;--", 3), ("bge m3", 3), ("bge-m3", 0), ("bge-m3", 4096)]:
+        with pytest.raises(ValueError, match="벡터 인덱스"):
+            vector_index.distance_sql(model, dims)

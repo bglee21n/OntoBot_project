@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) v0.25                                    |
+| 문서      | 기술 요구사항 문서(TRD) v0.26                                    |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.4                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -837,8 +837,13 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
   에 넣는다(`postgres-init`) — 통합 테스트가 `public` 을 지웠다 다시 만들어도 확장이 남는다(앱 계정은 확장을 만들 수 없다,
   pgvector 는 trusted 가 아니다). 마이그레이션은 `CREATE EXTENSION IF NOT EXISTS` 로 있는지만 확인한다. 기존 설치(확장이
   `public`)도 그대로 동작한다.
-- **임베딩 모델**: `config/llm.yaml` 역할 `embedder` — Phase 16b 측정 전까지 `bge-m3`(1024차원)를 임시로. 차원이 정해지면
-  모델별 부분 인덱스를 둔다.
+- **임베딩 모델**(v0.26, Phase 16b — ADR-0016): `config/llm.yaml` 역할 `embedder` = `bge-m3`(1024차원). 합성 한국어 문서
+  6건·문항 34개(`scripts/spike_embed.py`)에서 1위 적중 25/28·3위 안 28/28, `nomic-embed-text` 는 2/28. 검색 접두어는 쓰지 않는다.
+- **벡터 인덱스**(v0.26, `documents.vector_index`): 모델마다 부분 HNSW — `(embedding::vector(N)) vector_cosine_ops` 식에
+  `WHERE embedding_model = '<모델>'`. 모델 이름이 설정에서 오므로 런타임 DDL(`CONCURRENTLY IF NOT EXISTS`)이고 색인 작업이
+  청크를 다 만든 뒤 확인한다(모델 이름 형식을 확인한 뒤에만 DDL 에). 검색은 같은 식(`distance_sql`)과 같은 모델 조건을 쓴다.
+  임베딩 점수만으로 "답 없음"을 가르지 않는다 — 같은 분야의 답 없는 질문이 답 있는 질문보다 높게 나왔다(16d 는 답변·정확
+  일치 근거 대조로 판정, 점수 문턱은 후보 줄이기에만).
 
 ## 18. PRD 추적 매트릭스 (P0)
 
@@ -923,6 +928,7 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 | v0.16 | 2026-10-20 | Docker(WSL2) 전환·배포 콘솔(ADR-0013·0014, ADR-0007·0010 대체) — 2절 설치 수단, 3절 테스트·패키징, 16.1 디렉터리(`deployer/`·`deploy/docker/`), 19절 통합·배포 테스트(컨테이너), 21절 ADR 표. PostgreSQL 정렬을 builtin `C.UTF-8` 로 고정(플랫폼별 한글 정렬 차이로 카세트 키가 바뀌던 문제). `GET /admin/system`(버전·배포 콘솔 링크), 감사 이벤트 `deploy.*` |
 | v0.17 | 2026-10-21 | 개발 콘솔(ADR-0015) — 16.1 디렉터리(`devconsole/`·`opsjobs/`), 21절 ADR 표. 배포 콘솔 작업 실행기를 공유 패키지 `opsjobs` 로 옮김(동작 같음, 출력의 색 코드 제거) |
 | v0.25 | 2026-10-31 | Phase 16a 문서 등록·색인(17.9) — `document`·`document_chunk`(마이그레이션 0018), 문서 = 데이터 그룹 소유, 글 추출(txt·md·PDF 글자 층, HWP 제외)·겹침 없는 청크·`embedder` 역할·임베딩 작업, pgvector 를 `extensions` 스키마에 |
+| v0.26 | 2026-10-31 | Phase 16b 임베딩 측정(ADR-0016) — `embedder` = `bge-m3` 확정, 모델별 부분 HNSW 인덱스(`documents.vector_index`, 런타임 DDL), 임베딩 점수로 답 없음을 가르지 않는다 |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |
 | v0.22 | 2026-10-30 | Phase 14a 데이터 그룹(17.6) — 역할 = 화면·기능, 그룹 = 데이터 권한(사용자 결정). `data_group`·`group_member`·`group_type_permission`·`group_link_permission`(마이그레이션 0012, `type_permission` 이전·제거), 합집합 판정, Action 요청에 편집 권한, 그룹 관리 API·화면, SSO 그룹 클레임 연동(기본 꺼짐), CLI·시드·설치 스크립트 |

@@ -12,6 +12,7 @@ from sqlalchemy import select, text
 from ontobot.db.models.documents import DocumentChunk
 from ontobot.db.models.jobs import Job
 from ontobot.db.session import session_scope
+from ontobot.documents import vector_index
 from ontobot.documents.indexing import embed_document
 from ontobot.llm.adapters import ollama
 from ontobot.llm.config import LlmConfig
@@ -113,6 +114,24 @@ async def test_upload_chunk_embed_and_group_permission(
             {"d": doc["id"], "q": f"[{len(chunks[0]['text'])},1,0]"},
         )
         assert nearest is not None
+        # 모델별 부분 HNSW 인덱스 — 검색 식(distance_sql)이 그 인덱스를 탄다.
+        name = vector_index.index_name("fake-embed")
+        indexdef = await db.scalar(
+            text("SELECT indexdef FROM pg_indexes WHERE indexname = :n"), {"n": name}
+        )
+        assert indexdef is not None and "hnsw" in indexdef and "fake-embed" in indexdef
+        await db.execute(text("SET LOCAL enable_seqscan = off"))
+        plan = (
+            await db.execute(
+                text(
+                    "EXPLAIN SELECT chunk_no FROM document_chunk "
+                    "WHERE embedding_model = 'fake-embed' "
+                    f"ORDER BY {vector_index.distance_sql('fake-embed', 3)} LIMIT 3"
+                ),
+                {"q": "[1,1,0]"},
+            )
+        ).scalars()
+        assert name in "\n".join(plan)
 
     # 다른 그룹 사용자에게는 없는 문서다.
     other = await make_user("modeler")

@@ -1,0 +1,1727 @@
+{
+ "measured_at": "20261031T030611Z",
+ "results": [
+  {
+   "model": "bge-m3",
+   "max_chars": 800,
+   "prefix": false,
+   "chunks": 6,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 25,
+   "hit@3": 28,
+   "hit@5": 28,
+   "mrr": 0.946,
+   "top1_answerable": {
+    "min": 0.4143,
+    "median": 0.582
+   },
+   "top1_unanswerable": {
+    "max": 0.6009,
+    "median": 0.5364
+   },
+   "separation": {
+    "accuracy": 0.824,
+    "threshold": 0.4143
+   },
+   "doc_ms_per_chunk": 90.7,
+   "query_ms_p50": 299.2,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.6218,
+     "rank": 2,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.5787,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.4143,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.5173,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.5556,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4759,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.6009,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.4264,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5732,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "bge-m3",
+   "max_chars": 800,
+   "prefix": true,
+   "chunks": 6,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 25,
+   "hit@3": 28,
+   "hit@5": 28,
+   "mrr": 0.94,
+   "top1_answerable": {
+    "min": 0.4099,
+    "median": 0.5676
+   },
+   "top1_unanswerable": {
+    "max": 0.5823,
+    "median": 0.5153
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.4665
+   },
+   "doc_ms_per_chunk": 70.2,
+   "query_ms_p50": 322.5,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.5971,
+     "rank": 2,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.509,
+     "rank": 3,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.4099,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.4869,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.5438,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4556,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.5823,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.4218,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5798,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "bge-m3",
+   "max_chars": 400,
+   "prefix": false,
+   "chunks": 10,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 24,
+   "hit@3": 28,
+   "hit@5": 28,
+   "mrr": 0.917,
+   "top1_answerable": {
+    "min": 0.414,
+    "median": 0.6215
+   },
+   "top1_unanswerable": {
+    "max": 0.5888,
+    "median": 0.5317
+   },
+   "separation": {
+    "accuracy": 0.824,
+    "threshold": 0.414
+   },
+   "doc_ms_per_chunk": 49.2,
+   "query_ms_p50": 297.2,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.6257,
+     "rank": 2,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.6274,
+     "rank": 3,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.6236,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.414,
+     "rank": 3,
+     "top1_doc": "emergency-response.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.5145,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.549,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4759,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.5888,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.4264,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5732,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "bge-m3",
+   "max_chars": 400,
+   "prefix": true,
+   "chunks": 10,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 22,
+   "hit@3": 27,
+   "hit@5": 28,
+   "mrr": 0.884,
+   "top1_answerable": {
+    "min": 0.4319,
+    "median": 0.5942
+   },
+   "top1_unanswerable": {
+    "max": 0.5798,
+    "median": 0.5221
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.4319
+   },
+   "doc_ms_per_chunk": 57.9,
+   "query_ms_p50": 300.8,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.598,
+     "rank": 2,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.6174,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.5991,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.6436,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.4319,
+     "rank": 4,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.5818,
+     "rank": 2,
+     "top1_doc": "maintenance-manual.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.4969,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.5473,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4756,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.5709,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.4218,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5798,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "bge-m3",
+   "max_chars": 200,
+   "prefix": false,
+   "chunks": 18,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 27,
+   "hit@3": 28,
+   "hit@5": 28,
+   "mrr": 0.982,
+   "top1_answerable": {
+    "min": 0.5268,
+    "median": 0.6441
+   },
+   "top1_unanswerable": {
+    "max": 0.5852,
+    "median": 0.5507
+   },
+   "separation": {
+    "accuracy": 0.912,
+    "threshold": 0.5775
+   },
+   "doc_ms_per_chunk": 48.7,
+   "query_ms_p50": 308.9,
+   "misses": [
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.6236,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.539,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.5852,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4715,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.5818,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.4229,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5624,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "bge-m3",
+   "max_chars": 200,
+   "prefix": true,
+   "chunks": 18,
+   "dims": 1024,
+   "answerable": 28,
+   "hit@1": 26,
+   "hit@3": 28,
+   "hit@5": 28,
+   "mrr": 0.964,
+   "top1_answerable": {
+    "min": 0.5122,
+    "median": 0.6414
+   },
+   "top1_unanswerable": {
+    "max": 0.5963,
+    "median": 0.5696
+   },
+   "separation": {
+    "accuracy": 0.882,
+    "threshold": 0.5122
+   },
+   "doc_ms_per_chunk": 47.7,
+   "query_ms_p50": 311.0,
+   "misses": [
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.6174,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.6436,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.55,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.5963,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.4756,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.591,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.442,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.5893,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 800,
+   "prefix": false,
+   "chunks": 6,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 2,
+   "hit@3": 12,
+   "hit@5": 23,
+   "mrr": 0.349,
+   "top1_answerable": {
+    "min": 0.7095,
+    "median": 0.7741
+   },
+   "top1_unanswerable": {
+    "max": 0.8092,
+    "median": 0.7622
+   },
+   "separation": {
+    "accuracy": 0.824,
+    "threshold": 0.7095
+   },
+   "doc_ms_per_chunk": 71.5,
+   "query_ms_p50": 294.1,
+   "misses": [
+    {
+     "q": "위험등급 3인 시설은 얼마나 자주 정기 점검을 해야 하나요?",
+     "top1": 0.8099,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.7732,
+     "rank": 4,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.7565,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "전주가 몇 도 이상 기울면 바꿔야 하나요?",
+     "top1": 0.7988,
+     "rank": 2,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.7394,
+     "rank": 2,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "철탑 기초가 얼마나 가라앉으면 정밀진단을 맡기나요?",
+     "top1": 0.8001,
+     "rank": 3,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.7851,
+     "rank": 3,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.7095,
+     "rank": 4,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.7769,
+     "rank": 2,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "지사가 위험등급을 내리려면 누구 승인이 필요해?",
+     "top1": 0.771,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.7567,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.7793,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.7627,
+     "rank": 3,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.7878,
+     "rank": 5,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.7751,
+     "rank": 6,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.7387,
+     "rank": 6,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.7894,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.7509,
+     "rank": 6,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "변전소마다 여분으로 둬야 하는 애자 수는?",
+     "top1": 0.7686,
+     "rank": 6,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.7815,
+     "rank": 5,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.7602,
+     "rank": 5,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.7842,
+     "rank": 5,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "강남 지하 변전소에 새로 들이는 설비는?",
+     "top1": 0.7729,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.7948,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "철탑에 오르는 사람은 어떤 교육을 추가로 받아야 해?",
+     "top1": 0.7868,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.7648,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.748,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.8092,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.7867,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.736,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.7765,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7451,
+     "top1_doc": "training-rules.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 800,
+   "prefix": true,
+   "chunks": 6,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 5,
+   "hit@3": 16,
+   "hit@5": 24,
+   "mrr": 0.427,
+   "top1_answerable": {
+    "min": 0.6754,
+    "median": 0.7523
+   },
+   "top1_unanswerable": {
+    "max": 0.7807,
+    "median": 0.7424
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.715
+   },
+   "doc_ms_per_chunk": 72.6,
+   "query_ms_p50": 294.6,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.7557,
+     "rank": 5,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.7601,
+     "rank": 2,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.7235,
+     "rank": 3,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "철탑 기초가 얼마나 가라앉으면 정밀진단을 맡기나요?",
+     "top1": 0.7452,
+     "rank": 3,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.7537,
+     "rank": 5,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.6754,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.7341,
+     "rank": 3,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "지사가 위험등급을 내리려면 누구 승인이 필요해?",
+     "top1": 0.7523,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.7469,
+     "rank": 3,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.7524,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.7517,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.7526,
+     "rank": 4,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.7562,
+     "rank": 6,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.715,
+     "rank": 6,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.7653,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.7209,
+     "rank": 3,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변전소마다 여분으로 둬야 하는 애자 수는?",
+     "top1": 0.7522,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.7539,
+     "rank": 4,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.7329,
+     "rank": 3,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.7664,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.7755,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "철탑에 오르는 사람은 어떤 교육을 추가로 받아야 해?",
+     "top1": 0.7685,
+     "rank": 6,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.7249,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.739,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.7807,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.7457,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.7071,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.762,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7084,
+     "top1_doc": "training-rules.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 400,
+   "prefix": false,
+   "chunks": 10,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 2,
+   "hit@3": 6,
+   "hit@5": 11,
+   "mrr": 0.259,
+   "top1_answerable": {
+    "min": 0.7638,
+    "median": 0.8376
+   },
+   "top1_unanswerable": {
+    "max": 0.8546,
+    "median": 0.8271
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.7638
+   },
+   "doc_ms_per_chunk": 44.8,
+   "query_ms_p50": 284.6,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.7805,
+     "rank": 6,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.8452,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "전주가 몇 도 이상 기울면 바꿔야 하나요?",
+     "top1": 0.8503,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.8143,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "철탑 기초가 얼마나 가라앉으면 정밀진단을 맡기나요?",
+     "top1": 0.8329,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.8134,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.7638,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "노후도 점수는 어떻게 매기지?",
+     "top1": 0.8394,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.8452,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.8449,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.8685,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.7743,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.8047,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.8162,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.8292,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.8743,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.8578,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소마다 여분으로 둬야 하는 애자 수는?",
+     "top1": 0.8854,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.8054,
+     "rank": 9,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.8593,
+     "rank": 9,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.8358,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "강남 지하 변전소에 새로 들이는 설비는?",
+     "top1": 0.8494,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.8675,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "철탑에 오르는 사람은 어떤 교육을 추가로 받아야 해?",
+     "top1": 0.8347,
+     "rank": 8,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "교육 이수 기록은 얼마 동안 보관해?",
+     "top1": 0.82,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.8354,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.8241,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.8546,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.8301,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.7867,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.8461,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7553,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 400,
+   "prefix": true,
+   "chunks": 10,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 5,
+   "hit@3": 10,
+   "hit@5": 18,
+   "mrr": 0.366,
+   "top1_answerable": {
+    "min": 0.6838,
+    "median": 0.7563
+   },
+   "top1_unanswerable": {
+    "max": 0.7833,
+    "median": 0.7532
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.7236
+   },
+   "doc_ms_per_chunk": 42.5,
+   "query_ms_p50": 293.6,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.7496,
+     "rank": 5,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.7734,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "전주가 몇 도 이상 기울면 바꿔야 하나요?",
+     "top1": 0.7706,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.7236,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.7419,
+     "rank": 6,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.6838,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "노후도 점수는 어떻게 매기지?",
+     "top1": 0.7544,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.761,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.7494,
+     "rank": 5,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.7508,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.739,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.7526,
+     "rank": 7,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.7562,
+     "rank": 10,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.7431,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.7929,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.757,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.7584,
+     "rank": 7,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.7481,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.7553,
+     "rank": 3,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.7713,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "철탑에 오르는 사람은 어떤 교육을 추가로 받아야 해?",
+     "top1": 0.7753,
+     "rank": 10,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "교육 이수 기록은 얼마 동안 보관해?",
+     "top1": 0.7463,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.7565,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.7465,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.7833,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.7599,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.7097,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.7629,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7084,
+     "top1_doc": "training-rules.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 200,
+   "prefix": false,
+   "chunks": 18,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 2,
+   "hit@3": 6,
+   "hit@5": 11,
+   "mrr": 0.219,
+   "top1_answerable": {
+    "min": 0.7638,
+    "median": 0.8384
+   },
+   "top1_unanswerable": {
+    "max": 0.8546,
+    "median": 0.8271
+   },
+   "separation": {
+    "accuracy": 0.853,
+    "threshold": 0.7638
+   },
+   "doc_ms_per_chunk": 43.2,
+   "query_ms_p50": 293.7,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.8261,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.8452,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "전주가 몇 도 이상 기울면 바꿔야 하나요?",
+     "top1": 0.8503,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.8143,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "철탑 기초가 얼마나 가라앉으면 정밀진단을 맡기나요?",
+     "top1": 0.8374,
+     "rank": 11,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.8134,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.7638,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "노후도 점수는 어떻게 매기지?",
+     "top1": 0.8394,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.8452,
+     "rank": 11,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.8449,
+     "rank": 15,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.8685,
+     "rank": 14,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.7872,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.8047,
+     "rank": 10,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.8162,
+     "rank": 16,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.8292,
+     "rank": 15,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.8743,
+     "rank": 9,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.8578,
+     "rank": 18,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소마다 여분으로 둬야 하는 애자 수는?",
+     "top1": 0.8854,
+     "rank": 11,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.8054,
+     "rank": 13,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.8593,
+     "rank": 8,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.8358,
+     "rank": 7,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "강남 지하 변전소에 새로 들이는 설비는?",
+     "top1": 0.8494,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.8675,
+     "rank": 11,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "철탑에 오르는 사람은 어떤 교육을 추가로 받아야 해?",
+     "top1": 0.8347,
+     "rank": 3,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "교육 이수 기록은 얼마 동안 보관해?",
+     "top1": 0.82,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.8354,
+     "rank": 15,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.8241,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.8546,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.8301,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.7867,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.8461,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7553,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ]
+  },
+  {
+   "model": "nomic-embed-text",
+   "max_chars": 200,
+   "prefix": true,
+   "chunks": 18,
+   "dims": 768,
+   "answerable": 28,
+   "hit@1": 4,
+   "hit@3": 9,
+   "hit@5": 17,
+   "mrr": 0.328,
+   "top1_answerable": {
+    "min": 0.6994,
+    "median": 0.759
+   },
+   "top1_unanswerable": {
+    "max": 0.7807,
+    "median": 0.7641
+   },
+   "separation": {
+    "accuracy": 0.824,
+    "threshold": 0.6994
+   },
+   "doc_ms_per_chunk": 43.3,
+   "query_ms_p50": 292.6,
+   "misses": [
+    {
+     "q": "설치한 지 30년 넘은 설비의 점검 주기는?",
+     "top1": 0.7768,
+     "rank": 6,
+     "top1_doc": "maintenance-manual.md"
+    },
+    {
+     "q": "변전소 접지 저항 허용 한도가 몇 옴이야?",
+     "top1": 0.7734,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "전주가 몇 도 이상 기울면 바꿔야 하나요?",
+     "top1": 0.7706,
+     "rank": 3,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "점검하고 나서 결과는 언제까지 입력해야 해?",
+     "top1": 0.7377,
+     "rank": 4,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "철탑 기초가 얼마나 가라앉으면 정밀진단을 맡기나요?",
+     "top1": 0.8263,
+     "rank": 7,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "고위험 시설의 기준 등급은 몇부터인가요?",
+     "top1": 0.7496,
+     "rank": 10,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "요소 점수 합이 12점이면 등급이 어떻게 되나요?",
+     "top1": 0.6994,
+     "rank": 2,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "노후도 점수는 어떻게 매기지?",
+     "top1": 0.7544,
+     "rank": 2,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "고장이 나면 등급을 언제까지 다시 매겨야 하나요?",
+     "top1": 0.761,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "사고를 발견하면 몇 분 안에 신고해야 하나요?",
+     "top1": 0.757,
+     "rank": 10,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "물에 잠긴 설비는 언제 다시 전기를 넣을 수 있나요?",
+     "top1": 0.7558,
+     "rank": 15,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "사고 경위서 제출 기한은?",
+     "top1": 0.7435,
+     "rank": 2,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "감전 우려가 있을 때 현장에서는 무엇을 요청하나요?",
+     "top1": 0.7427,
+     "rank": 10,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "절연유를 갈아야 하는 시험 값 기준은?",
+     "top1": 0.7774,
+     "rank": 13,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변압기가 과열되면 어떻게 대응해?",
+     "top1": 0.7431,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "바닷가 철탑은 페인트를 몇 년마다 다시 칠하나요?",
+     "top1": 0.7929,
+     "rank": 5,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "나무를 베기 전에 땅 주인에게 언제 알려야 하나?",
+     "top1": 0.757,
+     "rank": 13,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "변전소마다 여분으로 둬야 하는 애자 수는?",
+     "top1": 0.7764,
+     "rank": 4,
+     "top1_doc": "risk-grade-guide.md"
+    },
+    {
+     "q": "부산 지역 올해 중점 안전 과제가 뭐야?",
+     "top1": 0.7489,
+     "rank": 4,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "대구는 여름에 순시를 얼마나 자주 하나요?",
+     "top1": 0.7546,
+     "rank": 3,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "수원지사가 올해 교체하는 전주 수량은?",
+     "top1": 0.7639,
+     "rank": 5,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "새로 들어온 작업자는 교육을 몇 시간 받나요?",
+     "top1": 0.7931,
+     "rank": 15,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "교육 이수 기록은 얼마 동안 보관해?",
+     "top1": 0.7373,
+     "rank": 4,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "차단기 접점은 언제 점검하나요?",
+     "top1": 0.7565,
+     "rank": 6,
+     "top1_doc": "risk-grade-guide.md"
+    }
+   ],
+   "unanswerable_rows": [
+    {
+     "q": "점검 차량 유류비는 어떻게 정산하나요?",
+     "top1": 0.7596,
+     "top1_doc": "regional-safety-plan.md"
+    },
+    {
+     "q": "변전소 소음 허용 기준은 몇 데시벨인가요?",
+     "top1": 0.7686,
+     "top1_doc": "emergency-response.md"
+    },
+    {
+     "q": "협력 업체와의 계약 기간은 보통 얼마나 되나요?",
+     "top1": 0.7807,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "태양광 발전소의 인버터 점검 주기는?",
+     "top1": 0.7484,
+     "top1_doc": "training-rules.md"
+    },
+    {
+     "q": "직원 야간 근무 수당은 얼마인가요?",
+     "top1": 0.7685,
+     "top1_doc": "inspection-standard.md"
+    },
+    {
+     "q": "광주 지역의 올해 안전관리 계획은?",
+     "top1": 0.7235,
+     "top1_doc": "regional-safety-plan.md"
+    }
+   ]
+  }
+ ]
+}

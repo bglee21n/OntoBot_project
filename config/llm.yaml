@@ -17,6 +17,6 @@ roles:
   # gemma4:e4b — 대본 7/8, 평가 8/8, p50 2.1초. 같은 품질의 gemma4:12b 는 p50 20.5초였다.
   interviewer: {provider: local, model: "gemma4:e4b", timeout_s: 60}
   extractor:   {provider: local, model: "gemma4:e4b", timeout_s: 90}
-  # 문서 검색 임베딩(Phase 16, TRD 17.1 결정 11). 후보 bge-m3·nomic-embed-text 를 Phase 16b 에서 한국어
-  # 문서 문항으로 재서 ADR 로 정한다 — 그때까지 bge-m3(다국어) 를 임시로 둔다. 바꾸면 모든 청크를 다시 임베딩한다.
+  # 문서 검색 임베딩은 Phase 16b 측정으로 정했다(docs/adr/0016-embedding-model.md, TRD 17.1 결정 11).
+  # bge-m3 — 한국어 문항 1위 적중 25/28(3위 안 28/28). nomic-embed-text 는 2/28 이었다. 바꾸면 모든 청크를 다시 임베딩한다.
   embedder:    {provider: local, model: "bge-m3", timeout_s: 120}

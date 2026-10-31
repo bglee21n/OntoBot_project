@@ -1,6 +1,6 @@
 # OntoBot v1(P1) 구현 계획 — 초안
 
-- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 진행 중(a 문서 등록·색인 완료 — 다음 b 임베딩 측정·c 문서 ↔ 객체·d 검색 단계) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.24, PRD v0.4
+- 상태: **Phase 14 완료 · Phase 15 완료 · Phase 16 진행 중(a 문서 등록·색인·b 임베딩 측정 완료 — 다음 c 문서 ↔ 객체·d 검색 단계) · Phase 13 업그레이드 왕복 남음** · 2026-10-31 · 기준 TRD v0.26, PRD v0.4
 - 범위: PRD 8절 v1 행(P1) 전부. P2·P3 는 TRD 17절의 자리만 지킨다.
 - 앞선 계획: [MVP 구현 계획](OntoBot_project-implementation-plan.md)(Phase 0~8). Phase 번호는 그대로 이어 붙인다.
 
@@ -232,6 +232,10 @@ TRD v0.12 17.1절에 같은 내용이 있다.
     겹침 없는 청크, `embedder` 역할(임시 `bge-m3`)·어댑터 `embed`·작업 `document_embed`, 문서 화면 `/documents`.
     pgvector 를 `extensions` 스키마로(테스트가 `public` 을 지워도 남게) — `postgres-init` 수정, 쓰던 테스트 컨테이너는
     같은 SQL 을 superuser 로 한 번 적용했다.
+  - **16b 완료(2026-10-31)**: ADR-0016. 합성 문서 6건(`domain-packs/sample/documents/`)·문항 34개(`doc_queries.yaml`,
+    답 없음 6), `scripts/spike_embed.py`. `bge-m3` 1위 25/28·3위 안 28/28 대 `nomic-embed-text` 2/28 → `bge-m3` 확정, 접두어 없음.
+    모델별 부분 HNSW(`documents.vector_index`, 색인 작업이 만든다). 답 없는 질문을 점수로 가를 수 없어(최대 0.601 > 답 있음
+    최저 0.414) 16d 는 답변·정확 일치로 판정한다. 청크 길이(200자가 검색엔 더 좋았다)는 16d 에서 답변까지 이어 다시 잰다.
 
 ### Phase 17 — 변경 영향 분석·REST API 공개 (PRD 5.1·5.11 P1)
 

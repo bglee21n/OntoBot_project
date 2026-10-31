@@ -19,6 +19,15 @@ from ontobot.db.models.documents import Vector
 # pgvector 열을 반영(reflect)할 때 알아보게 한다 — 모르면 자료형 비교를 건너뛴다(Phase 16).
 ischema_names["vector"] = Vector
 
+# 런타임 DDL 이 만드는 인덱스(속성 인덱스 objects.indexes·청크 벡터 인덱스 documents.vector_index)는
+# 마이그레이션의 대상이 아니다 — 모델과 비교할 때 빼지 않으면 autogenerate 가 지우려 든다.
+RUNTIME_INDEX_PREFIXES = ("ix_obj_", "ix_chunk_vec_")
+
+
+def _include_object(obj, name, type_, reflected, compare_to) -> bool:  # type: ignore[no-untyped-def]
+    return not (type_ == "index" and reflected and (name or "").startswith(RUNTIME_INDEX_PREFIXES))
+
+
 config = context.config
 target_metadata = Base.metadata
 
@@ -29,7 +38,12 @@ def _url() -> URL:
 
 
 def _do_run(connection) -> None:  # type: ignore[no-untyped-def]
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+        include_object=_include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
