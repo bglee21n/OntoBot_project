@@ -16,11 +16,13 @@ from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from ontobot.api.deps import CurrentUser, Db, User, require_role
+from ontobot.api.deps import CurrentUser, Db, SettingsDep, User, require_role
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.documents import Document
 from ontobot.db.models.security import DataGroup
 from ontobot.documents import extract, links, store
+from ontobot.documents.indexing import ROLE as EMBEDDER_ROLE
+from ontobot.llm.config import load as load_llm_config
 from ontobot.ontology import registry
 from ontobot.security import rbac
 from ontobot.security.rbac import ROLE_ADMIN, ROLE_MODELER
@@ -96,16 +98,33 @@ async def upload_groups(db: Db, user: Curator) -> list[GroupChoice]:
     return [GroupChoice(id=i, display_name=n) for i, n in rows]
 
 
+def _require_embedder(settings: SettingsDep) -> None:
+    """임베딩 역할이 없으면 색인할 수 없다 — 넣고 나서 작업이 조용히 실패하지 않게 먼저 막는다.
+
+    업그레이드는 운영자의 ``config/llm.yaml`` 을 덮지 않아 새 역할이 빠질 수 있다(Phase 19 발견,
+    ``ontobotctl`` 이 알린다).
+    """
+    if EMBEDDER_ROLE not in load_llm_config(settings.llm_config_path).roles:
+        raise ProblemError(
+            409,
+            "임베딩 모델이 설정되지 않아 문서를 색인할 수 없습니다"
+            "(config/llm.yaml 의 embedder 역할)",
+            code="embedder_not_configured",
+        )
+
+
 @router.post("", response_model=DocumentOut, status_code=201)
 async def upload(
     db: Db,
     user: Curator,
+    settings: SettingsDep,
     file: Annotated[UploadFile, File()],
     group_id: Annotated[int, Form()],
     title: Annotated[str | None, Form(max_length=255)] = None,
 ) -> DocumentOut:
     if group_id not in await rbac.document_groups(db, user.id):
         raise ProblemError(403, "속한 그룹에만 문서를 넣을 수 있습니다", code="forbidden_group")
+    _require_embedder(settings)
     data = await file.read(extract.MAX_BYTES + 1)
     try:
         doc = await store.create(
@@ -148,8 +167,9 @@ async def delete_document(doc_id: int, db: Db, user: Curator) -> Response:
 
 
 @router.post("/{doc_id}/reindex", response_model=DocumentOut)
-async def reindex(doc_id: int, db: Db, user: Curator) -> DocumentOut:
+async def reindex(doc_id: int, db: Db, user: Curator, settings: SettingsDep) -> DocumentOut:
     doc = await _readable(db, user, doc_id)
+    _require_embedder(settings)
     await store.reindex(db, doc, actor_id=user.id)
     return _out(await store.view(db, doc))
 

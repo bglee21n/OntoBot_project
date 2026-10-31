@@ -201,6 +201,28 @@ stop_app() {
 # ---------------------------------------------------------------- 명령
 cmd_verify() { verify_bundle "$1"; [[ $JSON == 1 ]] && printf '{"ok":true,"version":"%s"}\n' "$(bundle_get "$1" ONTOBOT_BUNDLE_VERSION)"; return 0; }
 
+# 새 버전 기본 설정(stack/llm.yaml.default)과 설치 설정의 차이(Phase 19). 설치의 config/ 는 운영자 것이라
+# 덮지 않는다 — 새 기본값을 config/llm.yaml.new 로 두고, 없는 역할·Ollama 에 없는 모델을 한 줄씩 알린다.
+# 막지는 않는다(새 역할이 없어도 기존 기능은 돈다 — 그 기능만 꺼진 채다).
+llm_roles() { awk '/^roles:/{f=1;next} f&&/^[^ #]/{f=0} f&&/^  [a-z_]+:/{sub(":.*","",$1); print $1}' "$1" | sort -u; }
+llm_models() { grep -o 'model: *"[^"]*"' "$1" | sed 's/.*"\(.*\)"/\1/' | sort -u; }
+config_drift() {
+  local b="$1" def="$1/stack/llm.yaml.default" cur="$ONTOBOT_HOME/config/llm.yaml" r m have bundled
+  [[ -f $def && -f $cur ]] || return 0
+  for r in $(comm -23 <(llm_roles "$def") <(llm_roles "$cur")); do
+    echo "설정에 없는 역할: $r — 새 기본값 config/llm.yaml.new 를 보고 config/llm.yaml 에 더한 뒤 docker compose up -d"
+  done
+  have="$(compose exec -T ollama ollama list 2>/dev/null | awk 'NR>1{print $1}')" || return 0
+  [[ -n $have ]] || return 0
+  bundled=" $(bundle_get "$b" ONTOBOT_BUNDLE_MODELS) "
+  for m in $(sort -u <(llm_models "$def") <(llm_models "$cur")); do
+    grep -qxF "$m" <<<"$have" && continue
+    [[ $m == *:* ]] || ! grep -qxF "$m:latest" <<<"$have" || continue
+    [[ $bundled == *" $m "* ]] && continue
+    echo "Ollama 에 없는 모델: $m — 모델을 담은 번들(build_bundle.py --app-only --with-models)로 올리세요"
+  done
+}
+
 cmd_preflight() {
   local b="$1" problems=() warnings=() cur ver free
   verify_bundle "$b"
@@ -218,6 +240,9 @@ cmd_preflight() {
   local need=$(( $(du -sk "$b" | cut -f1) / 1024 + 1024 ))
   ((free > need)) || problems+=("디스크 여유 ${free}MB < 필요 ${need}MB")
   has_gpu || warnings+=("GPU(nvidia 런타임)가 없습니다 — 모델이 CPU 로 돌아 느립니다")
+  if [[ -n $cur ]]; then
+    local d; while IFS= read -r d; do [[ -n $d ]] && warnings+=("$d"); done < <(config_drift "$b")
+  fi
   local p; for p in "${problems[@]}"; do note "막힘: $p"; done; for p in "${warnings[@]}"; do note "주의: $p"; done
   if [[ $JSON == 1 ]]; then
     printf '{"ok":%s,"version":"%s","current":"%s","app_only":%s,"free_mb":%s,"problems":[%s],"warnings":[%s]}\n' \
@@ -338,6 +363,11 @@ cmd_upgrade() {
   fi
   step "새 버전 기동"
   compose up -d --pull never --remove-orphans
+  if [[ -f $b/stack/llm.yaml.default ]]; then
+    cp "$b/stack/llm.yaml.default" "$ONTOBOT_HOME/config/llm.yaml.new"
+    sed -i 's#http://localhost:11434#http://ollama:11434#' "$ONTOBOT_HOME/config/llm.yaml.new"
+    local d; while IFS= read -r d; do [[ -n $d ]] && warn "$d"; done < <(config_drift "$b")
+  fi
   printf 'CURRENT=%s\nPREVIOUS=%s\nLAST_BACKUP=%s\nUPGRADED_AT=%s\n' "$ver" "$cur" "$backup" "$(date -Iseconds)" >"$STATE"
   # 배포 콘솔 새 이미지는 스스로 바꾸지 않는다 — 화면의 '배포 콘솔 갱신'(ADR-0014).
   local dep; dep="$(bundle_get "$b" ONTOBOT_DEPLOYER_IMAGE)"

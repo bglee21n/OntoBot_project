@@ -128,6 +128,11 @@ def main(argv: list[str]) -> int:
         "--ollama-models", type=Path, default=Path.home() / ".ollama" / "models"
     )
     ap.add_argument(
+        "--with-models",
+        action="store_true",
+        help="앱 번들에도 config/llm.yaml 의 Ollama 모델을 담는다(새 역할·모델이 생긴 업그레이드용)",
+    )
+    ap.add_argument(
         "--label", help="버전 끝에 붙일 표시(시험용 — 같은 커밋으로 두 번 만들 때)"
     )
     a = ap.parse_args(argv)
@@ -179,6 +184,7 @@ def main(argv: list[str]) -> int:
             third.append(tag)
         step("이미지 저장 images/third-party.tar")
         run("docker", "save", "-o", str(bundle / "images" / "third-party.tar"), *third)
+    if not a.app_only or a.with_models:
         step("Ollama 모델 ollama-models.tar")
         models = ollama_models(a.ollama_models, bundle / "ollama-models.tar")
 
@@ -195,6 +201,9 @@ def main(argv: list[str]) -> int:
         for f in sorted((DOCKER / sub).iterdir()):
             copy_lf(f, bundle / "stack" / sub / f.name)
     copy_lf(DOCKER / "ontobotctl", bundle / "bin" / "ontobotctl")
+    # 이 버전의 기본 LLM 설정 — 설치의 config/ 는 운영자 것이라 덮지 않는다. ontobotctl 이 견주어
+    # 설치 설정에 없는 역할·Ollama 에 없는 모델을 알린다(Phase 19 업그레이드 시험에서 발견).
+    copy_lf(ROOT / "config" / "llm.yaml", bundle / "stack" / "llm.yaml.default")
     host = ROOT / "deploy" / "windows" / "install-host.ps1"
     if host.is_file():
         (bundle / "host").mkdir(exist_ok=True)
@@ -209,6 +218,7 @@ def main(argv: list[str]) -> int:
         "ONTOBOT_BUNDLE_BUILT_AT": datetime.now(UTC).isoformat(timespec="seconds"),
         "ONTOBOT_APP_IMAGE": app_img,
         "ONTOBOT_DEPLOYER_IMAGE": dep_img,
+        "ONTOBOT_BUNDLE_MODELS": " ".join(models),
         **{k: v for k, v in lock.items() if k.endswith("_IMAGE")},
     }
     (bundle / "bundle.env").write_bytes(

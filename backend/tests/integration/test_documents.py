@@ -182,3 +182,29 @@ async def test_embedding_failure_is_recorded_and_retried(
         await embed_document(doc["id"], LLMGateway(CFG))
     detail = (await client.get(f"/api/v1/documents/{doc['id']}")).json()
     assert detail["status"] == "pending" and detail["error"].startswith("임베딩 실패")
+
+
+async def test_upload_refused_when_embedder_role_missing(
+    monkeypatch, client: httpx.AsyncClient, make_user: MakeUser
+) -> None:
+    """embedder 역할이 빠진 설치 — 넣기 전에 막는다(Phase 19).
+
+    업그레이드는 운영자 설정을 덮지 않는다.
+    """
+    from ontobot.api import documents as documents_api
+
+    no_embedder = LlmConfig.model_validate(
+        {
+            "providers": {"local": {"adapter": "ollama", "base_url": "http://fake-ollama"}},
+            "roles": {"planner": {"provider": "local", "model": "fake"}},
+        }
+    )
+    monkeypatch.setattr(documents_api, "load_llm_config", lambda _path: no_embedder)
+    username, password, _, gid = await _curator_in_group(make_user)
+    assert (await login(client, username, password)).status_code == 200
+    r = await client.post(
+        "/api/v1/documents",
+        data={"group_id": str(gid)},
+        files={"file": ("x.md", f"# {uuid.uuid4()}".encode(), "text/markdown")},
+    )
+    assert (r.status_code, r.json()["code"]) == (409, "embedder_not_configured")
