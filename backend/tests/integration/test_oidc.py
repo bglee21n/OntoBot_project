@@ -215,7 +215,15 @@ async def test_wrong_pkce_verifier_is_rejected(client, idp: FakeIdp) -> None:
 
 
 @pytest.mark.parametrize(
-    "target", ["//evil.example/x", "https://evil.example", "\\\\evil", "ontology"]
+    "target",
+    [
+        "//evil.example/x",
+        "https://evil.example",
+        "\\\\evil",
+        "ontology",
+        "/\t/evil.example",
+        "/\n/x",
+    ],
 )
 async def test_return_to_cannot_leave_the_site(client, idp: FakeIdp, target: str) -> None:
     idp.sub = f"alice-redirect-{abs(hash(target))}"

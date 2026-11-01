@@ -55,7 +55,7 @@
 | 묶음 | 이벤트 | 언제 남나 | 대상 칸 |
 | --- | --- | --- | --- |
 | 로그인 | `auth.login` | 로그인 성공 | — |
-| | `auth.login_failed` | 로그인 실패(틀린 비밀번호·없는 아이디·정지 계정 모두) | — |
+| | `auth.login_failed` | 로그인 실패(틀린 비밀번호·없는 아이디·정지 계정 모두). 다섯 번 틀려 막힌 뒤의 시도는 `reason: locked` | — |
 | | `auth.logout` | 로그아웃 | — |
 | 계정·권한 | `security.user_created` | 계정 만들기(화면 `via:admin`, 명령 `via:cli`) | `app_user:N` |
 | | `security.role_changed` | 역할 변경 | `app_user:N` |

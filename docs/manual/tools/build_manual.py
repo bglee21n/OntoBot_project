@@ -497,6 +497,7 @@ def build_pdf(html: str, out: Path) -> int:
             margin={"top": "20mm", "bottom": "18mm", "left": "18mm", "right": "18mm"},
         )
         b.close()
+    tmp.unlink()  # 인쇄용 중간 파일 — 그림을 상대 경로로만 가리켜 혼자서는 쓸모가 없다
     data = out.read_bytes()
     return len(re.findall(rb"/Type\s*/Page[^s]", data))
 

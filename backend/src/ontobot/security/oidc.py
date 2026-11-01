@@ -112,6 +112,9 @@ def safe_return_to(value: str | None) -> str:
     """로그인 뒤 돌아갈 경로. 같은 사이트의 상대 경로만 받는다(열린 리다이렉트 방지)."""
     if not value or not value.startswith("/") or value.startswith("//") or "\\" in value:
         return "/"
+    # 브라우저는 URL 의 탭·줄바꿈을 지운다 — "/\t/evil" 이 "//evil"(다른 사이트)이 된다.
+    if any(ord(ch) <= 0x20 or ord(ch) == 0x7F for ch in value):
+        return "/"
     return value
 
 

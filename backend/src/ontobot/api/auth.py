@@ -13,7 +13,13 @@ from ontobot.api.deps import Db, SettingsDep, User
 from ontobot.api.errors import ProblemError
 from ontobot.config import Settings
 from ontobot.security import audit, oidc
-from ontobot.security.auth import IssuedSession, authenticate_local, create_session, revoke_session
+from ontobot.security.auth import (
+    IssuedSession,
+    authenticate_local,
+    create_session,
+    login_throttle,
+    revoke_session,
+)
 from ontobot.security.rbac import role_names
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -49,17 +55,36 @@ def set_session_cookie(response: Response, settings: Settings, issued: IssuedSes
 
 
 @router.post("/local/login", response_model=Me)
-async def local_login(body: LocalLogin, response: Response, db: Db, settings: SettingsDep) -> Me:
+async def local_login(
+    body: LocalLogin, request: Request, response: Response, db: Db, settings: SettingsDep
+) -> Me:
     if not settings.local_auth_enabled:
         raise ProblemError(404, "로컬 로그인이 꺼져 있습니다", code="local_auth_disabled")
+    client = request.client.host if request.client else "?"
+    if login_throttle.locked(body.username, client):
+        # 막힌 동안은 비밀번호를 확인하지 않는다 — 맞는 비밀번호여도 잠금이 풀릴 때까지 기다린다.
+        audit.record(
+            db,
+            audit.LOGIN_FAILED,
+            actor_id=None,
+            payload={"username": body.username, "reason": "locked"},
+        )
+        await db.commit()
+        raise ProblemError(
+            429,
+            "로그인 실패가 이어져 잠시 막았습니다. 5분 뒤 다시 시도하세요",
+            code="login_locked",
+        )
     user = await authenticate_local(db, body.username, body.password)
     if user is None:
+        login_throttle.failed(body.username, client)
         audit.record(db, audit.LOGIN_FAILED, actor_id=None, payload={"username": body.username})
         await db.commit()  # 실패 기록은 응답 오류와 무관하게 남긴다
         # 계정이 없는지·비밀번호가 틀렸는지·정지됐는지 가르지 않는다.
         raise ProblemError(
             401, "아이디 또는 비밀번호가 올바르지 않습니다", code="invalid_credentials"
         )
+    login_throttle.succeeded(body.username, client)
     issued = await create_session(
         db, user, method="local", ttl=timedelta(hours=settings.session_ttl_hours)
     )

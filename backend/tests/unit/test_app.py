@@ -30,6 +30,16 @@ async def test_unknown_route_is_problem_json() -> None:
     assert res.json()["status"] == 404
 
 
+async def test_responses_forbid_framing_and_sniffing() -> None:
+    transport = httpx.ASGITransport(app=create_app())
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        for path in ("/healthz", "/api/v1/nope"):
+            res = await client.get(path)
+            assert res.headers["x-frame-options"] == "DENY"
+            assert res.headers["content-security-policy"] == "frame-ancestors 'none'"
+            assert res.headers["x-content-type-options"] == "nosniff"
+
+
 # ---------------------------------------------------------------- /readyz (TRD 15절)
 
 

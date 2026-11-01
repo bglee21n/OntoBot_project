@@ -35,7 +35,7 @@ from ontobot.db.models.security import (
 )
 from ontobot.db.session import dispose_engine, session_scope
 from ontobot.ontology import importer, registry, versioning
-from ontobot.security.auth import hash_password
+from ontobot.security.auth import hash_password, login_throttle
 
 BACKEND = Path(__file__).resolve().parents[2]
 
@@ -82,6 +82,8 @@ async def test_database() -> AsyncIterator[str]:
 async def client() -> AsyncIterator[httpx.AsyncClient]:
     from ontobot.main import create_app
 
+    # 테스트 클라이언트는 모두 같은 접속 주소라 로그인 실패 잠금이 테스트 사이로 이어진다.
+    login_throttle.reset()
     transport = httpx.ASGITransport(app=create_app())
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
         yield c

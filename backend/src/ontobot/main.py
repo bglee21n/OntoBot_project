@@ -47,6 +47,12 @@ log = logging.getLogger(__name__)
 
 API_PREFIX = "/api/v1"
 _UNSAFE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Referrer-Policy": "same-origin",
+}
 # 프론트 서빙의 되돌림(index.html)에서 빼는 경로 — 없는 API 는 problem+json 404 여야 한다.
 _NOT_FRONTEND = ("api/", "healthz", "readyz", "docs", "redoc", "openapi.json")
 
@@ -127,6 +133,16 @@ def create_app() -> FastAPI:
                 403, "허용되지 않은 출처의 요청입니다", None, "origin_rejected", request.url.path
             )
         return await call_next(request)
+
+    @app.middleware("http")
+    async def _security_headers(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        # 다른 사이트가 화면을 iframe 에 싸서 누르게 하는 것(클릭재킹)과 자료형 추측을 막는다.
+        response = await call_next(request)
+        for name, value in _SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        return response
 
     @app.middleware("http")
     async def _request_id(

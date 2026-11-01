@@ -38,3 +38,6 @@ logs/
 
 # Playwright MCP 작업 파일(화면 확인 캡처·콘솔 기록)
 .playwright-mcp/
+
+# 매뉴얼 PDF 인쇄용 중간 파일(build_manual.py)
+docs/manual/*.html

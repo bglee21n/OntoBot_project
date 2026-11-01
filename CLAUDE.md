@@ -7,13 +7,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.1) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.2) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복) 완료, Phase 13 의 업그레이드 왕복은 남음. 설치 정본은
+v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -254,6 +254,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   부른다 — 공개용 우회 경로를 만들지 말 것. Action 은 요청까지만(승인은 사람).
 - **워크숍 시연(Phase 18c)은 `objects.demo_store.use` 의 `search_path` 하나로 저장소를 바꾼다** — 객체 SQL 에 스키마를
   적지 말 것(`public.object` 처럼 적으면 시연이 운영 표를 읽는다). 파이프라인에 시연용 분기·주입을 넣지 말 것.
+- **로컬 로그인 실패 잠금**(`security.auth.login_throttle`, 5분 안에 아이디별 5회·접속 주소별 30회 → 429 — 주소 기준을 아이디와 같게 조이면
+  사내 프록시 뒤 전원이 한 사람 실수로 막힌다)은 프로세스 메모리다 — 앱은
+  워커 하나(`app.Dockerfile` `--workers 1`)라서 맞다. 워커를 늘리면 잠금을 DB 로 옮겨야 한다. 통합 테스트는 `client`
+  픽스처가 비운다(모든 테스트가 같은 접속 주소). 보안 응답 헤더는 `main._SECURITY_HEADERS` 하나에서 붙인다.
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.

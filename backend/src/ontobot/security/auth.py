@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -26,6 +27,15 @@ _DUMMY_HASH = _hasher.hash(secrets.token_urlsafe(16))
 
 MIN_PASSWORD_LENGTH = 12
 
+# 비밀번호 대입 막기 — LOCK_SECONDS 안에 아이디마다 MAX_FAILURES 번,
+# 접속 주소마다 MAX_CLIENT_FAILURES 번 틀리면 잠시 막는다. 주소 기준이 더 느슨한 것은
+# 사내 프록시 뒤에서 모두 같은 주소로 보여 한 사람의 실수가 전원을 막지 않게 하려는 것이다
+# (여러 아이디를 돌려 가며 맞히는 시도는 주소 기준이 잡는다).
+# 앱은 워커 하나로 돈다(app.Dockerfile) — 프로세스 메모리로 충분하다.
+MAX_FAILURES = 5
+MAX_CLIENT_FAILURES = 30
+LOCK_SECONDS = 300
+
 
 @dataclass(frozen=True)
 class IssuedSession:
@@ -37,6 +47,45 @@ def hash_password(password: str) -> str:
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"비밀번호는 {MIN_PASSWORD_LENGTH}자 이상이어야 합니다")
     return _hasher.hash(password)
+
+
+class LoginThrottle:
+    """로그인 실패를 아이디(대소문자 무시)·접속 주소별로 센다. 성공하면 그 아이디의 셈만 지운다."""
+
+    def __init__(self) -> None:
+        self._failures: dict[str, list[float]] = {}
+
+    @staticmethod
+    def _keys(username: str, client: str) -> tuple[str, str]:
+        return f"u:{username.lower()}", f"c:{client}"
+
+    def locked(self, username: str, client: str) -> bool:
+        now = time.monotonic()
+        hit = False
+        limits = zip(self._keys(username, client), (MAX_FAILURES, MAX_CLIENT_FAILURES), strict=True)
+        for k, limit in limits:
+            recent = [t for t in self._failures.get(k, []) if now - t < LOCK_SECONDS]
+            if recent:
+                self._failures[k] = recent
+            else:
+                self._failures.pop(k, None)
+            hit = hit or len(recent) >= limit
+        return hit
+
+    def failed(self, username: str, client: str) -> None:
+        now = time.monotonic()
+        for k in self._keys(username, client):
+            self._failures.setdefault(k, []).append(now)
+
+    def succeeded(self, username: str, client: str) -> None:
+        # 주소 기준은 지우지 않는다 — 맞히는 사람이 제 계정으로 한 번 로그인해 셈을 비우지 못하게.
+        self._failures.pop(self._keys(username, client)[0], None)
+
+    def reset(self) -> None:
+        self._failures.clear()
+
+
+login_throttle = LoginThrottle()
 
 
 def _token_hash(token: str) -> str:

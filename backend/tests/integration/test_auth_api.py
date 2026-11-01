@@ -55,6 +55,28 @@ async def test_wrong_password_is_problem_json_and_audited(client, make_user: Mak
     assert "auth.login_failed" in await _audit_events(None, since)
 
 
+async def test_repeated_failures_lock_login_even_with_the_right_password(
+    client, make_user: MakeUser
+) -> None:
+    username, password, _ = await make_user("user")
+    for _ in range(5):
+        assert (await login(client, username, "not-the-password")).status_code == 401
+    locked = await login(client, username, password)
+    assert locked.status_code == 429
+    assert locked.json()["code"] == "login_locked"
+    assert client.cookies.get("ontobot_session") is None
+
+
+async def test_successful_login_clears_failure_count(client, make_user: MakeUser) -> None:
+    username, password, _ = await make_user("user")
+    for _ in range(4):
+        await login(client, username, "not-the-password")
+    assert (await login(client, username, password)).status_code == 200
+    for _ in range(4):
+        await login(client, username, "not-the-password")
+    assert (await login(client, username, password)).status_code == 200
+
+
 async def test_unknown_user_and_disabled_user_get_the_same_answer(
     client, make_user: MakeUser
 ) -> None:
