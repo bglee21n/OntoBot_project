@@ -86,6 +86,9 @@
 | | `deploy.backup` | 배포 콘솔의 **지금 백업** | `deployment` |
 | | `deploy.deployer_update` | 배포 콘솔 갱신 | `deployment` |
 | 인터뷰·평가 | `workshop.*`, `eval.*` | 인터뷰 워크숍, 평가(사용자 매뉴얼) | — |
+| 도입 | `adoption.engagement_created` / `engagement_updated` | 도입 만들기·이름·설명 고치기(사용자 매뉴얼 36장) | `engagement:N` |
+| | `adoption.members_changed` | 도입 구성원 넣기·역할 바꾸기·빼기(내용의 `role` 이 null 이면 뺌) | `engagement:N` |
+| | `adoption.sheet_saved` | 양식 저장. 내용은 양식 종류·판·바뀐 묶음 이름뿐 — **양식 값은 남기지 않습니다**(사람 이름이 든 칸이 있다) | `engagement:N` |
 
 > **알아 두기** 이벤트 목록에는 `deploy.login`·`deploy.login_failed` 도 있지만, **지금 판의 배포 콘솔은 로그인을
 > 감사 로그에 남기지 않습니다**(9.7 의 사진에서 0건). 배포 콘솔에 누가 들어왔는지는 배포 작업 기록(24장)의 "실행"

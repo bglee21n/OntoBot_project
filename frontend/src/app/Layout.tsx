@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useNotifications } from "../features/actions/ActionsPage";
+import { useEngagements } from "../features/adoption/AdoptionPage";
 import { ko } from "../i18n/ko";
 import { useLogout, useMe } from "./auth";
 
@@ -9,6 +10,10 @@ export function Layout() {
   const logout = useLogout();
   const notes = useNotifications();
   const unread = notes.data?.unread ?? 0;
+  // 도입 메뉴: 만들 수 있는 역할(modeler·admin)이거나 어느 도입의 구성원일 때(TRD 17.17).
+  const canCreateEngagement = me.data?.roles.some((r) => r === "modeler" || r === "admin") ?? false;
+  const engagements = useEngagements(Boolean(me.data) && !canCreateEngagement);
+  const showAdoption = canCreateEngagement || (engagements.data?.length ?? 0) > 0;
   return (
     <div className="shell">
       <header className="topbar">
@@ -18,6 +23,7 @@ export function Layout() {
           {me.data?.roles.some((r) => r === "domain_expert" || r === "modeler") && (
             <NavLink to="/workshop">{ko.nav.workshop}</NavLink>
           )}
+          {showAdoption && <NavLink to="/adoption">{ko.nav.adoption}</NavLink>}
           <NavLink to="/explore">{ko.nav.explore}</NavLink>
           <NavLink to="/documents">{ko.nav.documents}</NavLink>
           <NavLink to="/ontology">{ko.nav.ontology}</NavLink>

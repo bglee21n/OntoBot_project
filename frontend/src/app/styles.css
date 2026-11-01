@@ -218,3 +218,22 @@ tr.selected-row td { background: #eff6ff; }
 .doc-chunks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .doc-chunks pre { white-space: pre-wrap; word-break: break-word; margin: 0.2rem 0 0; max-height: 14rem; overflow: auto; font-size: 0.85em; }
 .doc-quote { white-space: pre-wrap; word-break: break-word; margin: 0.4rem 0; max-height: 18rem; overflow: auto; font-size: 0.85em; }
+
+/* 도입 양식(TRD 17.17) — 범용 편집기와 인쇄 보기 */
+.sheet-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; }
+.sheet-fields label { display: flex; flex-direction: column; gap: 0.2rem; }
+.sheet-fields label.wide { grid-column: 1 / -1; }
+.sheet-table td { vertical-align: top; }
+.sheet-table td.fixed { color: var(--text, inherit); background: #f9fafb; }
+.sheet-table input:not([type="checkbox"]), .sheet-table select, .sheet-table textarea { width: 100%; box-sizing: border-box; }
+.sheet .pii { border-color: var(--warn); }
+.print-only { display: none; }
+@media print {
+  .topbar, .no-print { display: none !important; }
+  .content { padding: 0; max-width: none; }
+  .print-only { display: table-row; }
+  .print-only td { height: 1.8em; }
+  .sheet input, .sheet select, .sheet textarea { border: none; background: none; resize: none; appearance: none; color: inherit; }
+  .sheet-table td.fixed { background: none; }
+  .sheet .notice { border: 1px solid #999; background: none; }
+}

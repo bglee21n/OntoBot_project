@@ -74,6 +74,8 @@ ignore = [
 "src/ontobot/query/planner.py" = ["E501"]
 "src/ontobot/workshop/topics.py" = ["E501"]
 "src/ontobot/workshop/extractor.py" = ["E501"]
+# 도입 양식 선언 — 매뉴얼 36장 문구를 그대로 옮긴다(단위 테스트가 매뉴얼과 대조한다).
+"src/ontobot/adoption/sheets.py" = ["E501"]
 "src/ontobot/workshop/interviewer.py" = ["E501"]
 
 [tool.mypy]

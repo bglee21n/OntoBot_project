@@ -257,6 +257,37 @@ def can_rollback_action(roles: Iterable[str], approval_roles: Iterable[str]) -> 
     return has_role(roles, *approval_roles, ROLE_ADMIN)
 
 
+# ------------------------------------------------------- 도입 작업 공간(Phase 20, TRD 17.17)
+#
+# 양식은 객체 데이터가 아니라서 데이터 그룹으로 거르지 않는다 — 그 도입의 구성원 역할만 본다.
+# 관리자라도 구성원이 아니면 보지 못한다(문서 그룹과 같은 원칙).
+
+ENGAGEMENT_OWNER = "owner"
+ENGAGEMENT_EDITOR = "editor"
+ENGAGEMENT_VIEWER = "viewer"
+ENGAGEMENT_ROLES = (ENGAGEMENT_OWNER, ENGAGEMENT_EDITOR, ENGAGEMENT_VIEWER)
+
+
+@dataclass(frozen=True)
+class EngagementAccess:
+    view: bool
+    edit: bool  # 양식 저장
+    manage: bool  # 이름·설명·구성원
+
+
+def engagement_access(member_role: str | None) -> EngagementAccess:
+    """그 도입에서의 구성원 역할(없으면 None) → 할 수 있는 일."""
+    return EngagementAccess(
+        view=member_role in ENGAGEMENT_ROLES,
+        edit=member_role in (ENGAGEMENT_OWNER, ENGAGEMENT_EDITOR),
+        manage=member_role == ENGAGEMENT_OWNER,
+    )
+
+
+def can_create_engagement(roles: Iterable[str]) -> bool:
+    return has_role(roles, ROLE_MODELER, ROLE_ADMIN)
+
+
 # ---------------------------------------------------------------- 공개 API 스코프(Phase 17b)
 
 SCOPE_QUERY = "query"

@@ -26,6 +26,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from ontobot import health, logs
 from ontobot.api import actions as actions_api
 from ontobot.api import admin as admin_api
+from ontobot.api import adoption as adoption_api
 from ontobot.api import auth as auth_api
 from ontobot.api import chat as chat_api
 from ontobot.api import documents as documents_api
@@ -182,6 +183,7 @@ def create_app() -> FastAPI:
     app.include_router(objects_api.router, prefix=API_PREFIX)
     app.include_router(objects_api.edits_router, prefix=API_PREFIX)
     app.include_router(actions_api.router, prefix=API_PREFIX)
+    app.include_router(adoption_api.router, prefix=API_PREFIX)
     app.include_router(admin_api.router, prefix=API_PREFIX)
     app.include_router(workshop_api.router, prefix=API_PREFIX)
     app.include_router(eval_api.router, prefix=API_PREFIX)

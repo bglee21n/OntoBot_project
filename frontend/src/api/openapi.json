@@ -1530,6 +1530,53 @@
         "title": "CitationValue",
         "type": "object"
       },
+      "ColumnOut": {
+        "properties": {
+          "fixed": {
+            "title": "Fixed",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "text",
+              "long",
+              "choice",
+              "check"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "pii": {
+            "title": "Pii",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "options",
+          "pii",
+          "fixed"
+        ],
+        "title": "ColumnOut",
+        "type": "object"
+      },
       "ColumnsIn": {
         "properties": {
           "query": {
@@ -2572,6 +2619,190 @@
           "status"
         ],
         "title": "ElementReview",
+        "type": "object"
+      },
+      "EngagementCreate": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "EngagementCreate",
+        "type": "object"
+      },
+      "EngagementDetail": {
+        "properties": {
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_manage": {
+            "title": "Can Manage",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sheets": {
+            "items": {
+              "$ref": "#/components/schemas/SheetIndexOut"
+            },
+            "title": "Sheets",
+            "type": "array"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOut"
+            },
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "my_role",
+          "created_at",
+          "can_edit",
+          "can_manage",
+          "members",
+          "sheets",
+          "stages"
+        ],
+        "title": "EngagementDetail",
+        "type": "object"
+      },
+      "EngagementPatch": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "EngagementPatch",
+        "type": "object"
+      },
+      "EngagementSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "my_role",
+          "created_at"
+        ],
+        "title": "EngagementSummary",
         "type": "object"
       },
       "Enqueued": {
@@ -4486,6 +4717,32 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffOut": {
+        "properties": {
+          "filled": {
+            "title": "Filled",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sheets": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sheets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "filled",
+          "sheets"
+        ],
+        "title": "HandoffOut",
+        "type": "object"
+      },
       "ImpactRefOut": {
         "properties": {
           "blocking": {
@@ -5679,6 +5936,71 @@
           "roles"
         ],
         "title": "Me",
+        "type": "object"
+      },
+      "MemberIn": {
+        "properties": {
+          "role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "role"
+        ],
+        "title": "MemberIn",
+        "type": "object"
+      },
+      "MemberOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "user_id",
+          "username",
+          "display_name",
+          "role"
+        ],
+        "title": "MemberOut",
         "type": "object"
       },
       "MembersIn": {
@@ -7422,6 +7744,81 @@
         "title": "SearchHitOut",
         "type": "object"
       },
+      "SectionOut": {
+        "properties": {
+          "blank_rows": {
+            "title": "Blank Rows",
+            "type": "integer"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnOut"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "layout": {
+            "enum": [
+              "fields",
+              "table"
+            ],
+            "title": "Layout",
+            "type": "string"
+          },
+          "max_rows": {
+            "title": "Max Rows",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "layout",
+          "columns",
+          "rows",
+          "blank_rows",
+          "max_rows",
+          "note"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
       "ServiceAccountIn": {
         "properties": {
           "display_name": {
@@ -7617,6 +8014,153 @@
           "created_at"
         ],
         "title": "SessionSummary",
+        "type": "object"
+      },
+      "SheetIn": {
+        "properties": {
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "payload"
+        ],
+        "title": "SheetIn",
+        "type": "object"
+      },
+      "SheetIndexOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "kind",
+          "revision",
+          "updated_at"
+        ],
+        "title": "SheetIndexOut",
+        "type": "object"
+      },
+      "SheetKindOut": {
+        "properties": {
+          "intro": {
+            "title": "Intro",
+            "type": "string"
+          },
+          "json_schema": {
+            "additionalProperties": true,
+            "title": "Json Schema",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "number",
+          "title",
+          "stage",
+          "intro",
+          "sections",
+          "json_schema"
+        ],
+        "title": "SheetKindOut",
+        "type": "object"
+      },
+      "SheetOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "kind",
+          "revision",
+          "payload",
+          "updated_at",
+          "updated_by"
+        ],
+        "title": "SheetOut",
         "type": "object"
       },
       "SourceIn": {
@@ -7817,6 +8361,37 @@
           "stage"
         ],
         "title": "StageData",
+        "type": "object"
+      },
+      "StageOut": {
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "handoffs": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffOut"
+            },
+            "title": "Handoffs",
+            "type": "array"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "title",
+          "done",
+          "handoffs"
+        ],
+        "title": "StageOut",
         "type": "object"
       },
       "SyncConflictOut": {
@@ -10438,6 +11013,393 @@
         "summary": "Set Contacts",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements": {
+      "get": {
+        "operationId": "list_engagements_api_v1_adoption_engagements_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EngagementSummary"
+                  },
+                  "title": "Response List Engagements Api V1 Adoption Engagements Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Engagements",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "post": {
+        "operationId": "create_engagement_api_v1_adoption_engagements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}": {
+      "get": {
+        "operationId": "get_engagement_api_v1_adoption_engagements__engagement_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Engagement",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_engagement_api_v1_adoption_engagements__engagement_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/members": {
+      "post": {
+        "operationId": "set_member_api_v1_adoption_engagements__engagement_id__members_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/members/{user_id}": {
+      "delete": {
+        "operationId": "remove_member_api_v1_adoption_engagements__engagement_id__members__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sheets/{kind}": {
+      "get": {
+        "operationId": "read_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SheetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Sheet",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "put": {
+        "operationId": "save_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SheetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SheetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Sheet",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/sheet-kinds": {
+      "get": {
+        "operationId": "sheet_kinds_api_v1_adoption_sheet_kinds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SheetKindOut"
+                  },
+                  "title": "Response Sheet Kinds Api V1 Adoption Sheet Kinds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sheet Kinds",
+        "tags": [
+          "adoption"
         ]
       }
     },

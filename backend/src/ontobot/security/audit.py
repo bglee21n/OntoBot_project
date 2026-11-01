@@ -60,6 +60,11 @@ ACTION_EXECUTED = "action.executed"
 ACTION_REJECTED = "action.rejected"
 ACTION_FAILED = "action.failed"
 ACTION_ROLLED_BACK = "action.rolled_back"
+# 도입 작업 공간(TRD 17.17) — payload 에 양식 값을 넣지 않는다(종류·판·바뀐 묶음 이름만).
+ENGAGEMENT_CREATED = "adoption.engagement_created"
+ENGAGEMENT_UPDATED = "adoption.engagement_updated"
+ENGAGEMENT_MEMBERS_CHANGED = "adoption.members_changed"
+ENGAGEMENT_SHEET_SAVED = "adoption.sheet_saved"
 # 배포 콘솔(ADR-0014)이 작업이 끝난 뒤 `security.cli audit-deploy` 로 남긴다.
 DEPLOY_EVENTS = frozenset(
     {

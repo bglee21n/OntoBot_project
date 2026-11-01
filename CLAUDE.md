@@ -7,13 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.3) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.1) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
-[v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~, 초안) · [ADR](docs/adr/).
+[v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료. 설치 정본은
+v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료.
+도입 지원은 착수 전 결정 A1~A11 확정(TRD 17.17), Phase 20(도입 작업 공간 — 양식 16종 저장·편집·인쇄) 완료, 다음은 Phase 21(양식 → 제품 보내기). 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -111,6 +112,7 @@ backend/src/ontobot/
   explorer/   객체 탐색(검색·1홉 이웃 — graph/traversal 의 Cypher, 제목은 reader) · limits(관리자 확장 한도)
   documents/  extract(txt·md·PDF 글자 층) · chunking(겹침 없는 청크, 순수) · store(그룹 소유·등록·삭제) · indexing(임베딩 작업) · vector_index(모델별 부분 HNSW)
               matching(본문의 객체 제목·pk 정확 일치, 순수) · links(링크 후보·확정, 찾는/보는 사람 권한)
+  adoption/   sheets(매뉴얼 36장 양식 16종 선언·검증, 순수) · progress(단계별 넘길 것, 순수) · store(도입·구성원·판 비교 저장)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -255,6 +257,12 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   부른다 — 공개용 우회 경로를 만들지 말 것. Action 은 요청까지만(승인은 사람).
 - **워크숍 시연(Phase 18c)은 `objects.demo_store.use` 의 `search_path` 하나로 저장소를 바꾼다** — 객체 SQL 에 스키마를
   적지 말 것(`public.object` 처럼 적으면 시연이 운영 표를 읽는다). 파이프라인에 시연용 분기·주입을 넣지 말 것.
+- **도입 양식(Phase 20, TRD 17.17)**: 양식의 정본은 `adoption/sheets.py` 하나다 — 화면은 그 선언을 그리고 서버는 같은
+  선언으로 검증한다. 칸·표를 바꾸면 매뉴얼 36장도 함께 고친다(`test_adoption.py` 가 머리글·고정 행을 매뉴얼과 대조한다).
+  양식 내용은 LLM 에 보내지 않고, 감사 payload 에 양식 값을 넣지 않는다(사람 정보 칸이 있다 — 종류·판·바뀐 묶음 이름만).
+  권한은 `rbac.engagement_access`(그 도입의 구성원 역할) 하나이고 구성원이 아니면 404(관리자도). 저장은 판 비교 —
+  판이 다르면 409 이지 덮어쓰지 않는다. 양식 → 제품 보내기(Phase 21)는 미리보기 → 적용, 이름 정확 일치뿐이고,
+  자산화 내보내기에 객체 행을 넣지 않는다.
 - **로컬 로그인 실패 잠금**(`security.auth.login_throttle`, 5분 안에 아이디별 5회·접속 주소별 30회 → 429 — 주소 기준을 아이디와 같게 조이면
   사내 프록시 뒤 전원이 한 사람 실수로 막힌다)은 프로세스 메모리다 — 앱은
   워커 하나(`app.Dockerfile` `--workers 1`)라서 맞다. 워커를 늘리면 잠금을 DB 로 옮겨야 한다. 통합 테스트는 `client`
