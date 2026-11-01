@@ -16,7 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ontobot.adoption import sheets
 from ontobot.db.models.adoption import Engagement, EngagementMember, EngagementSheet
 from ontobot.db.models.security import AppUser
-from ontobot.security import audit
+from ontobot.db.models.workshop import InterviewSession
+from ontobot.security import audit, rbac
 from ontobot.security.rbac import ENGAGEMENT_OWNER, ENGAGEMENT_ROLES
 
 
@@ -289,3 +290,51 @@ async def save_sheet(
     )
     await db.flush()
     return SheetState(kind, clean, new_revision, updated_at, actor_id)
+
+
+# ---------------------------------------------------------------- 인터뷰 잇기(결정 A11)
+
+
+async def linked_sessions(db: AsyncSession, engagement_id: int) -> list[InterviewSession]:
+    return list(
+        await db.scalars(
+            select(InterviewSession)
+            .where(InterviewSession.engagement_id == engagement_id)
+            .order_by(InterviewSession.id)
+        )
+    )
+
+
+async def link_session(
+    db: AsyncSession, engagement_id: int, session_id: int, *, actor_id: int, roles: frozenset[str]
+) -> None:
+    """잇는 사람은 그 인터뷰를 볼 수 있어야 한다(본인 또는 모델러) — 아니면 없는 인터뷰와 같다."""
+    s = await db.get(InterviewSession, session_id)
+    if s is None or not rbac.can_link_session(roles, is_interviewee=s.interviewee_id == actor_id):
+        raise NotFound
+    s.engagement_id = engagement_id
+    audit.record(
+        db,
+        audit.ENGAGEMENT_SESSION_LINKED,
+        actor_id=actor_id,
+        target=_target(engagement_id),
+        payload={"session_id": session_id, "linked": True},
+    )
+    await db.flush()
+
+
+async def unlink_session(
+    db: AsyncSession, engagement_id: int, session_id: int, *, actor_id: int
+) -> None:
+    s = await db.get(InterviewSession, session_id)
+    if s is None or s.engagement_id != engagement_id:
+        raise NotFound
+    s.engagement_id = None
+    audit.record(
+        db,
+        audit.ENGAGEMENT_SESSION_LINKED,
+        actor_id=actor_id,
+        target=_target(engagement_id),
+        payload={"session_id": session_id, "linked": False},
+    )
+    await db.flush()

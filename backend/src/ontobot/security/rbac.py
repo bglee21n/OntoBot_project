@@ -288,6 +288,26 @@ def can_create_engagement(roles: Iterable[str]) -> bool:
     return has_role(roles, ROLE_MODELER, ROLE_ADMIN)
 
 
+# 보내기(Phase 21)는 받는 곳의 화면을 쓸 수 있는 역할이어야 한다 — 보내기가 그 화면을
+# 우회하지 않는다.
+SEND_ROLES: dict[str, tuple[str, ...]] = {
+    "draft": (ROLE_MODELER,),
+    "golden": (ROLE_BOT_BUILDER, ROLE_MODELER),
+    "targets": (ROLE_ADMIN,),
+    "accounts": (ROLE_ADMIN,),
+}
+
+
+def can_send(bridge: str, roles: Iterable[str], member_role: str | None) -> bool:
+    """그 도입의 양식을 고칠 수 있고(editor 이상) 받는 곳의 역할도 있어야 한다."""
+    return engagement_access(member_role).edit and has_role(roles, *SEND_ROLES.get(bridge, ()))
+
+
+def can_link_session(roles: Iterable[str], *, is_interviewee: bool) -> bool:
+    """인터뷰를 도입에 잇기 — 그 인터뷰를 볼 수 있는 사람(본인 또는 모델러, 워크숍과 같은 규칙)."""
+    return is_interviewee or has_role(roles, ROLE_MODELER)
+
+
 # ---------------------------------------------------------------- 공개 API 스코프(Phase 17b)
 
 SCOPE_QUERY = "query"

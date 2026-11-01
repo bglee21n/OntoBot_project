@@ -7,6 +7,7 @@ import type { ElementOut, PublishOut, SessionDetail, SessionSummary, TurnOut } f
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { TacitPanel } from "../adoption/TacitPanel";
 import { ElementCard } from "./ElementCard";
 import { WorkshopPreview } from "./Preview";
 import { VoiceButton } from "./VoiceButton";
@@ -116,6 +117,7 @@ export function SessionPage() {
           </li>
         ))}
       </ol>
+      {s.engagement_id && <TacitPanel engagementId={s.engagement_id} />}
 
       <div className="row tabs mobile-only" role="tablist">
         {(["chat", "preview"] as const).map((x) => (

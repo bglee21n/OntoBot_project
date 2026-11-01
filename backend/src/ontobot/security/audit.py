@@ -65,6 +65,8 @@ ENGAGEMENT_CREATED = "adoption.engagement_created"
 ENGAGEMENT_UPDATED = "adoption.engagement_updated"
 ENGAGEMENT_MEMBERS_CHANGED = "adoption.members_changed"
 ENGAGEMENT_SHEET_SAVED = "adoption.sheet_saved"
+ENGAGEMENT_SENT = "adoption.sent"  # 양식 → 제품 보내기 적용(받는 곳의 감사는 그 함수가 따로 남긴다)
+ENGAGEMENT_SESSION_LINKED = "adoption.session_linked"
 # 배포 콘솔(ADR-0014)이 작업이 끝난 뒤 `security.cli audit-deploy` 로 남긴다.
 DEPLOY_EVENTS = frozenset(
     {

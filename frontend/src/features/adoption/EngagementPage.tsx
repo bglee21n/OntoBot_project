@@ -7,6 +7,7 @@ import type { EngagementDetail, MemberOut, SheetKindOut } from "../../api/types"
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { engagementKey, useEngagement, useSheetKinds } from "./queries";
+import { SendPanel } from "./SendPanel";
 
 const t = ko.adoption;
 
@@ -63,6 +64,8 @@ export function EngagementPage() {
         {current.done && <span className="badge succeeded">{t.stageDone}</span>}
       </div>
       <SheetLinks e={e} kinds={kinds.data.filter((k) => k.stage === current.stage)} />
+      <SendPanel e={e} />
+      <Sessions e={e} />
       <Members e={e} />
     </section>
   );
@@ -192,6 +195,74 @@ function Members({ e }: { e: EngagementDetail }) {
       )}
       {add.isError && <ErrorBox error={add.error} />}
       {remove.isError && <ErrorBox error={remove.error} />}
+    </section>
+  );
+}
+
+function Sessions({ e }: { e: EngagementDetail }) {
+  const qc = useQueryClient();
+  const s = t.sessions;
+  const [sessionId, setSessionId] = useState("");
+  const refresh = () => qc.invalidateQueries({ queryKey: engagementKey(e.id) });
+  const link = useMutation({
+    mutationFn: () => api.post<EngagementDetail>(`/adoption/engagements/${e.id}/sessions`, { session_id: Number(sessionId) }),
+    onSuccess: (d) => {
+      qc.setQueryData(engagementKey(e.id), d);
+      setSessionId("");
+    },
+  });
+  const unlink = useMutation({
+    mutationFn: (sid: number) => api.del(`/adoption/engagements/${e.id}/sessions/${sid}`),
+    onSuccess: refresh,
+  });
+  const submit = (ev: FormEvent) => {
+    ev.preventDefault();
+    link.mutate();
+  };
+  return (
+    <section className="stack">
+      <h2>{s.title}</h2>
+      {e.sessions.length === 0 ? (
+        <p className="muted">{s.none}</p>
+      ) : (
+        <table>
+          <tbody>
+            {e.sessions.map((x) => (
+              <tr key={x.id}>
+                <td>
+                  <Link to={`/workshop/${x.id}`}>
+                    #{x.id} {x.title ?? ""}
+                  </Link>
+                </td>
+                <td>{ko.workshop.status[x.status]}</td>
+                <td className="actions">
+                  {e.can_edit && (
+                    <button type="button" className="link" onClick={() => unlink.mutate(x.id)}>
+                      {s.unlink}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {e.can_edit && (
+        <form className="row" onSubmit={submit}>
+          <input
+            aria-label={s.sessionId}
+            placeholder={s.sessionId}
+            inputMode="numeric"
+            value={sessionId}
+            onChange={(ev) => setSessionId(ev.target.value.replace(/\D/g, ""))}
+          />
+          <button type="submit" disabled={link.isPending || !sessionId}>
+            {s.link}
+          </button>
+        </form>
+      )}
+      {link.isError && <ErrorBox error={link.error} />}
+      {unlink.isError && <ErrorBox error={unlink.error} />}
     </section>
   );
 }

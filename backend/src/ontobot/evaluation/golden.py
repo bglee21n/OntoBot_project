@@ -270,7 +270,7 @@ async def save_item(
     actor_id: int,
     item: GoldenItem | None = None,
     key: str | None = None,
-    source: Literal["manual", "feedback"] = "manual",
+    source: Literal["manual", "feedback", "adoption"] = "manual",
 ) -> GoldenItem:
     """새 문항(``item`` 없음) 또는 일부 필드 고치기. 값 검사는 호출부(API 모델)가 했다."""
     if item is None:

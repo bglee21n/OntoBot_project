@@ -2658,6 +2658,13 @@
             "title": "Can Manage",
             "type": "boolean"
           },
+          "can_send": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Can Send",
+            "type": "object"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -2698,6 +2705,13 @@
             "title": "Name",
             "type": "string"
           },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedSessionOut"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
           "sheets": {
             "items": {
               "$ref": "#/components/schemas/SheetIndexOut"
@@ -2721,9 +2735,11 @@
           "created_at",
           "can_edit",
           "can_manage",
+          "can_send",
           "members",
           "sheets",
-          "stages"
+          "stages",
+          "sessions"
         ],
         "title": "EngagementDetail",
         "type": "object"
@@ -5649,6 +5665,41 @@
         "title": "LinkTypeOut",
         "type": "object"
       },
+      "LinkedSessionOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "submitted",
+              "published"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status"
+        ],
+        "title": "LinkedSessionOut",
+        "type": "object"
+      },
       "LocalLogin": {
         "properties": {
           "password": {
@@ -7819,6 +7870,249 @@
         "title": "SectionOut",
         "type": "object"
       },
+      "SendAppliedOut": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "bridge": {
+            "enum": [
+              "draft",
+              "golden",
+              "targets",
+              "accounts"
+            ],
+            "title": "Bridge",
+            "type": "string"
+          },
+          "golden_set_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Id"
+          },
+          "passwords": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Passwords",
+            "type": "object"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "bridge",
+          "applied",
+          "version_id",
+          "golden_set_id",
+          "passwords"
+        ],
+        "title": "SendAppliedOut",
+        "type": "object"
+      },
+      "SendApplyIn": {
+        "properties": {
+          "fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "fingerprint"
+        ],
+        "title": "SendApplyIn",
+        "type": "object"
+      },
+      "SendChangeOut": {
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "blocked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "target",
+          "field",
+          "before",
+          "after",
+          "source",
+          "blocked"
+        ],
+        "title": "SendChangeOut",
+        "type": "object"
+      },
+      "SendIn": {
+        "properties": {
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "title": "SendIn",
+        "type": "object"
+      },
+      "SendPreviewOut": {
+        "properties": {
+          "applicable": {
+            "title": "Applicable",
+            "type": "integer"
+          },
+          "bridge": {
+            "enum": [
+              "draft",
+              "golden",
+              "targets",
+              "accounts"
+            ],
+            "title": "Bridge",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/SendChangeOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "golden_set_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Id"
+          },
+          "golden_set_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Name"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "bridge",
+          "changes",
+          "applicable",
+          "fingerprint",
+          "version_id",
+          "golden_set_id",
+          "golden_set_name"
+        ],
+        "title": "SendPreviewOut",
+        "type": "object"
+      },
       "ServiceAccountIn": {
         "properties": {
           "display_name": {
@@ -7877,6 +8171,17 @@
               }
             ],
             "title": "Current Topic"
+          },
+          "engagement_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engagement Id"
           },
           "id": {
             "title": "Id",
@@ -7939,11 +8244,25 @@
           "status",
           "current_topic",
           "published_version_id",
+          "engagement_id",
           "created_at",
           "topics",
           "utterances"
         ],
         "title": "SessionDetail",
+        "type": "object"
+      },
+      "SessionLinkIn": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionLinkIn",
         "type": "object"
       },
       "SessionSummary": {
@@ -7963,6 +8282,17 @@
               }
             ],
             "title": "Current Topic"
+          },
+          "engagement_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engagement Id"
           },
           "id": {
             "title": "Id",
@@ -8011,6 +8341,7 @@
           "status",
           "current_topic",
           "published_version_id",
+          "engagement_id",
           "created_at"
         ],
         "title": "SessionSummary",
@@ -11263,6 +11594,224 @@
           }
         },
         "summary": "Remove Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/apply": {
+      "post": {
+        "operationId": "send_apply_api_v1_adoption_engagements__engagement_id__send__bridge__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bridge",
+            "required": true,
+            "schema": {
+              "title": "Bridge",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendApplyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendAppliedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Apply",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/preview": {
+      "post": {
+        "operationId": "send_preview_api_v1_adoption_engagements__engagement_id__send__bridge__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bridge",
+            "required": true,
+            "schema": {
+              "title": "Bridge",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Preview",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sessions": {
+      "post": {
+        "operationId": "link_session_api_v1_adoption_engagements__engagement_id__sessions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Session",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sessions/{session_id}": {
+      "delete": {
+        "operationId": "unlink_session_api_v1_adoption_engagements__engagement_id__sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unlink Session",
         "tags": [
           "adoption"
         ]

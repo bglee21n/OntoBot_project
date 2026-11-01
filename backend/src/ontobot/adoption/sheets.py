@@ -458,6 +458,7 @@ STAKEHOLDERS = Sheet(
             "people",
             None,
             col("name", "이름·직책", pii=True),
+            col("username", "OntoBot 아이디"),
             col("concern", "관심사·걱정"),
             col("influence", "영향력", "choice", HML),
             col("interest", "관심도", "choice", HML),
