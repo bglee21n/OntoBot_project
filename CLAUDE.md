@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.2) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.3) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~, 초안) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
@@ -238,7 +238,8 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - **Function 은 선언형뿐**(TRD 17.4) — 사용자 코드를 받지 않는다. 내부 조회는 `QueryPlan` 으로 바꿔 `validate` 를
   그대로 지나야 한다(값 바인드·호출자 권한 — 읽을 수 없는 타입이면 `forbidden`). 내부 조회는 파이프라인의 실행기로만
   돈다(장애 주입 지점을 따로 만들지 말 것). 인자 값(enum·bool 제외)은 질문에 **그대로** 있어야 한다 — 기본값을 채워
-  넣으며 질문 조건을 빼는 계획을 막는 유일한 결정론적 장치다(ADR-0004 Phase 12). Function 이 요약에 없으면 플래너
+  넣으며 질문 조건을 빼는 계획을 막는 유일한 결정론적 장치다(ADR-0004 Phase 12). 질문이 묻는 평균·합계·최대·최소를 그 Function 이 계산하지
+  않으면 재계획(`binding.aggregate_mismatch`, 낱말 정확 포함 — 짧은 낱말 "합"·"최고"를 넣지 말 것, 다른 말에 섞인다). Function 이 요약에 없으면 플래너
   스키마는 `PlannerOutput` 그대로다(녹화 키) — `FunctionPlannerOutput` 을 기본으로 바꾸지 말 것.
 - **데이터 권한은 데이터 그룹이 준다**(Phase 14 — 역할은 화면·기능). 판정은 `security/rbac.py` 의 `readable_types`·
   `editable_types` 뿐이고 소속 그룹의 합집합이다(거부 규칙 없음). Action 요청에는 대상 타입 **편집**이 필요하다.

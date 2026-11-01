@@ -180,6 +180,8 @@ def _function_coverage(
       ``actions.params``). enum·bool 은 닫힌 집합이라 보지 않는다. 기본값을 그대로 적어 넣은
       것도 막는다 — 측정에서 플래너가 "대구 지역의 고위험 비율"(지역 인자 없음)에 기본값 4 를
       채워 지역 조건을 뺀 채 불렀다.
+    - 질문이 묻는 집계(평균·합계 등)를 그 Function 이 계산하지 않는다 → 다른 값을 고른 것이다
+      (``functions.binding.aggregate_mismatch``).
     """
     errors: list[str] = []
     for a in call.args:
@@ -198,6 +200,12 @@ def _function_coverage(
             f"질문의 값 {missing} 이 Function 인자 어디에도 없습니다. 그 값을 쓰는 인자를 "
             "빼지 말고 args 에 넣으세요. 이 Function 의 인자로 표현할 수 없으면 cannot_answer 를 "
             "내세요"
+        )
+    if aggs := fn_binding.aggregate_mismatch(question, vf.fn):
+        errors.append(
+            f"질문은 {aggs} 을 묻는데 Function '{vf.fn.api_name}' 은 {vf.fn.result_label} 을 "
+            "계산합니다 — 다른 값입니다. function 을 쓰지 말고 kind 를 query 로 해 plan 의 "
+            "aggregate 로 표현하세요"
         )
     return errors
 

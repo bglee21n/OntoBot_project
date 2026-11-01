@@ -344,6 +344,31 @@ def test_coverage_counts_function_inputs() -> None:
     assert uncovered_in("위험등급 3 이상 비율", binding.input_values(vf)) == ["3"]
 
 
+def test_aggregate_the_function_does_not_compute_is_a_mismatch() -> None:
+    ratio = DOC.function("high_risk_ratio")
+    assert ratio is not None
+    # 매뉴얼 질문 예시에서 플래너가 비율 Function 을 부른 질문들.
+    assert binding.aggregate_mismatch("시설 유형별 평균 위험등급은?", ratio) == ["avg"]
+    assert binding.aggregate_mismatch("전체 시설의 평균 위험등급은?", ratio) == ["avg"]
+    assert binding.aggregate_mismatch("설비 용량 합계와 최대값", ratio) == ["sum", "max"]
+    # 골든 Function 문항은 집계 낱말이 없다.
+    assert binding.aggregate_mismatch("시설 유형별 고위험 시설 비율 알려줘", ratio) == []
+    # 내부 조회가 그 집계를 쓰거나 이름에 그 낱말이 있으면 계산하는 Function 이다.
+    avg = fn(
+        queries=[
+            {
+                "api_name": "a",
+                "display_name": "a",
+                "target": "Facility",
+                "aggregate": {"fn": "avg", "property": "risk_grade"},
+            }
+        ],
+        body={"op": "query", "name": "a"},
+    )
+    assert binding.aggregate_mismatch("평균 위험등급", avg) == []
+    assert binding.aggregate_mismatch("평균 점검 점수", fn(display_name="평균 점검 점수")) == []
+
+
 # ---------------------------------------------------------------- 플래너
 
 

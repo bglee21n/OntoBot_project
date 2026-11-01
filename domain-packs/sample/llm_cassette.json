@@ -1066,12 +1066,6 @@
   },
   "model": "gemma4:e4b"
  },
- "15dcd5e8da3c57398bd6923167a2972f6c27d9d99f7bb03a720339678ea1f2b5": {
-  "message": {
-   "content": "시설 유형별 개수는 다음과 같습니다.\n* 변전소: 10건 [[q:1#value]]\n* 전주: 10건 [[q:2#value]]\n* 철탑: 10건 [[q:3#value]]"
-  },
-  "model": "gemma4:e4b"
- },
  "160aaa6fbf10b49874cd6db81425ea1f0a3e147a59b16097cf6638a2930cd04f": {
   "message": {
    "content": "{\"kind\": \"document\"}"
@@ -1081,6 +1075,12 @@
  "17ca2c9f70c783b802b2af2e455ea332a7f2f4526322a08aa7df1e1546bd7134": {
   "message": {
    "content": "{\"kind\":\"action\",\"action\":{\"action_type\":\"adjust_risk_grade\",\"target\":\"F-9999\",\"params\":[{\"name\":\"risk_grade\",\"value\":3},{\"name\":\"reason\",\"value\":null}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "18aa082c18b71e633bfadcd14ef33b8dff662c6f5f3d1fb936064bf965373047": {
+  "message": {
+   "content": "시설 유형별 평균 위험등급은 다음과 같습니다.\n\n* 변전소: 2.4 [[q:1#value]]\n* 전주: 3.1 [[q:2#value]]\n* 철탑: 3.7 [[q:3#value]]"
   },
   "model": "gemma4:e4b"
  },
@@ -3158,6 +3158,12 @@
   ],
   "model": "bge-m3"
  },
+ "1de67ee15926cd68887400c87d52433c9e961afa2f030f7da0bcde0896ccf9e5": {
+  "message": {
+   "content": "전체 시설의 평균 위험등급은 3.07입니다. [[q:1#value]]"
+  },
+  "model": "gemma4:e4b"
+ },
  "201cb172bc940ae130c2473238fb6dc6eba8869a2e526edcb06226d2dfc0d38f": {
   "message": {
    "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Region\",\"filters\":[{\"property\":\"region_code\",\"op\":\"eq\",\"value\":\"11\"}],\"aggregate\":null,\"sort\":[]}}"
@@ -4197,7 +4203,7 @@
  },
  "2a14f719edb080ae9212cbb182bebbe03b76942494a0398267a0cdc3e573b4c9": {
   "message": {
-   "content": "* **시설명**: 강남 전주 09호, **위험등급**: 4 [[o:Facility/F-0009#risk_grade]]\n* **시설명**: 강남 철탑 17호, **위험등급**: 4 [[o:Facility/F-0017#risk_grade]]"
+   "content": "* **시설명**: 강남 전주 09호, **시설 ID**: F-0009, **위험등급**: 4 [[o:Facility/F-0009#risk_grade]]\n* **시설명**: 강남 철탑 17호, **시설 ID**: F-0017, **위험등급**: 4 [[o:Facility/F-0017#risk_grade]]"
   },
   "model": "gemma4:e4b"
  },
@@ -7302,7 +7308,7 @@
  },
  "3adc2c8fc2968e7285a7383b50b2a759ca2f10b23a9c6779b0ae63f8038c564b": {
   "message": {
-   "content": "위험등급이 가장 높은 시설 5개는 다음과 같습니다.\n\n*   대구 전주 03호: 위험등급 5 [[o:Facility/F-0003#risk_grade]]\n*   부산 전주 06호: 위험등급 5 [[o:Facility/F-0006#risk_grade]]\n*   부산 변전소 10호: 위험등급 5 [[o:Facility/F-0010#risk_grade]]\n*   부산 철탑 14호: 위험등급 5 [[o:Facility/F-0014#risk_grade]]\n*   수원 철탑 20호: 위험등급 5 [[o:Facility/F-0020#risk_grade]]"
+   "content": "위험등급이 가장 높은 시설 5개는 다음과 같습니다.\n\n* 대구 전주 03호: 위험등급 5 [[o:Facility/F-0003#risk_grade]]\n* 부산 전주 06호: 위험등급 5 [[o:Facility/F-0006#risk_grade]]\n* 부산 변전소 10호: 위험등급 5 [[o:Facility/F-0010#risk_grade]]\n* 부산 철탑 14호: 위험등급 5 [[o:Facility/F-0014#risk_grade]]\n* 수원 철탑 20호: 위험등급 5 [[o:Facility/F-0020#risk_grade]]"
   },
   "model": "gemma4:e4b"
  },
@@ -7326,13 +7332,13 @@
  },
  "457519b1923368e07ac55a0a7fd9c72282fcf39c03ec11623f9c22664e5ca9d0": {
   "message": {
-   "content": "{\"kind\":\"cannot_answer\",\"reason\":\"high_risk_ratio 함수는 지역 코드(region_code)를 기준으로 필터링할 수 없습니다.\"}"
+   "content": "{\"kind\":\"function\",\"function\":{\"name\":\"high_risk_ratio\",\"args\":[{\"name\":\"min_grade\",\"value\":4}]}}"
   },
   "model": "gemma4:e4b"
  },
  "46c1ef457e23a43275889c35a1321a940539aad9d2a5ca33b9f1a8f0774a5d16": {
   "message": {
-   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"aggregate\":{\"fn\":\"count\",\"property\":null,\"group_by\":[\"facility_type\"]},\n\"sort\":[{\"property\":\"value\",\"dir\":\"asc\"}]}}"
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"aggregate\":{\"fn\":\"count\",\"property\":null,\"group_by\":[\"facility_type\"]}}}"
   },
   "model": "gemma4:e4b"
  },
@@ -9458,6 +9464,12 @@
   },
   "model": "gemma4:e4b"
  },
+ "5aa8745739353e3b3f496efc01ecc84bf158ffb59bb9906de55fadbd50be7d65": {
+  "message": {
+   "content": "{\"kind\":\"cannot_answer\",\"reason\":\"high_risk_ratio 에 지역 코드(region_code)를 필터링할 수 있는 인자가 없습니다\"}"
+  },
+  "model": "gemma4:e4b"
+ },
  "5f094c5ec26be27468047a77bb22ccce6d4048e099e21cbb02f79c8159e426e5": {
   "message": {
    "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"철탑\"},{\"property\":\"installed_on\",\"op\":\"lt\",\"value\":\"2015-01-01\"}]}}"
@@ -11570,13 +11582,19 @@
  },
  "7d60c899a34ca014c6967cc6c1e2b058d50ab03d5f79f6458e922cbffd89e1a6": {
   "message": {
-   "content": "{\"kind\":\"document\"}"
+   "content": "{\"kind\": \"document\"}"
   },
   "model": "gemma4:e4b"
  },
  "81f55a6ed00d48d2ab1ca6d19afe4b758f9f0a781f6ab859192d1534452ad8d6": {
   "message": {
    "content": "복구가 끝나면 현장 책임자가 72시간 안에 사고 경위서를 제출해야 합니다. [[d:1/0]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "8322d0202c81866f5fbfbbe3b487317ff0efffba05b1d2d1108e8aa26704bc4a": {
+  "message": {
+   "content": "{\"kind\":\"function\",\"function\":{\"name\":\"high_risk_ratio\",\"args\":[]}}"
   },
   "model": "gemma4:e4b"
  },
@@ -11589,6 +11607,12 @@
  "86dc175a4238738a9c556f826746f5fd96028379674d6679bb6fd8217e706271": {
   "message": {
    "content": "{\"kind\":\"action\",\"action\":{\"action_type\":\"adjust_risk_grade\",\"target\":\"F-0007\",\"params\":[{\"name\":\"risk_grade\",\"value\":2},{\"name\":\"reason\",\"value\":null}]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "8ea327f1447c38672ef168b810bd53d216fe804721f42eedaaa0aac7dd089017": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"aggregate\":{\"fn\":\"avg\",\"property\":\"risk_grade\",\"group_by\":[]}}}"
   },
   "model": "gemma4:e4b"
  },
@@ -12625,7 +12649,7 @@
  },
  "91164f4be8b8624d5ab213a6ae2da4c4a31e6dd8e428d44263aea49196b35f58": {
   "message": {
-   "content": "{\"kind\": \"cannot_answer\", \"reason\": \"스키마에 시설의 정기 점검 주기와 관련된 정보를 조회하거나 계산할 수 있는 필드 또는 함수가 없습니다.\"}"
+   "content": "{\"kind\": \"cannot_answer\", \"reason\": \"스키마에 시설의 정기 점검 주기와 관련된 정보를 조회하거나 계산할 수 있는 속성 또는 함수가 없습니다.\"}"
   },
   "model": "gemma4:e4b"
  },
@@ -12638,6 +12662,12 @@
  "91ccbbdbc0923856fee54bf63abff172e8d9d5dabcc1bb08fe608df82ff09586": {
   "message": {
    "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"region_code\",\"op\":\"eq\",\"value\":\"서울\"}],\"aggregate\":null,\"sort\":[]}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "95dae7548d26ae4b3de68a529cd2b3d3d9ca1ba8d64973b04d578e79aa83445a": {
+  "message": {
+   "content": "시설 유형별 개수는 다음과 같습니다.\n* 변전소: 10건 [[q:1#value]]\n* 전주: 10건 [[q:2#value]]\n* 철탑: 10건 [[q:3#value]]"
   },
   "model": "gemma4:e4b"
  },
@@ -12674,6 +12704,18 @@
  "b4ca348db38a208f0925fc6c94b5f0cc09b28297a29c298828c6008b4ce60581": {
   "message": {
    "content": "F-0007 시설의 설비 용량은 3,000kW입니다. [[o:Facility/F-0007#capacity_kw]]"
+  },
+  "model": "gemma4:e4b"
+ },
+ "b605859651e8a6c78dbf8f17670cc68cb701efe778306a5c6936de1e6308cbb0": {
+  "message": {
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"aggregate\":{\"fn\":\"avg\",\"property\":\"risk_grade\",\"group_by\":[\"facility_type\"]}}}"
+  },
+  "model": "gemma4:e4b"
+ },
+ "b85d0c7c929528aad64d2b9084bec2b3ab6cef6c478141f3350ccb0f1e48df01": {
+  "message": {
+   "content": "{\"kind\":\"function\",\"function\":{\"name\":\"high_risk_ratio\",\"args\":[]}}"
   },
   "model": "gemma4:e4b"
  },
@@ -12721,7 +12763,7 @@
  },
  "d2868e41fa8ede9d348b4691fd5918cf3efbfa39b8c725ef60f702ab845244e8": {
   "message": {
-   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"변전소\"}],\"aggregate\":null}}"
+   "content": "{\"kind\":\"query\",\"plan\":{\"target\":\"Facility\",\"filters\":[{\"property\":\"facility_type\",\"op\":\"eq\",\"value\":\"변전소\"}],\"aggregate\":null,\"sort\":[]}}"
   },
   "model": "gemma4:e4b"
  },
