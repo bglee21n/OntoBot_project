@@ -29,6 +29,7 @@
 | 1 | `uv run --project backend python scripts/build_bundle.py --signing-key <키>` | 촬영할 설치본(전체 번들). 업그레이드 장은 `--app-only` 번들이 하나 더 필요 |
 | 2 | (Docker Desktop 가상 머신의 시험 폴더에 `ontobotctl install`) | 실제 설치본 — 매뉴얼은 이 설치본을 찍음(00장 "촬영 환경") |
 | 3 | `cd docs/manual/tools && PYTHONUTF8=1 uv run --project ../../../backend --with playwright python capture_ops.py [장 …]` | 웹 화면(설치된 Edge)과 명령 출력 사진. 많은 장이 시험 설치본의 상태를 바꾸므로 순서대로, 다시 찍을 장만 골라서 |
+| 3′ | 3과 같은 명령에 `ONTOBOT_CAPTURE_WEB_ONLY=1` | 웹 화면만 다시 찍기 — 명령은 실행하되(뒤 장이 기대는 상태) 이미 있는 명령 사진은 덮지 않음. 업그레이드한 설치본에서 화면만 새 판으로 바꿀 때 |
 | 4 | `PYTHONUTF8=1 python docs/manual/tools/index_md.py --book ops` | 45장 찾아보기 |
 | 5 | `PYTHONUTF8=1 uv run --with python-docx --with markdown --with playwright --with pillow python docs/manual/tools/build_manual.py --book ops` | `dist/manual/` 에 Word(.docx)·PDF |
 

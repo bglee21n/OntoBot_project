@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import html
+import os
 import re
 import subprocess
 from collections.abc import Sequence
@@ -121,6 +122,9 @@ class Term:
             cut = len(lines) - keep[0] - keep[1]
             lines = [*lines[: keep[0]], f"… ({cut}줄 생략)", *(lines[-keep[1] :] if keep[1] else [])]
         out = self.dir / f"{name}.png"
+        if os.environ.get("ONTOBOT_CAPTURE_WEB_ONLY") and out.exists():
+            # 웹 화면만 다시 찍을 때 — 명령은 실행(뒤 장이 기대는 상태)하되 이미 있는 명령 사진은 그대로 둔다.
+            return text
         render(self.page, out, shown, "\n".join(lines), title=title, prompt=prompt)
         self.count += 1
         print(f"  [{self.dir.name}] {name}.png (명령)", flush=True)

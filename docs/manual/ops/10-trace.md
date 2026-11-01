@@ -66,14 +66,20 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 
 ### 성공한 질문의 트레이스
 
-`kim.user` 의 "부산 철탑 02호 위험등급 알려줘"(10번)를 열었습니다.
+`kim.user` 의 "부산 철탑 02호 위험등급 알려줘"(2번)를 열었습니다.
 
 ![성공한 질문의 트레이스](images/10-trace/trace-ok.png)
 
-| 번호 | 부분 | 이 트레이스의 값 |
+맨 위 표지(`답함` · `① 근거 확인`)가 결과입니다. 그 아래로 질문 한 건이 지나간 단계가 번호 순서대로 나옵니다(v1).
+
+| 단계 | 이 트레이스의 값 | 뜻 |
 | --- | --- | --- |
-| ① | 결과 표지 | `ok · 1` — 조회 성공, 등급 ① |
-| ② | **▼ 계획** | 펼쳐진 상태. 아래 표 |
+| ① 질문 | 부산 철탑 02호 위험등급 알려줘 | 사용자가 입력한 그대로(전화·이메일·주민번호는 가림) |
+| ② 계획(플래너) · 492ms | 계획 JSON(아래 표) | AI 가 질문을 조회 계획으로 바꾼 것과 걸린 시간 |
+| ③ 조회 · 3ms | SQL (PostgreSQL) 한 줄 | 서버가 계획을 보고 만든 조회문 |
+| ④ 결과 수 | 1행 | 조회된 행 수 |
+| ⑤ 답변·근거 대조 · 474ms · 0ms | 사실 문장 1개 중 1개 확인 | 답 쓰기(AI)와 근거 대조에 걸린 시간, 대조 결과 |
+| ⑥ 등급 | ① 근거 확인 | 서버가 매긴 등급 |
 
 계획(plan) 읽는 법:
 
@@ -84,7 +90,7 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 | `traverse` | `[]` | 관계를 따라가지 않음 |
 | `aggregate` | `null` | 세기·평균 같은 계산 없음 |
 | `sort` / `limit` | `[]` / `null` | 정렬·개수 제한 없음 |
-| `attempts` | `errors:[]`, `rewrites:[]`, `structured_ok:true` | 첫 계획이 검사를 바로 통과함 |
+| `context_refs` | `[]` | 앞 대화의 결과를 쓰지 않음 |
 
 조건의 `op` 값:
 
@@ -94,30 +100,20 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 | `gt` / `gte` | 크다(>) / 크거나 같다(≥) | `lt` / `lte` | 작다(<) / 작거나 같다(≤) |
 | `in` | 이 중 하나 | `is_null` / `not_null` | 비어 있음 / 값 있음 |
 
-계획 아래에는 **실제로 실행한 조회문**(SQL)이 한 줄로 나옵니다. 값("부산 철탑 02호")은 조회문에 직접 들어가지 않고
-따로 넘깁니다. AI 는 조회문을 쓰지 않고, 서버가 계획을 보고 만듭니다.
+③ 조회문 아래의 "값과 속성 키는 모두 바인드라 문장에 값이 없습니다"는, 값("부산 철탑 02호")이 조회문에 직접 들어가지
+않고 따로 넘겨진다는 뜻입니다. AI 는 조회문을 쓰지 않고, 서버가 계획을 보고 만듭니다.
 
-그 아래 **단계별 지연(ms)**:
+> **알아 두기** 1000ms 가 1초입니다. "답이 느리다"는 신고는 대개 ② 계획·⑤ 답변(AI) 시간입니다. 여러 사람이 동시에
+> 물으면 AI 가 차례로 처리하므로 늘어납니다. ③ 조회가 크면 데이터베이스나 관계 저장소 쪽을 봅니다.
 
-```
-{"planning":491,"querying":2,"answering":396,"verifying":0}
-```
+### 계획 시도와 AI 호출 펼쳐 보기
 
-| 단계 | 뜻 | 이 질문 |
-| --- | --- | --- |
-| planning | 질문을 계획으로 바꾸기(AI) | 0.49초 |
-| querying | 조회 | 0.002초 |
-| answering | 답 쓰기(AI) | 0.40초 |
-| verifying | 근거 대조 | 0초 |
+**▶ 계획 시도 1번 모두 보기** 와 **▶ LLM 호출 2번** 을 누르면 다음처럼 펼쳐집니다.
 
-> **알아 두기** 1000ms 가 1초입니다. "답이 느리다"는 신고는 대개 planning·answering(AI) 시간입니다. 여러 사람이
-> 동시에 물으면 AI 가 차례로 처리하므로 늘어납니다. querying 이 크면 데이터베이스나 관계 저장소 쪽을 봅니다.
+![계획 시도와 AI 호출을 펼친 트레이스](images/10-trace/trace-ok-llm.png)
 
-### AI 호출 펼쳐 보기
-
-**▶ LLM 호출 (2)** 를 누르면 AI 에 보낸 것과 받은 것이 보입니다.
-
-![AI 호출을 펼친 트레이스](images/10-trace/trace-ok-llm.png)
+계획 시도의 `errors:[]`, `rewrites:[]`, `structured_ok:true` 는 첫 계획이 검사를 바로 통과했다는 뜻입니다. 검사에
+걸려 다시 계획했으면 시도가 2번이 되고 `errors` 에 이유가, 서버가 계획을 고쳤으면 `rewrites` 에 고친 내용이 남습니다.
 
 | 항목 | 첫 번째 호출 | 두 번째 호출 |
 | --- | --- | --- |
@@ -126,27 +122,25 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 | `external` | `false`(서버 안 모델) | `false` |
 | `messages` | 지시문(system)과 질문(user) | 지시문과 조회 결과(data) |
 | `output` | 계획 JSON | 답 문장과 인용 `[[o:Facility/F-0002#risk_grade]]` |
-| `latency_ms` | 488 | 396 |
+| `latency_ms` | 485 | 474 |
 | `prompt_tokens` / `completion_tokens` | 2556 / 41 | 596 / 32 |
-
-> **알아 두기** 화면의 `₩"` 는 역슬래시(`\"`)입니다. 한글 글꼴에서 역슬래시가 원화 표시로 보이는 것일 뿐입니다.
 
 답 문장 끝의 `[[o:Facility/F-0002#risk_grade]]` 가 **인용**입니다. "시설 F-0002 의 위험등급 값에서 가져왔다"는 뜻이고,
 서버는 문장 속 "3"이 그 값과 글자 그대로 같은지 확인한 뒤 등급 ①을 매겼습니다.
 
 ## 10.4 실패한 질문의 트레이스
 
-"시설 점검 담당자 이름 알려줘"(11번)를 엽니다.
+"시설 점검 담당자 이름 알려줘"(3번)를 엽니다.
 
 ![실패한 질문의 트레이스](images/10-trace/trace-failed.png)
 
 | 부분 | 값 | 뜻 |
 | --- | --- | --- |
-| 결과 표지 | `failed · plan_invalid` | 질문 해석 실패 |
-| `plan` | `null` | 계획을 만들지 못함 |
-| `attempts` | `reason: "표현할 수 없는 조건"`, `cannot_answer: true` | AI 가 "온톨로지에 이런 정보(점검 담당자)가 없어 표현할 수 없다"고 판단 |
-| 단계별 지연 | `{"planning":319}` | 계획 단계에서 멈춤 |
-| LLM 호출 | 1 | planner 만 불림 |
+| 결과 표지 | `조회 실패 · 질문 해석 실패` | 계획 단계에서 실패(`plan_invalid`) |
+| ② 계획 | `null` | 계획을 만들지 못함 |
+| 계획 시도 | `reason: "표현할 수 없는 조건"`, `cannot_answer: true` | AI 가 "온톨로지에 이런 정보(점검 담당자)가 없어 표현할 수 없다"고 판단 |
+| ③~⑥ | 조회 전에 끝남 · 결과 수 없음 · 대조할 문장 없음 · 등급 없음 | 계획 단계에서 멈춤. 실패는 0건과 다르게 보여 줌 |
+| LLM 호출 | 1번 | planner 만 불림 |
 
 시설에는 "점검 담당자"라는 속성이 없습니다(조직의 "담당자"는 있지만 시설과는 다름). OntoBot 은 없는 조건을
 빼고 아무 답이나 하지 않고, **표현할 수 없다**고 실패를 알립니다. 이것은 고장이 아니라 의도된 동작입니다.
@@ -171,14 +165,16 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 
 | 볼 곳 | 값 | 읽기 |
 | --- | --- | --- |
-| `plan` | `null` | 계획이 없음 |
-| `attempts[0].reason` | "스키마에 '정전 횟수'와 같은 속성이나 집계할 수 있는 데이터가 없습니다." | AI 가 스스로 이유를 적음 |
-| `cannot_answer` | `true` | 지어내지 않고 포기함(정상) |
-| 단계별 지연 | `{"planning":679}` | 계획 단계만 있음 — 조회를 하지 않았음 |
+| ② 계획 | `null` · 458ms | 계획이 없음 |
+| 계획 시도(펼치면) | `reason`(AI 가 적은 이유), `cannot_answer: true` | 지어내지 않고 포기함(정상) |
+| ③~⑥ | 조회 전에 끝남 · 등급 없음 | 계획 단계만 있음 — 조회를 하지 않았음 |
 
 ### 모델이 응답하지 않음 — `llm_unavailable`
 
-![llm_unavailable — ollama 를 멈춘 동안의 질문](images/10-trace/kind-llm_unavailable.png)
+![llm_unavailable — ollama 를 멈춘 동안의 질문(예전 판 화면)](images/10-trace/kind-llm_unavailable.png)
+
+이 사진과 아래 `forbidden` 사진은 예전 판 트레이스 화면입니다. v1 에서는 같은 내용이 ①~⑥ 단계 카드로 보이고,
+"단계별 지연"은 각 단계 제목 옆의 ms 로 나옵니다.
 
 | 볼 곳 | 값 | 읽기 |
 | --- | --- | --- |
@@ -194,17 +190,16 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 
 | 볼 곳 | 값 | 읽기 |
 | --- | --- | --- |
-| `plan.traverse` | `owned_by` → `Organization`, 이름 = 강남지사 | 계획은 제대로 만들어짐 |
-| `attempts[0].rewrites` | `owner_org_id eq ['강남지사'] → traverse owned_by.name` | 코드 속성에 이름을 넣은 계획을 서버가 관계 조건으로 고쳐 줌(정상 동작) |
-| 조회문 | `` MATCH (t:`Facility`) … EXISTS { MATCH (t)-[:`owned_by`]->… `` | Neo4j 에 보낸 질의 |
-| 단계별 지연 | `{"planning":767,"querying":9129}` | 조회 단계에서 약 9초 동안 다시 시도하다 실패 |
+| ② 계획 | `traverse`: `owned_by` → `Organization`, 이름 = 강남지사 · 628ms | 계획은 제대로 만들어짐 |
+| ③ 조회 · 13044ms | Cypher (Neo4j) `` MATCH (t:`Facility`) … EXISTS { MATCH (t)-[:`owned_by`]->… `` | Neo4j 에 보낸 질의. 약 13초 동안 다시 시도하다 실패 |
+| ④ 결과 수 | — | 조회가 끝나지 못함 |
 
-계획이 멀쩡하고 `querying` 이 길다면 **조회 단계의 저장소** 문제입니다. 관계 질문만 실패하면 Neo4j(27.2)입니다.
+계획이 멀쩡하고 ③ 조회 시간이 길다면 **조회 단계의 저장소** 문제입니다. 관계 질문만 실패하면 Neo4j(27.2)입니다.
 OntoBot 은 이때 PostgreSQL 로 몰래 대신 조회하지 않고 실패를 알립니다(13장).
 
 ### 읽을 수 없는 링크 — `forbidden`
 
-![forbidden — 조직을 읽을 수 없는 사용자가 관계 질문을 함](images/10-trace/kind-forbidden.png)
+![forbidden — 조직을 읽을 수 없는 사용자가 관계 질문을 함(예전 판 화면)](images/10-trace/kind-forbidden.png)
 
 | 볼 곳 | 값 | 읽기 |
 | --- | --- | --- |
@@ -220,10 +215,10 @@ OntoBot 은 이때 PostgreSQL 로 몰래 대신 조회하지 않고 실패를 �
 
 | 볼 곳 | 값 | 읽기 |
 | --- | --- | --- |
-| 결과 표지 | `empty · 1` | 실패가 아님. 조회는 성공했고 결과가 0건이며, "없다"는 답은 ① |
-| `plan.filters` | `risk_grade eq 9` | 조건이 질문 그대로 |
-| 조회문 | `SELECT o.pk, o.properties … FROM (SELECT ob.id … COALESCE(ed.patch …` | 편집 레이어를 덮어 읽는 조회(16장) |
-| 단계별 지연 | `{"planning":385,"querying":1}` | 조회는 1밀리초 |
+| 결과 표지 | `결과 0건` · `① 근거 확인` | 실패가 아님. 조회는 성공했고 결과가 0건이며, "없다"는 답은 ① |
+| ② 계획 | `filters: risk_grade eq 9` · 370ms | 조건이 질문 그대로 |
+| ③ 조회 · 1ms | `SELECT o.pk, o.properties … FROM (SELECT ob.id …` | 편집 레이어를 덮어 읽는 조회(16장). 1밀리초 |
+| ④ 결과 수 | 0행 | — |
 
 `empty` 는 조건이 맞게 들어갔는지만 보면 됩니다. 조건이 질문과 같다면 정말 그런 데이터가 없는 것입니다.
 
@@ -231,11 +226,11 @@ OntoBot 은 이때 PostgreSQL 로 몰래 대신 조회하지 않고 실패를 �
 
 | 트레이스 모양 | 멈춘 곳 | 먼저 볼 장 |
 | --- | --- | --- |
-| `plan: null`, `attempts: []`, planning 수 초 | 모델 서버 | 27.1 |
-| `plan: null`, `cannot_answer: true` | 질문 자체(온톨로지 밖) | 34.19, 36장 |
-| 계획 있음, `errors` 에 "조회할 수 없는" | 권한 검증 | 8장 |
-| 계획 있음, `querying` 이 길고 실패 | 저장소 | 27.2, 27.5 |
-| 계획 있음, `querying` 짧고 `empty` | 정상(데이터 없음) | — |
+| ② 계획 `null`, 계획 시도 없음, 계획 시간 수 초 | 모델 서버 | 27.1 |
+| ② 계획 `null`, `cannot_answer: true` | 질문 자체(온톨로지 밖) | 34.19, 36장 |
+| 계획 있음, 계획 시도의 `errors` 에 "조회할 수 없는" | 권한 검증 | 8장 |
+| 계획 있음, ③ 조회가 길고 실패 | 저장소 | 27.2, 27.5 |
+| 계획 있음, ③ 조회 짧고 결과 0건 | 정상(데이터 없음) | — |
 
 ## 10.7 실패 이유와 할 일
 

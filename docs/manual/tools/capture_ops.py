@@ -164,7 +164,8 @@ def ch_verify(c: Ctx) -> None:
 
 # ---------------------------------------------------------------- 6장 웹 화면 둘러보기(관리자)
 
-NAV = ["채팅", "온톨로지", "데이터 소스", "Action", "관리"]
+# v1 촬영 관리자(admin·user) 기준 위쪽 메뉴 — 인터뷰(domain_expert·modeler)·평가(bot_builder·modeler)는 없다.
+NAV = ["채팅", "객체 탐색", "문서", "온톨로지", "데이터 소스", "Action", "트레이스", "관리"]
 
 
 def ch_web(c: Ctx) -> None:
@@ -181,7 +182,8 @@ def ch_web(c: Ctx) -> None:
     with c.app() as pg:
         bar = pg.locator("header.topbar")
         marks = [(bar.get_by_role("link", name=n, exact=True), i + 1, "below") for i, n in enumerate(NAV)]
-        marks += [(bar.locator(".muted"), 6, "below"), (bar.get_by_role("button", name="로그아웃"), 7, "below")]
+        n = len(NAV)
+        marks += [(bar.locator(".muted"), n + 1, "below"), (bar.get_by_role("button", name="로그아웃"), n + 2, "below")]
         s.shot(pg, "topbar", marks=marks)
         s.shot(pg, "chat-page", marks=[(".chat-list", 1), (".chat-input", 2)])
         for n, name in [("온톨로지", "ontology-page"), ("데이터 소스", "sources-page"), ("Action", "actions-page")]:
@@ -189,16 +191,21 @@ def ch_web(c: Ctx) -> None:
             s.shot(pg, name, full=True)
         nav(pg, "관리")
         tabs = pg.locator("nav[role=tablist] button")
+        # v1 관리 화면은 카드가 늘어 한 화면에 들지 않는다 — 페이지 전체를 찍는다.
+        card = lambda text: pg.locator("main .card", has_text=text).first  # noqa: E731
         s.shot(
             pg,
             "admin-page",
+            full=True,
             marks=[
                 (pg.locator("main .card").first.locator("code"), 1, "below"),
                 (pg.get_by_role("link", name="배포 콘솔 열기(업그레이드·롤백·백업)"), 2, "below"),
-                (tabs.nth(0), 3, "below"),
-                (pg.locator("main p.muted").first, 4),
-                (pg.locator("main table").first, 5),
-                (pg.locator("details.card summary"), 6),
+                (card("운영 지표"), 3),
+                (card("성공 지표 목표"), 4),
+                (card("객체 탐색 확장 한도"), 5),
+                (pg.locator("nav[role=tablist]"), 6, "below"),
+                (pg.locator("main table", has=pg.locator("th", has_text="데이터 그룹")).first, 7),
+                (pg.locator("details.card summary", has_text="로컬 계정 추가"), 8),
             ],
         )
         bar.get_by_role("button", name="로그아웃").click()
@@ -234,6 +241,11 @@ def _add_user(pg: Page, username: str, display: str, roles: list[str], pw: str) 
     return box
 
 
+def _users_table(pg: Page) -> Locator:
+    # v1 관리 화면은 사용자 표 앞에 성공 지표 목표 표가 있다 — "데이터 그룹" 칸이 있는 표가 사용자 표다.
+    return pg.locator("main table", has=pg.locator("th", has_text="데이터 그룹")).first
+
+
 def _user_row(pg: Page, username: str) -> Locator:
     return pg.locator("tbody tr", has=pg.locator(f"code:text-is('{username}')")).first
 
@@ -242,9 +254,9 @@ def ch_users(c: Ctx) -> None:
     s = c.s
     with c.app() as pg:
         nav(pg, "관리")
-        table = pg.locator("main table").first
+        table = _users_table(pg)
         heads = table.locator("thead th")
-        s.shot(pg, "users-columns", clip=table, marks=[(heads.nth(i), i + 1, "below") for i in range(6)])
+        s.shot(pg, "users-columns", clip=table, marks=[(heads.nth(i), i + 1, "below") for i in range(7)])
         box = pg.locator("details.card", has_text="로컬 계정 추가").first
         s.shot(pg, "add-closed", clip=box, marks=[(box.locator("summary"), 1)])
         box.locator("summary").click()
@@ -258,8 +270,9 @@ def ch_users(c: Ctx) -> None:
                 (f.get_by_label("아이디"), 1),
                 (f.get_by_label("표시 이름"), 2),
                 (f.get_by_label("초기 비밀번호(12자 이상)"), 3),
-                (f.locator("label.check").first, 4),
-                (f.get_by_role("button", name="추가"), 5, "right"),
+                (f.locator("div.row.span-all").nth(0), 4),
+                (f.locator("div.row.span-all").nth(1), 5),  # v1 데이터 그룹
+                (f.get_by_role("button", name="추가"), 6, "right"),
             ],
         )
         # 오류 두 가지 — 짧은 비밀번호, 이미 있는 아이디(사진만, 만들지 않는다)
@@ -285,7 +298,7 @@ def ch_users(c: Ctx) -> None:
         go(pg, "/admin")
         s.shot(pg, "users-all", full=True)
         me = _user_row(pg, ADMIN)
-        s.shot(pg, "self-row", clip=pg.locator("main table").first, marks=[(me.locator("td").nth(4), 1)])
+        s.shot(pg, "self-row", clip=_users_table(pg), marks=[(me.locator("td").nth(5), 1)])
     # 첫 로그인 — 새 계정
     with c.app("kim.user") as pg:
         s.shot(pg, "kim-first-login", marks=[("header .muted", 1, "below")])
@@ -1626,9 +1639,9 @@ def ch_audit(c: Ctx) -> None:
         nav(pg, "관리")
         pg.get_by_role("tab", name="감사 로그").click()
         pg.wait_for_timeout(1500)
-        heads = pg.locator("main thead th")
-        s.shot(pg, "audit-page", marks=[(pg.get_by_label("이벤트로 거르기"), 1), (pg.locator("main thead"), 2)])
-        _ = heads
+        # v1 관리 화면은 감사 로그 표 앞에 성공 지표 목표 표가 있다 — "이벤트" 칸이 있는 표가 감사 로그다.
+        table = pg.locator("main table", has=pg.locator("th", has_text="이벤트")).first
+        s.shot(pg, "audit-page", marks=[(pg.get_by_label("이벤트로 거르기"), 1), (table.locator("thead"), 2)])
         s.shot(pg, "audit-full", full=True)
         for ev in ["auth.login", "auth.login_failed", "security.user_created", "security.role_changed", "security.user_status_changed",
                    "security.user_contacts_changed", "security.permission_changed", "security.trace_viewed", "security.audit_viewed",
@@ -1639,7 +1652,7 @@ def ch_audit(c: Ctx) -> None:
             box = pg.get_by_label("이벤트로 거르기")
             box.fill(ev)
             pg.wait_for_timeout(1800)
-            s.shot(pg, f"filter-{ev.replace('.', '-')}", clip=pg.locator("main table"))
+            s.shot(pg, f"filter-{ev.replace('.', '-')}", clip=table)
         pg.get_by_label("이벤트로 거르기").fill("")
         pg.wait_for_timeout(1500)
         more = pg.get_by_role("button", name="더 보기")

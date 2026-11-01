@@ -35,6 +35,13 @@ def ch_login(s: Shooter) -> None:
         pg.get_by_role("button", name="로그인").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "login-wrong-password", marks=[(".error, [role=alert]", None)])
+        # 5분 안에 같은 아이디로 다섯 번 틀리면 잠긴다(TRD 9.1 v1.0.2) — 없는 아이디로 찍어 실제 계정을 막지 않는다.
+        pg.get_by_label("아이디").fill("lock.demo")
+        for _ in range(6):
+            pg.get_by_label("비밀번호").fill("wrong-password-1")
+            pg.get_by_role("button", name="로그인").click()
+            pg.wait_for_timeout(700)
+        s.shot(pg, "login-locked", marks=[(".error, [role=alert]", None)])
         go(pg, "/chat")
         s.shot(pg, "redirect-to-login")
     with s.as_user("kim.user") as pg:
