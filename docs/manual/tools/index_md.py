@@ -1,6 +1,6 @@
 """「찾아보기」 — 낱말마다 그 낱말이 나오는 장을 원본에서 찾아 표로 쓴다.
 
-    python docs/manual/tools/index_md.py              # 사용자 매뉴얼 37장
+    python docs/manual/tools/index_md.py              # 사용자 매뉴얼 38장
     python docs/manual/tools/index_md.py --book ops   # 운영자 매뉴얼 45장
 
 낱말 목록(TERMS)은 사람이 고른다. 장 번호는 파일 이름의 앞 두 자리(00 은 「들어가며」).
@@ -15,8 +15,8 @@ from pathlib import Path
 
 MANUAL = Path(__file__).resolve().parents[1]
 USER = MANUAL / "user"
-OUT = USER / "37-index.md"
-SKIP = {"25", "36", "37"}
+OUT = USER / "38-index.md"
+SKIP = {"25", "37", "38"}
 
 TERMS = [
     "감사 로그", "객체 타입", "거부", "게시", "게시 전 검사", "게이트", "결과 0건", "골든셋", "관계 저장소", "권한 저장",
@@ -27,6 +27,7 @@ TERMS = [
     "장애 주입", "전체 기록", "접속 시험", "정정", "정지", "조회 조건", "조회 실패", "질문 해석 실패", "지금 동기화",
     "증분", "추정", "트레이스", "편집 레이어", "편집 충돌", "편집 해제", "편집됨", "평가 실행", "필수 값", "확인함",
     "롤백", "로그아웃", "로컬 계정 추가", "draft", "enum", "pk", "FK 속성", "PII", "api_name", "SSO", "Action 추가",
+    "이해관계자", "AS-IS", "암묵지", "용어집", "7요소", "파일럿", "성공 지표 목표", "도메인 팩",
 ]
 
 
@@ -44,8 +45,8 @@ OPS_TERMS = [
     "UTC", "worker", "WSL",
 ]
 BOOKS = {
-    "user": (USER, OUT, SKIP, TERMS, "37장", [
-        "낱말이 많이 나오는 장을 다섯 곳까지 적었습니다(장 번호 순). 뜻은 「36장 낱말 풀이」, 화면 문구는 「28장 화면 문구",
+    "user": (USER, OUT, SKIP, TERMS, "38장", [
+        "낱말이 많이 나오는 장을 다섯 곳까지 적었습니다(장 번호 순). 뜻은 「37장 낱말 풀이」, 화면 문구는 「28장 화면 문구",
         "사전」을 보세요.",
     ]),
     "ops": (MANUAL / "ops", MANUAL / "ops" / "45-index.md", {"41", "43", "44", "45"}, OPS_TERMS, "45장", [

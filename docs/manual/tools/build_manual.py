@@ -440,6 +440,8 @@ h2, h3, h4 { page-break-after: avoid; }
 table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 6px 0 10px; page-break-inside: auto; }
 th, td { border: 1px solid #cbd5e1; padding: 3px 6px; vertical-align: top; }
 th { background: #e8eefc; }
+/* 양식의 빈 칸 — 손으로 적을 수 있게 줄 높이를 둔다 */
+tr:has(td:empty) td { height: 1.9em; }
 tr { page-break-inside: avoid; }
 code { font-family: Consolas, monospace; color: #9f1239; font-size: 9.5pt; }
 pre { background: #f3f4f6; padding: 8px; font-size: 9pt; white-space: pre-wrap; }

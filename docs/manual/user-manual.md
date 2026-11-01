@@ -18,7 +18,7 @@ Word·PDF 로 묶어 배포합니다. 설치·서버 관리는 [시스템 운영
 | 22장 업무 시나리오 · 23장 연습 문제 | [22](user/22-scenarios.md) · [23](user/23-exercises.md) | 모두 |
 | 24~29장 찾아보기 | [24](user/24-answer-gallery.md) · [25](user/25-question-bank.md) · [26](user/26-faq.md) · [27](user/27-troubleshooting.md) · [28](user/28-ui-dictionary.md) · [29](user/29-roles.md) | 필요할 때 |
 | 30~32장 깊이 알기 | [30](user/30-screen-reference.md) · [31](user/31-trace-reading.md) · [32](user/32-naming-experiment.md) | 관리자·모델러 |
-| 33~37장 교육·업무 도구 | [33](user/33-workbook.md) · [34](user/34-quick-cards.md) · [35](user/35-forms.md) · [36](user/36-glossary.md) · [37](user/37-index.md) | 모두 |
+| 33~38장 교육·업무 도구 | [33](user/33-workbook.md) · [34](user/34-quick-cards.md) · [35](user/35-forms.md) · [36](user/36-adoption-forms.md) · [37](user/37-glossary.md) · [38](user/38-index.md) | 모두(36장 도입 양식은 도입 담당) |
 
 ## 고치고 다시 만들기
 
@@ -31,7 +31,7 @@ Word·PDF 로 묶어 배포합니다. 설치·서버 관리는 [시스템 운영
 | 2 | (API·워커·웹을 1의 환경변수로 실행 — `manual_env.py env`) | 촬영 대상 앱 |
 | 3 | `uv run --with playwright python docs/manual/tools/capture_user.py [장 …]` | 실제 화면 촬영(설치된 Edge 사용). 장은 앞 장의 상태에 기대므로 처음부터 순서대로 |
 | 4 | `python docs/manual/tools/question_bank.py` → `question_notes.py` | 25장 질문 예시 모음(실제 API 결과)과 해설 |
-| 5 | `python docs/manual/tools/gallery_md.py` · `index_md.py` | 24장 답 화면 모음, 37장 찾아보기 |
+| 5 | `python docs/manual/tools/gallery_md.py` · `index_md.py` | 24장 답 화면 모음, 38장 찾아보기 |
 | 6 | `uv run --with python-docx --with markdown --with playwright --with pillow python docs/manual/tools/build_manual.py` | `dist/manual/` 에 Word(.docx)·PDF |
 
 계정 비밀번호는 환경변수 `ONTOBOT_MANUAL_PASSWORD` 로만 넘깁니다(저장소에 적지 않음). AI 가 쓴 답 문장은 다시 찍으면
