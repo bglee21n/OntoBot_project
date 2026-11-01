@@ -7,6 +7,7 @@ import type { EngagementDetail, MemberOut, SheetKindOut } from "../../api/types"
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { engagementKey, useEngagement, useSheetKinds } from "./queries";
+import { PilotPanel } from "./PilotPanel";
 import { SendPanel } from "./SendPanel";
 
 const t = ko.adoption;
@@ -64,6 +65,7 @@ export function EngagementPage() {
         {current.done && <span className="badge succeeded">{t.stageDone}</span>}
       </div>
       <SheetLinks e={e} kinds={kinds.data.filter((k) => k.stage === current.stage)} />
+      {current.stage === 5 && <PilotPanel e={e} />}
       <SendPanel e={e} />
       <Sessions e={e} />
       <Members e={e} />

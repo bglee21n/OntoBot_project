@@ -303,6 +303,16 @@ def can_send(bridge: str, roles: Iterable[str], member_role: str | None) -> bool
     return engagement_access(member_role).edit and has_role(roles, *SEND_ROLES.get(bridge, ()))
 
 
+def can_decide_pilot(roles: Iterable[str], member_role: str | None) -> bool:
+    """파일럿 판단은 도입 owner 이고 modeler·admin 이어야 한다."""
+    return engagement_access(member_role).manage and has_role(roles, ROLE_MODELER, ROLE_ADMIN)
+
+
+def can_export_engagement(roles: Iterable[str], member_role: str | None) -> bool:
+    """자산화 내보내기 — 밖으로 가져갈 묶음을 만드는 일이라 owner 이고 modeler·admin 이어야 한다."""
+    return engagement_access(member_role).manage and has_role(roles, ROLE_MODELER, ROLE_ADMIN)
+
+
 def can_link_session(roles: Iterable[str], *, is_interviewee: bool) -> bool:
     """인터뷰를 도입에 잇기 — 그 인터뷰를 볼 수 있는 사람(본인 또는 모델러, 워크숍과 같은 규칙)."""
     return is_interviewee or has_role(roles, ROLE_MODELER)

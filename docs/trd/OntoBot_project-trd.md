@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) **v1.2** — v1(P1) 구현 확정 · 도입 지원(Phase 20~) 진행 |
+| 문서      | 기술 요구사항 문서(TRD) **v1.3** — v1(P1) 구현 확정 · 도입 지원(Phase 20~) 진행 |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.5                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -1032,6 +1032,25 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
   또는 modeler, `rbac.can_link_session`)이 도입 editor 일 때 잇는다. 인터뷰 화면은 이은 도입의 36.9 기록을 읽기 전용
   패널로 보인다(도입 구성원이 아니면 패널 없음). 워크숍 주제·프롬프트·추출은 그대로다.
 
+**Phase 22 파일럿 판단·자산화**(v1.3)
+
+- **판단 근거**(`adoption.pilot`, `GET …/pilot`): 마지막 **실제 모델** 평가 실행(`status=succeeded`, `llm_config.mode` 가
+  replay 가 아닌 것 중 id 가 가장 큰 것 — `targets._measured` 와 같은 정의)의 게이트·검사, `targets.load` 의 목표·지금 값,
+  36.14 성공 지표 표의 업무 지표 행(조회에 드는 시간·활용도 — 적힌 그대로, 계산하지 않는다).
+- **판단**(`POST …/decisions`, `engagement_decision` 마이그레이션 0023 — 고치지 않고 쌓인다): 계속(`go`)·보완 뒤 계속
+  (`go_after_fix`)·보류(`no_go`)와 사유. 실제 모델 평가가 없거나, 불변식 위반이 있거나, 게이트를 통과하지 못했으면 보류만
+  고를 수 있다 — 서버가 판단하는 순간의 근거를 다시 읽어 막는다(422 `decision_blocked`). 불변식 위반은 평균 점수로
+  상쇄하지 않는다(매뉴얼 20.6). 기록에는 그때의 실행 id·게이트 결과·불변식 위반 수가 함께 남고 `adoption.decided` 를
+  남긴다. 판단 기록이 있으면 5단계 "계속할지 판단"이 채워진 것으로 본다. 판단은 도입 owner 이고 modeler·admin
+  (`rbac.can_decide_pilot`).
+- **자산화 내보내기**(`adoption.export`, `GET …/export` → `application/zip`): `ontology.yaml`(게시본, `importer.dump`),
+  `golden.yaml`(도입 골든셋에서 기대 값을 확정한 문항 — 기대 값·없어야 할 값·실패 사유가 있거나 답할 수 없다고 정한 것,
+  `evaluation.golden.Pack` 모양), `adoption/<kind>.json`(양식 — 선언의 `pii` 칸 값은 뺀다: 이름·연락처·아이디 칸),
+  `adoption/engagement.json`(이름·설명·판단 기록), `README.md`. **객체 행·원천 데이터는 담지 않는다.** 내보내기는 도입
+  owner 이고 modeler·admin(`rbac.can_export_engagement`), `adoption.exported`(설계도 버전·문항 수·양식 수)를 남긴다.
+- **한계**: 합성 CSV 올리기·검사(계획의 36.15 합성 예시 데이터)는 아직 없다 — zip 을 `domain-packs/<이름>/` 에 풀고 seed/
+  를 사람이 채운다. 판단 근거의 평가 실행은 골든셋을 가리지 않고 마지막 실제 실행이다.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -1145,6 +1164,7 @@ v1(PRD 8절 P1 행) 구현을 마쳤다. 출시 확인은 아래가 전부이고
 | v0.33 | 2026-10-31 | Phase 18c 샘플 데이터 시연(17.16) — 버전별 격리 스키마 `demo_v<id>`·`search_path` 주입 하나로 운영 파이프라인 그대로 질의, CSV 샘플 행(전체 실패 규칙), 그래프 없음 |
 | **v1.0** | 2026-10-31 | **v1(P1) 구현 확정**(Phase 19) — 출시 확인 20.1(게이트·부하·설치 → 업그레이드 → 롤백 왕복), 업그레이드가 새 LLM 역할·모델을 빠뜨리는 문제 수정(`ontobotctl` 설정 차이 알림·`--with-models`·`embedder_not_configured`), ADR-0016 을 21절에, 기반 PRD v0.5 |
 | v1.0.2 | 2026-11-01 | 9.1 보안 점검 반영 — 로컬 로그인 실패 잠금(5분 안에 아이디별 5회·접속 주소별 30회, `429 login_locked` — 배포 콘솔에는 있었으나 앱에 없었다), 응답 보안 헤더(클릭재킹·자료형 추측 방지), SSO `return_to` 의 제어 문자 거부. 의존성 점검: Python(앱·배포 콘솔·개발 콘솔) 알려진 취약점 0, npm 운영 의존성 0(개발 도구 eslint 의 minimatch 중간 등급 1 — 배포물에 들어가지 않음) |
+| v1.3 | 2026-11-02 | 17.17 Phase 22 파일럿 판단(`engagement_decision`, 마이그레이션 0023 — 실제 모델 평가·불변식·게이트가 맞지 않으면 보류만)·자산화 내보내기 zip(설계도·확정 골든·사람 정보 뺀 양식, 객체 행 없음) |
 | v1.2 | 2026-11-02 | 17.17 Phase 21 양식 → 제품 보내기 — 미리보기·지문·적용(`adoption.bridges`·`send`), 용어집 → draft·질문 → 도입 골든셋·성공 지표 → 목표·이해관계자 → 계정·그룹, 인터뷰 잇기(마이그레이션 0022: `golden_item.source` 에 `adoption`, `interview_session.engagement_id`), 36.6 에 `OntoBot 아이디` 열 |
 | v1.1 | 2026-11-02 | 17.17 도입 지원 — 착수 전 결정 A1~A11 확정, Phase 20 도입 작업 공간(`engagement`·`engagement_sheet`·`engagement_member`, 마이그레이션 0021, 양식 16종 선언·판 비교 저장·진행 판정·구성원 권한) |
 | v1.0.3 | 2026-11-02 | 17.4 Function 집계 대조 — 질문이 묻는 평균·합계·최대·최소를 계산하지 않는 Function 을 부르면 재계획(골든 fn05·fn06 추가, 실제 모델 게이트 통과·카세트 재녹화) |

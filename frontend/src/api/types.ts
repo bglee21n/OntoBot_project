@@ -107,3 +107,5 @@ export type SheetOut = S["SheetOut"];
 export type SendChangeOut = S["SendChangeOut"];
 export type SendPreviewOut = S["SendPreviewOut"];
 export type SendAppliedOut = S["SendAppliedOut"];
+export type PilotOut = S["PilotOut"];
+export type DecisionOut = S["DecisionOut"];

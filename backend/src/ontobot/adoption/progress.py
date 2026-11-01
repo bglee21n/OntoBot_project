@@ -28,6 +28,8 @@ class Handoff:
     slots: tuple[Slot, ...]  # 하나라도 채워지면 넘길 것이 있다
 
 
+DECIDED_LABEL = "계속할지 판단"
+
 HANDOFFS: tuple[Handoff, ...] = (
     Handoff(1, "할지 말지", (Slot("fit", "decision", "decision"),)),
     Handoff(1, "대상 업무 하나", (Slot("fit", "overview", "task"),)),
@@ -94,14 +96,15 @@ class StageState:
         return all(h.filled for h in self.handoffs)
 
 
-def evaluate(payloads: dict[str, dict[str, Any]]) -> list[StageState]:
-    """양식 종류 → 저장된 payload 로 단계별 진행."""
+def evaluate(payloads: dict[str, dict[str, Any]], *, decided: bool = False) -> list[StageState]:
+    """양식 종류 → 저장된 payload 로 단계별 진행. ``decided`` = 판단 기록(Phase 22)이 있다."""
     out = []
     for stage, title in STAGES.items():
         states = tuple(
             HandoffState(
                 label=h.label,
-                filled=any(slot_filled(payloads, s) for s in h.slots),
+                filled=any(slot_filled(payloads, s) for s in h.slots)
+                or (decided and h.label == DECIDED_LABEL),
                 sheets=tuple(dict.fromkeys(s.kind for s in h.slots)),
             )
             for h in HANDOFFS

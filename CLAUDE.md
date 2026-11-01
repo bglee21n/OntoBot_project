@@ -7,14 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.2) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.3) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
 v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료.
-도입 지원은 착수 전 결정 A1~A11 확정(TRD 17.17), Phase 20(도입 작업 공간 — 양식 16종 저장·편집·인쇄)·21(양식 → 제품 보내기) 완료, 다음은 Phase 22(파일럿 판단·자산화). 설치 정본은
+도입 지원은 착수 전 결정 A1~A11 확정(TRD 17.17), Phase 20(도입 작업 공간 — 양식 16종 저장·편집·인쇄)·21(양식 → 제품 보내기)·22(파일럿 판단·자산화 zip) 완료 — Phase 23(용어집 동의어 → 플래너)은 실제 도입에서 동의어 오답이 골든으로 확인될 때만. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -114,6 +114,7 @@ backend/src/ontobot/
               matching(본문의 객체 제목·pk 정확 일치, 순수) · links(링크 후보·확정, 찾는/보는 사람 권한)
   adoption/   sheets(매뉴얼 36장 양식 16종 선언·검증, 순수) · progress(단계별 넘길 것, 순수) · store(도입·구성원·판 비교 저장)
               bridges(양식 → 제품 미리보기, 순수) · send(지문 확인 뒤 기존 서비스 함수로 적용)
+              pilot(36.14 판단 근거·고를 수 있는 판단) · export(36.15 zip — 객체 행·사람 정보 없음)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -268,6 +269,10 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   함수**만 부른다(`versioning`·`golden`·`targets`·`security.admin`) — 우회 쓰기 경로를 만들지 말 것. 권한은
   `rbac.can_send`(도입 editor + 받는 곳 역할). 골든 후보는 도입 전용 골든셋에만(운영 게이트에 기대 값 없는 문항을 섞지
   않는다). 새 계정 임시 비밀번호는 적용 응답에만 — 저장·감사·로그에 넣지 말 것.
+- **파일럿 판단(Phase 22)**: 불변식 위반·게이트 실패·실제 모델 평가 없음이면 보류만 — 판단하는 순간 서버가 근거를 다시
+  읽는다(`pilot.allowed`). 이 규칙을 화면에만 두지 말 것. "마지막 실제 실행"은 `targets._measured` 와 같은 정의(replay 제외,
+  id 순서)다 — 둘이 갈라지면 패널과 목표가 다른 실행을 본다. 자산화 zip 에는 객체 행·원천 데이터를 넣지 않고, 양식은
+  `export.strip_pii` 로 선언의 `pii` 칸을 뺀다(사람 정보 칸을 새로 만들면 `pii=True` 를 잊지 말 것).
 - **로컬 로그인 실패 잠금**(`security.auth.login_throttle`, 5분 안에 아이디별 5회·접속 주소별 30회 → 429 — 주소 기준을 아이디와 같게 조이면
   사내 프록시 뒤 전원이 한 사람 실수로 막힌다)은 프로세스 메모리다 — 앱은
   워커 하나(`app.Dockerfile` `--workers 1`)라서 맞다. 워커를 늘리면 잠금을 DB 로 옮겨야 한다. 통합 테스트는 `client`

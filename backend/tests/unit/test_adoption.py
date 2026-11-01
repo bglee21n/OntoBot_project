@@ -82,7 +82,7 @@ def test_declaration_is_well_formed() -> None:
 def test_people_names_are_pii() -> None:
     people = sheets.STAKEHOLDERS.section("people")
     assert people is not None
-    assert [c.key for c in people.inputs if c.pii] == ["name"]
+    assert [c.key for c in people.inputs if c.pii] == ["name", "username"]
 
 
 # ---------------------------------------------------------------- 검증

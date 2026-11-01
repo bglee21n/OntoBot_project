@@ -10,13 +10,14 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
-from ontobot.adoption import bridges, progress, send, sheets, store
+from ontobot.adoption import bridges, export, pilot, progress, send, sheets, store
 from ontobot.api.deps import CurrentUser, Db, User
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.adoption import Engagement
+from ontobot.evaluation import targets
 from ontobot.security import rbac
 
 router = APIRouter(prefix="/adoption", tags=["adoption"])
@@ -154,6 +155,8 @@ class EngagementDetail(EngagementSummary):
     can_manage: bool
     # 보내기마다 이 사람이 할 수 있는가(구성원 역할 + 받는 곳 역할, rbac.can_send)
     can_send: dict[str, bool]
+    can_decide: bool  # 36.14 파일럿 판단(owner + modeler·admin)
+    can_export: bool  # 36.15 자산화 내보내기(owner + modeler·admin)
     members: list[MemberOut]
     sheets: list[SheetIndexOut]
     stages: list[StageOut]
@@ -190,12 +193,15 @@ async def _detail(
     db: Db, e: Engagement, role: str, access: rbac.EngagementAccess, user: CurrentUser
 ) -> EngagementDetail:
     states = await store.sheet_states(db, e.id)
-    stages = progress.evaluate({s.kind: s.payload for s in states})
+    decided = bool(await pilot.decisions(db, e.id))
+    stages = progress.evaluate({s.kind: s.payload for s in states}, decided=decided)
     return EngagementDetail(
         **_summary(e, role).model_dump(),
         can_edit=access.edit,
         can_manage=access.manage,
         can_send={b: rbac.can_send(b, user.roles, role) for b in bridges.BRIDGES},
+        can_decide=rbac.can_decide_pilot(user.roles, role),
+        can_export=rbac.can_export_engagement(user.roles, role),
         members=[
             MemberOut(
                 user_id=m.user_id,
@@ -512,3 +518,146 @@ async def unlink_session(engagement_id: int, session_id: int, db: Db, user: User
         raise ProblemError(
             404, "이 도입에 이은 인터뷰가 아닙니다", code="session_not_found"
         ) from err
+
+
+# ---------------------------------------------------------------- 36.14 파일럿 판단(Phase 22)
+
+
+class PilotCheckOut(BaseModel):
+    metric: str
+    kind: str
+    op: str
+    limit: float
+    value: float | None
+    passed: bool
+
+
+class RunEvidenceOut(BaseModel):
+    run_id: int
+    golden_set: str
+    finished_at: datetime | None
+    gate_passed: bool | None
+    invariant_violations: list[str]
+    checks: list[PilotCheckOut]
+
+
+class TargetEvidenceOut(BaseModel):
+    key: str
+    label: str
+    direction: Literal["min", "max"]
+    target: float | None
+    measured: float | None
+    met: bool | None
+
+
+class BusinessMetricOut(BaseModel):
+    label: str
+    current: str | None
+    target: str | None
+
+
+class DecisionOut(BaseModel):
+    id: int
+    decision: pilot.Decision
+    reason: str
+    eval_run_id: int | None
+    gate_passed: bool | None
+    invariant_violations: int
+    decided_by: int | None
+    created_at: datetime
+
+
+class PilotOut(BaseModel):
+    run: RunEvidenceOut | None
+    targets: list[TargetEvidenceOut]
+    business: list[BusinessMetricOut]
+    # 판단마다 고를 수 없는 까닭(null = 고를 수 있다) — 서버가 같은 규칙으로 다시 본다
+    allowed: dict[str, str | None]
+    decisions: list[DecisionOut]
+
+
+class DecisionIn(BaseModel):
+    decision: pilot.Decision
+    reason: str = Field(min_length=1, max_length=4000)
+
+
+def _decision_out(d: Any) -> DecisionOut:
+    return DecisionOut(
+        id=d.id,
+        decision=d.decision,
+        reason=d.reason,
+        eval_run_id=d.eval_run_id,
+        gate_passed=d.gate_passed,
+        invariant_violations=d.invariant_violations,
+        decided_by=d.decided_by,
+        created_at=d.created_at,
+    )
+
+
+@router.get("/engagements/{engagement_id}/pilot", response_model=PilotOut)
+async def get_pilot(engagement_id: int, db: Db, user: User) -> PilotOut:
+    await _engagement(db, engagement_id, user)
+    run = await pilot.last_real_run(db)
+    payloads = {st.kind: st.payload for st in await store.sheet_states(db, engagement_id)}
+    metrics = sheets.PILOT.section("metrics")
+    labels = [r[0] for r in metrics.rows] if metrics else []
+    return PilotOut(
+        run=None
+        if run is None
+        else RunEvidenceOut(
+            run_id=run.run_id,
+            golden_set=run.golden_set,
+            finished_at=run.finished_at,
+            gate_passed=run.gate_passed,
+            invariant_violations=run.invariant_violations,
+            checks=[PilotCheckOut(**c.__dict__) for c in run.checks],
+        ),
+        targets=[
+            TargetEvidenceOut(
+                key=t.spec.key,
+                label=t.spec.label,
+                direction=t.spec.direction,
+                target=None if t.value is None else float(t.value),
+                measured=t.measured,
+                met=t.met,
+            )
+            for t in await targets.load(db)
+        ],
+        business=[
+            BusinessMetricOut(**b.__dict__) for b in pilot.business_metrics(payloads, labels)
+        ],
+        allowed={k: v for k, v in pilot.allowed(run).items()},
+        decisions=[_decision_out(d) for d in await pilot.decisions(db, engagement_id)],
+    )
+
+
+@router.post("/engagements/{engagement_id}/decisions", response_model=DecisionOut, status_code=201)
+async def decide(engagement_id: int, body: DecisionIn, db: Db, user: User) -> DecisionOut:
+    _, role, _ = await _engagement(db, engagement_id, user)
+    _need(rbac.can_decide_pilot(user.roles, role))
+    try:
+        row = await pilot.decide(
+            db, engagement_id, actor_id=user.id, decision=body.decision, reason=body.reason.strip()
+        )
+    except pilot.DecisionBlocked as e:
+        raise ProblemError(422, str(e), code="decision_blocked") from e
+    return _decision_out(row)
+
+
+# ---------------------------------------------------------------- 36.15 자산화 내보내기(Phase 22)
+
+
+@router.get(
+    "/engagements/{engagement_id}/export",
+    response_class=Response,
+    responses={200: {"content": {"application/zip": {}}}},
+)
+async def export_engagement(engagement_id: int, db: Db, user: User) -> Response:
+    _, role, _ = await _engagement(db, engagement_id, user)
+    _need(rbac.can_export_engagement(user.roles, role))
+    out = await export.build(db, engagement_id, actor_id=user.id)
+    return Response(
+        content=out.data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{out.filename}"'},
+    )

@@ -90,6 +90,8 @@
 | | `adoption.members_changed` | 도입 구성원 넣기·역할 바꾸기·빼기(내용의 `role` 이 null 이면 뺌) | `engagement:N` |
 | | `adoption.sent` | 양식 → 제품 보내기 적용(보내기 종류·적용 수·막힌 수·만든 draft/골든셋 번호). 받는 곳의 일은 그 기록(`ontology.*`·`eval.*`·`ops.targets_changed`·`security.*`)이 따로 남습니다 | `engagement:N` |
 | | `adoption.session_linked` | 인터뷰를 도입에 잇기·끊기 | `engagement:N` |
+| | `adoption.decided` | 36.14 파일럿 판단(계속·보완 뒤 계속·보류)과 그때 본 평가 실행 번호·게이트 결과 | `engagement:N` |
+| | `adoption.exported` | 36.15 자산화 zip 내려받기(설계도 버전·문항 수·양식 수) — 밖으로 가져간 기록입니다 | `engagement:N` |
 | | `adoption.sheet_saved` | 양식 저장. 내용은 양식 종류·판·바뀐 묶음 이름뿐 — **양식 값은 남기지 않습니다**(사람 이름이 든 칸이 있다) | `engagement:N` |
 
 > **알아 두기** 이벤트 목록에는 `deploy.login`·`deploy.login_failed` 도 있지만, **지금 판의 배포 콘솔은 로그인을

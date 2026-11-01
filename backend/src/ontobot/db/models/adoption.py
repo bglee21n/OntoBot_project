@@ -11,6 +11,7 @@ from typing import Any
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     ForeignKey,
     Integer,
@@ -62,3 +63,23 @@ class EngagementSheet(IdMixin, Base):
     revision: Mapped[int] = mapped_column(Integer, default=1)
     updated_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
     updated_at: Mapped[datetime] = mapped_column(tz(), server_default=func.now())
+
+
+class EngagementDecision(IdMixin, Base):
+    """36.14 파일럿 판단 기록(Phase 22) — 고친 적 없이 쌓인다(판단을 바꾸면 새 행)."""
+
+    __tablename__ = "engagement_decision"
+    __table_args__ = (
+        CheckConstraint("decision IN ('go','go_after_fix','no_go')", name="decision"),
+    )
+
+    engagement_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("engagement.id", ondelete="CASCADE"), index=True
+    )
+    decision: Mapped[str] = mapped_column(String(16))
+    reason: Mapped[str] = mapped_column(Text)
+    # 판단할 때 본 근거 — 마지막 실제 모델 평가 실행과 그 게이트
+    eval_run_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("eval_run.id"))
+    gate_passed: Mapped[bool | None] = mapped_column(Boolean)
+    invariant_violations: Mapped[int] = mapped_column(Integer, default=0)
+    decided_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))

@@ -1261,6 +1261,43 @@
         "title": "Body_upload_api_v1_documents_post",
         "type": "object"
       },
+      "BusinessMetricOut": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "label",
+          "current",
+          "target"
+        ],
+        "title": "BusinessMetricOut",
+        "type": "object"
+      },
       "ChangeImpactOut": {
         "properties": {
           "element": {
@@ -1776,6 +1813,106 @@
           }
         },
         "title": "CreateVersion",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "go",
+              "go_after_fix",
+              "no_go"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
+      },
+      "DecisionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decision": {
+            "enum": [
+              "go",
+              "go_after_fix",
+              "no_go"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "eval_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Run Id"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "invariant_violations": {
+            "title": "Invariant Violations",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "decision",
+          "reason",
+          "eval_run_id",
+          "gate_passed",
+          "invariant_violations",
+          "decided_by",
+          "created_at"
+        ],
+        "title": "DecisionOut",
         "type": "object"
       },
       "DeliveryOut": {
@@ -2650,8 +2787,16 @@
       },
       "EngagementDetail": {
         "properties": {
+          "can_decide": {
+            "title": "Can Decide",
+            "type": "boolean"
+          },
           "can_edit": {
             "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_export": {
+            "title": "Can Export",
             "type": "boolean"
           },
           "can_manage": {
@@ -2736,6 +2881,8 @@
           "can_edit",
           "can_manage",
           "can_send",
+          "can_decide",
+          "can_export",
           "members",
           "sheets",
           "stages",
@@ -6804,6 +6951,109 @@
         "title": "ParamRef",
         "type": "object"
       },
+      "PilotCheckOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "number"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "kind",
+          "op",
+          "limit",
+          "value",
+          "passed"
+        ],
+        "title": "PilotCheckOut",
+        "type": "object"
+      },
+      "PilotOut": {
+        "properties": {
+          "allowed": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Allowed",
+            "type": "object"
+          },
+          "business": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessMetricOut"
+            },
+            "title": "Business",
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionOut"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunEvidenceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetEvidenceOut"
+            },
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run",
+          "targets",
+          "business",
+          "allowed",
+          "decisions"
+        ],
+        "title": "PilotOut",
+        "type": "object"
+      },
       "PreviewChange": {
         "properties": {
           "after": {
@@ -7739,6 +7989,65 @@
           "description"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "RunEvidenceOut": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PilotCheckOut"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "golden_set": {
+            "title": "Golden Set",
+            "type": "string"
+          },
+          "invariant_violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Invariant Violations",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "golden_set",
+          "finished_at",
+          "gate_passed",
+          "invariant_violations",
+          "checks"
+        ],
+        "title": "RunEvidenceOut",
         "type": "object"
       },
       "SameDisplayOut": {
@@ -8948,6 +9257,69 @@
           "deployer_url"
         ],
         "title": "SystemOut",
+        "type": "object"
+      },
+      "TargetEvidenceOut": {
+        "properties": {
+          "direction": {
+            "enum": [
+              "min",
+              "max"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "measured": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured"
+          },
+          "met": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Met"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "direction",
+          "target",
+          "measured",
+          "met"
+        ],
+        "title": "TargetEvidenceOut",
         "type": "object"
       },
       "TargetOut": {
@@ -11503,6 +11875,96 @@
         ]
       }
     },
+    "/api/v1/adoption/engagements/{engagement_id}/decisions": {
+      "post": {
+        "operationId": "decide_api_v1_adoption_engagements__engagement_id__decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/export": {
+      "get": {
+        "operationId": "export_engagement_api_v1_adoption_engagements__engagement_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
     "/api/v1/adoption/engagements/{engagement_id}/members": {
       "post": {
         "operationId": "set_member_api_v1_adoption_engagements__engagement_id__members_post",
@@ -11594,6 +12056,48 @@
           }
         },
         "summary": "Remove Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/pilot": {
+      "get": {
+        "operationId": "get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pilot",
         "tags": [
           "adoption"
         ]

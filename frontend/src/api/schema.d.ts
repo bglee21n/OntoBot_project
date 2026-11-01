@@ -509,6 +509,40 @@ export interface paths {
         patch: operations["patch_engagement_api_v1_adoption_engagements__engagement_id__patch"];
         trace?: never;
     };
+    "/api/v1/adoption/engagements/{engagement_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_adoption_engagements__engagement_id__decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Engagement */
+        get: operations["export_engagement_api_v1_adoption_engagements__engagement_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/adoption/engagements/{engagement_id}/members": {
         parameters: {
             query?: never;
@@ -538,6 +572,23 @@ export interface paths {
         post?: never;
         /** Remove Member */
         delete: operations["remove_member_api_v1_adoption_engagements__engagement_id__members__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/pilot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pilot */
+        get: operations["get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2668,6 +2719,15 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** BusinessMetricOut */
+        BusinessMetricOut: {
+            /** Current */
+            current: string | null;
+            /** Label */
+            label: string;
+            /** Target */
+            target: string | null;
+        };
         /** ChangeImpactOut */
         ChangeImpactOut: {
             /**
@@ -2843,6 +2903,41 @@ export interface components {
         CreateVersion: {
             /** Parent Id */
             parent_id?: number | null;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "go" | "go_after_fix" | "no_go";
+            /** Reason */
+            reason: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided By */
+            decided_by: number | null;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "go" | "go_after_fix" | "no_go";
+            /** Eval Run Id */
+            eval_run_id: number | null;
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Id */
+            id: number;
+            /** Invariant Violations */
+            invariant_violations: number;
+            /** Reason */
+            reason: string;
         };
         /** DeliveryOut */
         DeliveryOut: {
@@ -3144,8 +3239,12 @@ export interface components {
         };
         /** EngagementDetail */
         EngagementDetail: {
+            /** Can Decide */
+            can_decide: boolean;
             /** Can Edit */
             can_edit: boolean;
+            /** Can Export */
+            can_export: boolean;
             /** Can Manage */
             can_manage: boolean;
             /** Can Send */
@@ -4450,6 +4549,35 @@ export interface components {
             /** Param */
             param: string;
         };
+        /** PilotCheckOut */
+        PilotCheckOut: {
+            /** Kind */
+            kind: string;
+            /** Limit */
+            limit: number;
+            /** Metric */
+            metric: string;
+            /** Op */
+            op: string;
+            /** Passed */
+            passed: boolean;
+            /** Value */
+            value: number | null;
+        };
+        /** PilotOut */
+        PilotOut: {
+            /** Allowed */
+            allowed: {
+                [key: string]: string | null;
+            };
+            /** Business */
+            business: components["schemas"]["BusinessMetricOut"][];
+            /** Decisions */
+            decisions: components["schemas"]["DecisionOut"][];
+            run: components["schemas"]["RunEvidenceOut"] | null;
+            /** Targets */
+            targets: components["schemas"]["TargetEvidenceOut"][];
+        };
         /** PreviewChange */
         PreviewChange: {
             /** After */
@@ -4758,6 +4886,21 @@ export interface components {
             id: number;
             /** Name */
             name: string;
+        };
+        /** RunEvidenceOut */
+        RunEvidenceOut: {
+            /** Checks */
+            checks: components["schemas"]["PilotCheckOut"][];
+            /** Finished At */
+            finished_at: string | null;
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Golden Set */
+            golden_set: string;
+            /** Invariant Violations */
+            invariant_violations: string[];
+            /** Run Id */
+            run_id: number;
         };
         /** SameDisplayOut */
         SameDisplayOut: {
@@ -5133,6 +5276,24 @@ export interface components {
             deployer_url: string | null;
             /** Version */
             version: string;
+        };
+        /** TargetEvidenceOut */
+        TargetEvidenceOut: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "min" | "max";
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Measured */
+            measured: number | null;
+            /** Met */
+            met: boolean | null;
+            /** Target */
+            target: number | null;
         };
         /** TargetOut */
         TargetOut: {
@@ -6485,6 +6646,72 @@ export interface operations {
             };
         };
     };
+    decide_api_v1_adoption_engagements__engagement_id__decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_engagement_api_v1_adoption_engagements__engagement_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_member_api_v1_adoption_engagements__engagement_id__members_post: {
         parameters: {
             query?: never;
@@ -6538,6 +6765,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PilotOut"];
+                };
             };
             /** @description Validation Error */
             422: {
