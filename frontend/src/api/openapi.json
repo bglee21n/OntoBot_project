@@ -1261,6 +1261,43 @@
         "title": "Body_upload_api_v1_documents_post",
         "type": "object"
       },
+      "BusinessMetricOut": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "label",
+          "current",
+          "target"
+        ],
+        "title": "BusinessMetricOut",
+        "type": "object"
+      },
       "ChangeImpactOut": {
         "properties": {
           "element": {
@@ -1530,6 +1567,53 @@
         "title": "CitationValue",
         "type": "object"
       },
+      "ColumnOut": {
+        "properties": {
+          "fixed": {
+            "title": "Fixed",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "text",
+              "long",
+              "choice",
+              "check"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "pii": {
+            "title": "Pii",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "options",
+          "pii",
+          "fixed"
+        ],
+        "title": "ColumnOut",
+        "type": "object"
+      },
       "ColumnsIn": {
         "properties": {
           "query": {
@@ -1729,6 +1813,106 @@
           }
         },
         "title": "CreateVersion",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "go",
+              "go_after_fix",
+              "no_go"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
+      },
+      "DecisionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decision": {
+            "enum": [
+              "go",
+              "go_after_fix",
+              "no_go"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "eval_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Run Id"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "invariant_violations": {
+            "title": "Invariant Violations",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "decision",
+          "reason",
+          "eval_run_id",
+          "gate_passed",
+          "invariant_violations",
+          "decided_by",
+          "created_at"
+        ],
+        "title": "DecisionOut",
         "type": "object"
       },
       "DeliveryOut": {
@@ -2572,6 +2756,216 @@
           "status"
         ],
         "title": "ElementReview",
+        "type": "object"
+      },
+      "EngagementCreate": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "EngagementCreate",
+        "type": "object"
+      },
+      "EngagementDetail": {
+        "properties": {
+          "can_decide": {
+            "title": "Can Decide",
+            "type": "boolean"
+          },
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_export": {
+            "title": "Can Export",
+            "type": "boolean"
+          },
+          "can_manage": {
+            "title": "Can Manage",
+            "type": "boolean"
+          },
+          "can_send": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Can Send",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedSessionOut"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "sheets": {
+            "items": {
+              "$ref": "#/components/schemas/SheetIndexOut"
+            },
+            "title": "Sheets",
+            "type": "array"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOut"
+            },
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "my_role",
+          "created_at",
+          "can_edit",
+          "can_manage",
+          "can_send",
+          "can_decide",
+          "can_export",
+          "members",
+          "sheets",
+          "stages",
+          "sessions"
+        ],
+        "title": "EngagementDetail",
+        "type": "object"
+      },
+      "EngagementPatch": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "EngagementPatch",
+        "type": "object"
+      },
+      "EngagementSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "My Role",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "my_role",
+          "created_at"
+        ],
+        "title": "EngagementSummary",
         "type": "object"
       },
       "Enqueued": {
@@ -4486,6 +4880,32 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffOut": {
+        "properties": {
+          "filled": {
+            "title": "Filled",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sheets": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sheets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "label",
+          "filled",
+          "sheets"
+        ],
+        "title": "HandoffOut",
+        "type": "object"
+      },
       "ImpactRefOut": {
         "properties": {
           "blocking": {
@@ -5392,6 +5812,41 @@
         "title": "LinkTypeOut",
         "type": "object"
       },
+      "LinkedSessionOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "submitted",
+              "published"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status"
+        ],
+        "title": "LinkedSessionOut",
+        "type": "object"
+      },
       "LocalLogin": {
         "properties": {
           "password": {
@@ -5679,6 +6134,71 @@
           "roles"
         ],
         "title": "Me",
+        "type": "object"
+      },
+      "MemberIn": {
+        "properties": {
+          "role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "role"
+        ],
+        "title": "MemberIn",
+        "type": "object"
+      },
+      "MemberOut": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "editor",
+              "viewer"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "user_id",
+          "username",
+          "display_name",
+          "role"
+        ],
+        "title": "MemberOut",
         "type": "object"
       },
       "MembersIn": {
@@ -6429,6 +6949,109 @@
           "param"
         ],
         "title": "ParamRef",
+        "type": "object"
+      },
+      "PilotCheckOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "number"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric",
+          "kind",
+          "op",
+          "limit",
+          "value",
+          "passed"
+        ],
+        "title": "PilotCheckOut",
+        "type": "object"
+      },
+      "PilotOut": {
+        "properties": {
+          "allowed": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Allowed",
+            "type": "object"
+          },
+          "business": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessMetricOut"
+            },
+            "title": "Business",
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionOut"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunEvidenceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetEvidenceOut"
+            },
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run",
+          "targets",
+          "business",
+          "allowed",
+          "decisions"
+        ],
+        "title": "PilotOut",
         "type": "object"
       },
       "PreviewChange": {
@@ -7368,6 +7991,65 @@
         "title": "RoleOut",
         "type": "object"
       },
+      "RunEvidenceOut": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PilotCheckOut"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "gate_passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Passed"
+          },
+          "golden_set": {
+            "title": "Golden Set",
+            "type": "string"
+          },
+          "invariant_violations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Invariant Violations",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "golden_set",
+          "finished_at",
+          "gate_passed",
+          "invariant_violations",
+          "checks"
+        ],
+        "title": "RunEvidenceOut",
+        "type": "object"
+      },
       "SameDisplayOut": {
         "properties": {
           "display_name": {
@@ -7420,6 +8102,383 @@
           "title"
         ],
         "title": "SearchHitOut",
+        "type": "object"
+      },
+      "SectionOut": {
+        "properties": {
+          "blank_rows": {
+            "title": "Blank Rows",
+            "type": "integer"
+          },
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnOut"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "layout": {
+            "enum": [
+              "fields",
+              "table"
+            ],
+            "title": "Layout",
+            "type": "string"
+          },
+          "max_rows": {
+            "title": "Max Rows",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "layout",
+          "columns",
+          "rows",
+          "blank_rows",
+          "max_rows",
+          "note"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
+      "SeedIn": {
+        "properties": {
+          "csv": {
+            "maxLength": 1000000,
+            "minLength": 1,
+            "title": "Csv",
+            "type": "string"
+          },
+          "synthetic": {
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "csv",
+          "synthetic"
+        ],
+        "title": "SeedIn",
+        "type": "object"
+      },
+      "SeedOut": {
+        "properties": {
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "pii_columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pii Columns",
+            "type": "array"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "object_type",
+          "rows",
+          "pii_columns",
+          "updated_at"
+        ],
+        "title": "SeedOut",
+        "type": "object"
+      },
+      "SendAppliedOut": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "bridge": {
+            "enum": [
+              "draft",
+              "golden",
+              "targets",
+              "accounts"
+            ],
+            "title": "Bridge",
+            "type": "string"
+          },
+          "golden_set_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Id"
+          },
+          "passwords": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Passwords",
+            "type": "object"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "bridge",
+          "applied",
+          "version_id",
+          "golden_set_id",
+          "passwords"
+        ],
+        "title": "SendAppliedOut",
+        "type": "object"
+      },
+      "SendApplyIn": {
+        "properties": {
+          "fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "fingerprint"
+        ],
+        "title": "SendApplyIn",
+        "type": "object"
+      },
+      "SendChangeOut": {
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "blocked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "target",
+          "field",
+          "before",
+          "after",
+          "source",
+          "blocked"
+        ],
+        "title": "SendChangeOut",
+        "type": "object"
+      },
+      "SendIn": {
+        "properties": {
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "title": "SendIn",
+        "type": "object"
+      },
+      "SendPreviewOut": {
+        "properties": {
+          "applicable": {
+            "title": "Applicable",
+            "type": "integer"
+          },
+          "bridge": {
+            "enum": [
+              "draft",
+              "golden",
+              "targets",
+              "accounts"
+            ],
+            "title": "Bridge",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/SendChangeOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "golden_set_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Id"
+          },
+          "golden_set_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Golden Set Name"
+          },
+          "version_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Id"
+          }
+        },
+        "required": [
+          "bridge",
+          "changes",
+          "applicable",
+          "fingerprint",
+          "version_id",
+          "golden_set_id",
+          "golden_set_name"
+        ],
+        "title": "SendPreviewOut",
         "type": "object"
       },
       "ServiceAccountIn": {
@@ -7480,6 +8539,17 @@
               }
             ],
             "title": "Current Topic"
+          },
+          "engagement_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engagement Id"
           },
           "id": {
             "title": "Id",
@@ -7542,11 +8612,25 @@
           "status",
           "current_topic",
           "published_version_id",
+          "engagement_id",
           "created_at",
           "topics",
           "utterances"
         ],
         "title": "SessionDetail",
+        "type": "object"
+      },
+      "SessionLinkIn": {
+        "properties": {
+          "session_id": {
+            "title": "Session Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionLinkIn",
         "type": "object"
       },
       "SessionSummary": {
@@ -7566,6 +8650,17 @@
               }
             ],
             "title": "Current Topic"
+          },
+          "engagement_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engagement Id"
           },
           "id": {
             "title": "Id",
@@ -7614,9 +8709,157 @@
           "status",
           "current_topic",
           "published_version_id",
+          "engagement_id",
           "created_at"
         ],
         "title": "SessionSummary",
+        "type": "object"
+      },
+      "SheetIn": {
+        "properties": {
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "payload"
+        ],
+        "title": "SheetIn",
+        "type": "object"
+      },
+      "SheetIndexOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "kind",
+          "revision",
+          "updated_at"
+        ],
+        "title": "SheetIndexOut",
+        "type": "object"
+      },
+      "SheetKindOut": {
+        "properties": {
+          "intro": {
+            "title": "Intro",
+            "type": "string"
+          },
+          "json_schema": {
+            "additionalProperties": true,
+            "title": "Json Schema",
+            "type": "object"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "number",
+          "title",
+          "stage",
+          "intro",
+          "sections",
+          "json_schema"
+        ],
+        "title": "SheetKindOut",
+        "type": "object"
+      },
+      "SheetOut": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "kind",
+          "revision",
+          "payload",
+          "updated_at",
+          "updated_by"
+        ],
+        "title": "SheetOut",
         "type": "object"
       },
       "SourceIn": {
@@ -7817,6 +9060,37 @@
           "stage"
         ],
         "title": "StageData",
+        "type": "object"
+      },
+      "StageOut": {
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "handoffs": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffOut"
+            },
+            "title": "Handoffs",
+            "type": "array"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "title",
+          "done",
+          "handoffs"
+        ],
+        "title": "StageOut",
         "type": "object"
       },
       "SyncConflictOut": {
@@ -8042,6 +9316,69 @@
           "deployer_url"
         ],
         "title": "SystemOut",
+        "type": "object"
+      },
+      "TargetEvidenceOut": {
+        "properties": {
+          "direction": {
+            "enum": [
+              "min",
+              "max"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "measured": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured"
+          },
+          "met": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Met"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "direction",
+          "target",
+          "measured",
+          "met"
+        ],
+        "title": "TargetEvidenceOut",
         "type": "object"
       },
       "TargetOut": {
@@ -10438,6 +11775,892 @@
         "summary": "Set Contacts",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements": {
+      "get": {
+        "operationId": "list_engagements_api_v1_adoption_engagements_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EngagementSummary"
+                  },
+                  "title": "Response List Engagements Api V1 Adoption Engagements Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Engagements",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "post": {
+        "operationId": "create_engagement_api_v1_adoption_engagements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}": {
+      "get": {
+        "operationId": "get_engagement_api_v1_adoption_engagements__engagement_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Engagement",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_engagement_api_v1_adoption_engagements__engagement_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/decisions": {
+      "post": {
+        "operationId": "decide_api_v1_adoption_engagements__engagement_id__decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decide",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/export": {
+      "get": {
+        "operationId": "export_engagement_api_v1_adoption_engagements__engagement_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Engagement",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/members": {
+      "post": {
+        "operationId": "set_member_api_v1_adoption_engagements__engagement_id__members_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/members/{user_id}": {
+      "delete": {
+        "operationId": "remove_member_api_v1_adoption_engagements__engagement_id__members__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Member",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/pilot": {
+      "get": {
+        "operationId": "get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pilot",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/seeds": {
+      "get": {
+        "operationId": "list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SeedOut"
+                  },
+                  "title": "Response List Seeds Api V1 Adoption Engagements  Engagement Id  Seeds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Seeds",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/seeds/{object_type}": {
+      "delete": {
+        "operationId": "delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Seed",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "put": {
+        "operationId": "put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Seed",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/apply": {
+      "post": {
+        "operationId": "send_apply_api_v1_adoption_engagements__engagement_id__send__bridge__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bridge",
+            "required": true,
+            "schema": {
+              "title": "Bridge",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendApplyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendAppliedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Apply",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/preview": {
+      "post": {
+        "operationId": "send_preview_api_v1_adoption_engagements__engagement_id__send__bridge__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bridge",
+            "required": true,
+            "schema": {
+              "title": "Bridge",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendPreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Preview",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sessions": {
+      "post": {
+        "operationId": "link_session_api_v1_adoption_engagements__engagement_id__sessions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngagementDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Link Session",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sessions/{session_id}": {
+      "delete": {
+        "operationId": "unlink_session_api_v1_adoption_engagements__engagement_id__sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unlink Session",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/sheets/{kind}": {
+      "get": {
+        "operationId": "read_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SheetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Sheet",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "put": {
+        "operationId": "save_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SheetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SheetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Sheet",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/sheet-kinds": {
+      "get": {
+        "operationId": "sheet_kinds_api_v1_adoption_sheet_kinds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SheetKindOut"
+                  },
+                  "title": "Response Sheet Kinds Api V1 Adoption Sheet Kinds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sheet Kinds",
+        "tags": [
+          "adoption"
         ]
       }
     },

@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ActionsPage } from "../features/actions/ActionsPage";
+import { AdoptionPage } from "../features/adoption/AdoptionPage";
+import { EngagementPage } from "../features/adoption/EngagementPage";
+import { SheetPage } from "../features/adoption/SheetPage";
 import { AdminPage } from "../features/admin/AdminPage";
 import { ChatPage } from "../features/chat/ChatPage";
 import { EvalPage } from "../features/eval/EvalPage";
@@ -41,6 +44,9 @@ export function App() {
         <Route path="/actions" element={<ActionsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/workshop" element={<WorkshopPage />} />
+        <Route path="/adoption" element={<AdoptionPage />} />
+        <Route path="/adoption/:engagementId" element={<EngagementPage />} />
+        <Route path="/adoption/:engagementId/sheets/:kind" element={<SheetPage />} />
         <Route path="/eval" element={<EvalPage />} />
         <Route path="/eval/:setId" element={<EvalPage />} />
         <Route path="/eval/:setId/runs/:runId" element={<EvalPage />} />

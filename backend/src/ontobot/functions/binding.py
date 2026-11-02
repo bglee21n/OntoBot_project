@@ -190,3 +190,31 @@ def input_values(vf: ValidatedFunction) -> list[Any]:
         for f in (*b.plan.filters, *(f for h in b.plan.hops for f in h.filters)):
             out.extend(f.value if isinstance(f.value, tuple) else [f.value])
     return out
+
+
+# 질문이 묻는 집계 → 그 낱말. 낱말은 정확 포함으로만 본다(유사도 없음). "합"·"최고"처럼 다른 말
+# ("종합"·"최고 위험")에 섞이는 짧은 낱말은 넣지 않는다.
+_AGG_WORDS: dict[str, tuple[str, ...]] = {
+    "avg": ("평균",),
+    "sum": ("합계", "총합"),
+    "max": ("최대", "최댓값"),
+    "min": ("최소", "최솟값"),
+}
+
+
+def aggregate_mismatch(question: str, fn: FunctionDef) -> list[str]:
+    """질문이 묻는 집계(평균·합계·최대·최소)를 이 Function 이 계산하지 않으면 그 집계 이름들.
+
+    Function 은 정해 둔 값(예: 비율) 하나를 낸다. 측정에서 플래너가 "시설 유형별 평균 위험등급"에
+    "고위험 시설 비율" Function 을 불렀다 — 인자 대조(숫자·값)로는 잡히지 않는다(질문에 값이 없다).
+    내부 조회가 그 집계를 쓰거나, 이름·설명·결과 이름에 그 낱말이 있으면 계산한다고 본다.
+    """
+    text = " ".join(filter(None, (fn.display_name, fn.description, fn.result_label)))
+    used = {q.aggregate.fn for q in fn.queries}
+    return [
+        agg
+        for agg, words in _AGG_WORDS.items()
+        if any(w in question for w in words)
+        and agg not in used
+        and not any(w in text for w in words)
+    ]

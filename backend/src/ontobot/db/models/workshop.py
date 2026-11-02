@@ -23,6 +23,10 @@ class InterviewSession(IdMixin, Base):
     published_version_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("ontology_version.id")
     )
+    # 이 인터뷰가 속한 도입(TRD 17.17 결정 A11). 주제·프롬프트·추출은 그대로 — 화면 옆 패널만 쓴다.
+    engagement_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("engagement.id", ondelete="SET NULL"), index=True
+    )
 
 
 class InterviewUtterance(IdMixin, Base):

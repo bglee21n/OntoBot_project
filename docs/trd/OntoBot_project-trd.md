@@ -2,7 +2,7 @@
 
 | 항목      | 내용                                                             |
 | --------- | ---------------------------------------------------------------- |
-| 문서      | 기술 요구사항 문서(TRD) **v1.0.2** — v1(P1) 구현 확정                 |
+| 문서      | 기술 요구사항 문서(TRD) **v1.4** — v1(P1) 구현 확정 · 도입 지원(Phase 20~) 진행 |
 | 작성일    | 2026-10-19 (v0.3: 2026-10-19 — 22절 개정 이력)                  |
 | 기반 PRD  | `OntoBot_project-prd.md` v0.5                                    |
 | 상세 범위 | MVP(P0)는 구현 가능한 수준으로, P1 이상은 끼워 넣을 자리(17절)와 v1 착수 결정(17.1)까지 |
@@ -720,7 +720,7 @@ v1 계획(`docs/plan/OntoBot_project-v1-implementation-plan.md`)의 착수 전 �
 - **정의**(`ontology.models.FunctionDef`, 17.1-7): `params[]`(자료형·enum·필수, 선택이면 `default`), `queries[]`(1~4개 — 각각 `target`·`filters`·`traverse`·`aggregate` 로 QueryPlan 과 같은 모양의 **집계** 조회, 조건 값 자리에 `{param: 이름}`), `body`(식 트리: `query`·`param`·`const` 잎과 `add/sub/mul/div/round/eq/ne/gt/gte/lt/lte/and/or/not/if` — 마디 인자 수 고정, 깊이 8·마디 40 상한), `result_label`·`result_type`(int/decimal/bool)·`decimals`. 사용자 코드는 받지 않는다. Function 이 없는 문서는 정규 표현에서 `functions` 키가 빠져 기존 `content_hash` 가 그대로다.
 - **게시 전 검사**(`check_document`): 대상·끝 타입·링크 실재(폐기면 문제), 속성 자료형별 연산자(`ontology.models.OPS_BY_TYPE` — 계획 검증과 같은 표), 파라미터 ↔ 속성 자료형(int → decimal, string → enum 허용, `in`·`between`·`is_null` 에는 파라미터 금지), 집계 함수 ↔ 속성(min·max 도 숫자만), 그룹이 있는 조회는 모두 같은 `group_by`, 조회 이름이 그룹 열·`value`·`inputs` 와 겹치지 않음, 식 자료형(산술은 숫자, 논리는 참거짓, `if` 는 같은 자료형 두 갈래)과 결과 자료형. 경로는 언제나 `functions.<이름>`(영향 분석 경로와 같다), 조회 문제는 메시지 앞에 조회 이름.
 - **요약·계획**: 스키마 요약의 `functions` 는 내부에서 조회하는 타입을 **모두** 읽을 수 있고 건너는 링크가 보이는 것만(이름·설명·결과 이름·그룹 열·인자). 하나도 없으면 키도, 플래너 `FUNCTION_RULES` 도 없고 구조화 출력 스키마도 `PlannerOutput` 그대로다(측정한 배포의 녹화 키 유지). 있으면 `FunctionPlannerOutput`(`kind: function`, 필드 순서 `kind·plan·function·action·reason`)과 `FunctionCall{name, args: [{name, value}]}`. 폐기 요소를 조회하는 Function 은 활성 문서(`active()`)에서 빠진다.
-- **검증**(`functions.binding.bind`): 없는 Function 은 재계획, 있지만 읽을 수 없는 타입을 조회하면 `forbidden`(재계획 없음 — 이름을 지어 불러도 같다). 인자는 파라미터 자료형으로 변환(`query.validator.coerce`), 값 없는 선택 인자는 기본값, 기본값도 없으면 그 조건을 빼고 조회(조건 문장에 '지정 안 함'). 내부 조회는 `QueryPlan` 으로 바꿔 `validate` 를 그대로 지난다(호출자 권한, 값 바인드). 파이프라인은 내부 조회마다 참조 값 대조(`query.references`)를 하고, 인자 ↔ 질문을 두 방향으로 대조한다: 질문의 숫자가 인자·내부 조건에 없으면 재계획(`query.coverage`), 넣은 인자 값(enum·bool 제외)이 질문에 그대로 없으면 재계획(Action 값 파라미터와 같은 규칙 — 측정에서 플래너가 기본값을 채워 넣으며 질문의 지역 조건을 뺀 채 불렀다). 오류는 한꺼번에 1회 재계획.
+- **검증**(`functions.binding.bind`): 없는 Function 은 재계획, 있지만 읽을 수 없는 타입을 조회하면 `forbidden`(재계획 없음 — 이름을 지어 불러도 같다). 인자는 파라미터 자료형으로 변환(`query.validator.coerce`), 값 없는 선택 인자는 기본값, 기본값도 없으면 그 조건을 빼고 조회(조건 문장에 '지정 안 함'). 내부 조회는 `QueryPlan` 으로 바꿔 `validate` 를 그대로 지난다(호출자 권한, 값 바인드). 파이프라인은 내부 조회마다 참조 값 대조(`query.references`)를 하고, 인자 ↔ 질문을 두 방향으로 대조한다: 질문의 숫자가 인자·내부 조건에 없으면 재계획(`query.coverage`), 넣은 인자 값(enum·bool 제외)이 질문에 그대로 없으면 재계획(Action 값 파라미터와 같은 규칙 — 측정에서 플래너가 기본값을 채워 넣으며 질문의 지역 조건을 뺀 채 불렀다). 질문이 묻는 집계 낱말(평균·합계·총합·최대·최소, 정확 포함)을 그 Function 이 계산하지 않으면(내부 조회 집계에도, 이름·설명·결과 이름에도 없으면) 재계획 — 다른 값을 고른 것이다(v1.0.3, `functions.binding.aggregate_mismatch` — 매뉴얼 질문 예시에서 "시설 유형별 평균 위험등급"에 고위험 비율 Function 을 불렀다). 오류는 한꺼번에 1회 재계획.
 - **실행·계산**(`functions.runner`·`evaluator`): 내부 조회를 파이프라인의 실행기로 차례로 돈다(장애 주입도 같은 실행기). 하나라도 `failed` 면 전체가 같은 사유로 `failed`. 값은 그룹 키로 맞추고(그룹이 있는 조회 키의 합집합, 최대 100개 그룹), 빠진 키는 `count` 0·그 밖 값 없음. 계산은 `Decimal`, 값 없음은 번지고 0 으로 나누면 값 없음, 결과는 서버가 `decimals` 로 반올림. 그룹 결과가 하나도 없으면 `empty`.
 - **인용**(17.1-8): 결과 행은 `q:N` 근거 — 칸은 그룹 열, **내부 조회 값마다 하나**(이름 = 조회 이름, 라벨 = 조회 표시 이름), `value`(라벨 = `result_label`), 인자가 있으면 `inputs`(입력 조건 문장). 답이 "10곳 중 3곳(30%)"처럼 계산 근거를 말해도 칸마다 인용된다. 근거 대조(`grounding`)는 바뀌지 않았다. 조건 값 가리기는 내부 조회 조건 값과 인자 값. 대화 맥락은 바꾸지 않는다(집계와 같다).
 - **조회 조건 문장**: `고위험 시설 비율(기준 위험등급 = 4(기본값)) · 고위험 시설 수: 시설 · 위험등급 ≥ 4 · 시설 유형별 건수 / 전체 시설 수: 시설 · 시설 유형별 건수 · 최대 100개 그룹` — Function 표시 이름·인자(기본값 표시), 내부 조회마다 7.1 5단계 문장(최대 N건 없이).
@@ -951,6 +951,116 @@ PRD 7절의 v1 지표. `GET /admin/metrics?days=30`(관리자, `actions.metrics`
 - 한계: 시연 표는 만든 때의 `public` 표 모양을 베낀다 — 업그레이드로 객체 표가 바뀌면 지우고 다시 넣는다. 스키마는 지우기 전까지
   남는다(백업에 들어간다). 통합 테스트는 세션 시작 때 `demo_v*` 를 함께 지운다(버전 id 가 다시 매겨진다).
 
+### 17.17 도입 지원 — 착수 전 결정과 도입 작업 공간 (v1.1, Phase 20, PRD 5.8 v0.6)
+
+사용자 매뉴얼 36장 도입 현장 양식을 앱에 저장하고(Phase 20), 사람이 확인하는 보내기로 기존 기능에 넘긴다(Phase 21~).
+계획: `docs/plan/OntoBot_project-adoption-implementation-plan.md`. 원칙은 v1 과 같다: LLM 이 하는 일을 늘리지 않는다
+(양식 내용은 LLM 에 보내지 않는다), 바로 반영하지 않는다(보내기는 기존 검토 단계를 지난다), 측정한 프롬프트·스키마·
+카세트를 건드리지 않는다.
+
+**착수 전 결정(2026-11-02 확정, 계획 초안의 권장안 그대로)**
+
+1. **저장(A1)**: 새 표 `engagement`(도입 한 건)·`engagement_sheet`(양식 한 장: `kind`·`payload jsonb`·`revision`)·
+   `engagement_member`. 온톨로지 정의 문서에 넣지 않는다(`content_hash`·카세트 키 유지).
+2. **양식 모양(A2)**: `adoption/sheets.py` 가 양식의 정본(순수 모듈). 화면은 그 선언을 그리는 범용 편집기 하나, 서버는 같은
+   선언에서 만든 Pydantic 모델로 검증한다. 매뉴얼 36장 표 머리글·고정 행이 선언과 같은지 단위 테스트가 맞춘다.
+3. **접근(A3)**: 도입 구성원(`owner`·`editor`·`viewer`)만 본다. 만들기는 modeler·admin, 만든 사람이 owner. 판정은
+   `rbac.engagement_access` 하나. 양식은 객체 데이터가 아니라서 데이터 그룹으로 거르지 않는다.
+4. **개인정보(A4)**: 이해관계자 이름처럼 사람 정보 칸은 선언에서 `pii`. 감사 payload 에는 양식 값을 넣지 않는다(종류·
+   판·바뀐 묶음 이름만). 원값은 구성원에게만 보인다.
+5. **보내기(A5, Phase 21)**: 모두 계획 → 미리보기 → 적용. 미리보기는 순수 함수(`adoption/bridges.py`)의 차이 목록, 적용은
+   기존 서비스 함수를 같은 트랜잭션에서 부르고 `audit.record`. 다시 보내도 결과가 같다(키는 이름 정확 일치).
+6. **설계도로 보내기(A6)**: draft 만. `api_name` 정확 일치로 찾고 `api_name` 은 바꾸지 않는다(표시 이름·설명·목록 값만).
+7. **골든 후보(A7)**: `golden_item.source` 에 `adoption`. 기대 답이 없는 후보는 평가에 들어가지 않는다.
+8. **성공 지표(A8)**: 시스템 지표 칸은 `evaluation/targets.update`(아는 지표 키만). 평가 게이트(`gate.yaml`)는 건드리지 않는다.
+9. **계정·그룹(A9)**: 관리자가 확인하면 `security/admin` 의 함수를 부른다. SSO 사용자는 만들지 않고 그룹 `external_id` 만.
+10. **자산화(A10)**: 도메인 팩 모양 zip(게시본 `ontology.yaml`·확정 골든·양식 JSON). 객체 행은 내보내지 않는다.
+11. **워크숍(A11)**: `interview_session.engagement_id`(null 가능)만 더한다. 주제·프롬프트·추출은 그대로.
+
+**Phase 20 도입 작업 공간**
+
+- **표**(마이그레이션 0021): `engagement`(`name`·`description`·`created_by`), `engagement_member`(`engagement_id`·`user_id`·
+  `role` ∈ owner/editor/viewer, 둘이 유일), `engagement_sheet`(`engagement_id`·`kind`·`payload`·`revision`·`updated_by`·
+  `updated_at`, (`engagement_id`, `kind`) 유일). 양식 행은 처음 저장할 때 생긴다 — 저장 전 양식은 빈 payload·판 0 이다.
+- **양식 선언**(`adoption.sheets`): 36.1~36.16 의 16종. 양식 = 묶음(`Section`)들, 묶음은 칸 묶음(`fields`) 또는 표(`table`).
+  표의 열은 고정 열(매뉴얼이 적어 둔 값, 읽기 전용)과 입력 열로 나뉜다. 행이 정해진 표(`rows`)는 매뉴얼의 행을 그대로
+  갖고 입력 열 칸의 매뉴얼 글은 자리 표시(hint)가 된다. 행이 정해지지 않은 표는 행을 더한다(최대 100행, 인쇄는 매뉴얼의
+  빈 행 수만큼). 칸 종류: `text`(500자)·`long`(4000자)·`choice`(정해 둔 값 — 예/아니오·낮음/보통/높음·상/중/하·1~5 등)·
+  `check`(참거짓). payload 는 `{묶음: {칸: 값}}`(칸 묶음)·`{묶음: [{칸: 값}, …]}`(표, 행이 정해진 표는 그 순서) 모양이고
+  선언에 없는 키·정해 둔 값 밖의 값·길이 초과는 422(`sheet_invalid`, 모든 문제를 `issues` 로 한꺼번에).
+- **저장**: `PUT …/sheets/{kind}` 에 읽을 때 받은 `revision` 을 함께 보낸다. 지금 판과 다르면 409(`revision_conflict`,
+  지금 판을 알려 준다 — 덮어쓰지 않는다). 저장마다 판이 1 오르고 `adoption.sheet_saved` 를 남긴다.
+- **진행**(`adoption.progress`, 순수): 매뉴얼 36장 단계표의 "다음 단계에 넘길 것"을 양식 칸에 대응시켜(예: 2단계 "풀 문제
+  한 문장" = 36.5 의 그 칸) 채워졌는지만 본다. 판정은 빈 글자가 아닌지뿐이다(내용의 좋고 나쁨을 보지 않는다).
+- **접근**: 구성원이 아니면 그 도입은 없는 것과 같은 404(워크숍 세션과 같은 말 — 존재를 알리지 않는다). viewer 는
+  읽기만, editor 는 양식 저장, owner 는 이름·설명·구성원 관리. 마지막 owner 는 빼거나 낮출 수 없다(자기 잠금 방지와 같은
+  결). 구성원은 아이디 정확 일치로 더하고 서비스 계정·비활성 계정은 받지 않는다.
+- **API**(`api/adoption.py`, 검증·위임만): `GET /adoption/sheet-kinds`(선언·JSON Schema), `GET|POST /adoption/engagements`,
+  `GET|PATCH /adoption/engagements/{id}`(구성원·양식 판·진행), `POST …/members`·`DELETE …/members/{user_id}`,
+  `GET|PUT …/sheets/{kind}`. 감사 이벤트 `adoption.engagement_created`·`adoption.engagement_updated`·
+  `adoption.members_changed`·`adoption.sheet_saved`.
+- **화면**: 메뉴 "도입"(modeler·admin, 또는 도입 구성원), 도입 목록 → 도입 한 건(다섯 단계와 진행, 구성원) → 양식
+  편집기(인쇄 보기는 CSS print — 메뉴·단추를 숨기고 빈 행을 매뉴얼 수만큼 채운다).
+- **한계**: 동시 편집은 판 비교로 막기만 한다(합치지 않는다 — 409 를 받으면 다시 읽고 고친다). 양식 선언을 바꾸면 이미
+  저장한 payload 가 새 선언에 맞지 않을 수 있다 — 읽기는 그대로 돌려주고 다음 저장에서 검증한다.
+
+**Phase 21 양식 → 제품 보내기**(v1.2)
+
+- **모양**(`adoption.bridges` 순수 · `adoption.send` 적용): `POST …/send/{bridge}/preview` 가 바뀔 것의 목록(`op·target·field·
+  before·after·source·blocked`)과 **지문**(목록의 sha256)을 낸다. `blocked` 는 null = 적용, `""` = 이미 같음, 글자 = 막힌 까닭.
+  `POST …/send/{bridge}/apply` 는 그 지문을 받아 목록을 다시 계산하고, 다르면 409(`preview_stale`) — 본 것과 다른 것을
+  적용하지 않는다. 적용은 받는 곳의 기존 서비스 함수만 부르고(같은 트랜잭션, 받는 곳의 감사는 그 함수가), `adoption.sent`
+  (보내기·적용 수·막힌 수·만든 버전/골든셋 id, 값 없음)를 더한다. 같은 양식을 다시 보내면 적용할 것이 0 이다.
+- **권한**(`rbac.can_send`): 그 도입의 editor 이상이고 받는 곳 화면의 역할 — draft = modeler, golden = bot_builder·modeler,
+  targets·accounts = admin. 보내기가 받는 곳의 권한을 우회하지 않는다.
+- **21a 용어집 → draft**: 36.11 의 `API 이름` 칸(`Type`·`Type.prop`·`prop`, `prop` 은 한 타입에만 있을 때) 정확 일치로
+  표시 이름·설명·목록 값만. 맞는 것이 없으면 추가하지 않고 막는다(자료형·소속 타입은 양식이 정하지 않는다). 목록 값은
+  더하기만(빠지는 값이 있으면 막음), 목록 값 속성이 아니면 막음. 바뀐 정의가 정의 문서 규칙을 지나는지 미리본다. 받는
+  곳은 고른 draft, 고르지 않으면 게시본을 부모로 새 draft(`versioning.create_draft`) — 게시본은 바뀌지 않는다.
+  흔들리는 말 표(v1.4 에 `API 이름` 열)의 합의한 정의 `값 = 뜻` 은 그 목록 값 속성에 값을 **더한다**(용어집의 목록 값과 합쳐
+  한 번에 본다, 뜻은 양식에만). 36.8 설계도 후보 열의 API 이름(`Type`·`Type.prop`·밑줄 있는 속성 이름)은 `op=note` 참고로만
+  보인다 — 설계도에 있는지만 알리고 적용하지 않는다(보내기는 타입·속성·Action 을 만들지 않는다).
+- **21b 질문 → 골든 후보**: 36.7 관찰 기록의 질문 후보·36.10 골든 질문·36.9 더 확인할 것의 관련 질문을 도입 전용 골든셋
+  `adoption-engagement-<id>` 에 `source=adoption` 으로(마이그레이션 0022). 같은 문장(NFC·공백 정규화 뒤 정확 일치)은
+  건너뛴다. 기대 값은 비어 있다 — 평가 화면에서 확정한다. 도입 전용 골든셋이라 운영 골든셋·게이트에 섞이지 않는다.
+  36.4 첫 미팅 질문지의 "찾아보는 질문" 행 메모도 줄마다 후보가 된다(v1.4).
+- **21c 성공 지표 → 목표**: 36.14 성공 지표 표의 목표 칸 중 키가 있는 시스템 지표(답 정답률 → `accuracy`, 응답 시간 →
+  `p95_seconds`, Action 실행 성공률 → `action_success_rate`)만 `targets.update` 로. 비율은 `90%`·`0.9`, 시간은 `25`·`25초`.
+  `gate.yaml` 은 건드리지 않는다.
+- **21d 이해관계자 → 계정·그룹**: 36.6 사람 표에 `OntoBot 아이디` 열을 더했다. 아이디·그룹 이름(또는 이미 있는 그룹의 표시
+  이름) 정확 일치. 없는 그룹·계정만 만들고(`admin.create_group`·`create_local_user`), 역할은 더하기만(`update_user`),
+  그룹 구성원은 넣기만(`set_members` 에 지금 구성원을 합쳐서). 새 계정의 임시 비밀번호는 적용 응답에만 한 번 — 저장·감사·
+  로그에 남기지 않는다. 서비스 계정·모르는 역할·규칙에 맞지 않는 새 그룹 이름은 막는다. SSO 계정은 만들지 않는다 —
+  v1.4 의 `SSO 그룹 ID` 열로 그룹의 `external_id` 를 **비었을 때만** 넣는다(`admin.update_group`, 다른 값이 있으면·다른
+  그룹이 그 값을 쓰면 막는다). 첫 SSO 로그인이 그 값으로 그룹을 맞춘다(`admin.sync_external_groups`, 정확 일치).
+- **21e 인터뷰 잇기**: `interview_session.engagement_id`(null 가능, 도입을 지우면 null). 그 인터뷰를 볼 수 있는 사람(본인
+  또는 modeler, `rbac.can_link_session`)이 도입 editor 일 때 잇는다. 인터뷰 화면은 이은 도입의 36.9 기록을 읽기 전용
+  패널로 보인다(도입 구성원이 아니면 패널 없음). 워크숍 주제·프롬프트·추출은 그대로다.
+
+**Phase 22 파일럿 판단·자산화**(v1.3)
+
+- **판단 근거**(`adoption.pilot`, `GET …/pilot`): 마지막 **실제 모델** 평가 실행(`status=succeeded`, `llm_config.mode` 가
+  replay 가 아닌 것 중 id 가 가장 큰 것 — `targets._measured` 와 같은 정의)의 게이트·검사, `targets.load` 의 목표·지금 값,
+  36.14 성공 지표 표의 업무 지표 행(조회에 드는 시간·활용도 — 적힌 그대로, 계산하지 않는다).
+- **판단**(`POST …/decisions`, `engagement_decision` 마이그레이션 0023 — 고치지 않고 쌓인다): 계속(`go`)·보완 뒤 계속
+  (`go_after_fix`)·보류(`no_go`)와 사유. 실제 모델 평가가 없거나, 불변식 위반이 있거나, 게이트를 통과하지 못했으면 보류만
+  고를 수 있다 — 서버가 판단하는 순간의 근거를 다시 읽어 막는다(422 `decision_blocked`). 불변식 위반은 평균 점수로
+  상쇄하지 않는다(매뉴얼 20.6). 기록에는 그때의 실행 id·게이트 결과·불변식 위반 수가 함께 남고 `adoption.decided` 를
+  남긴다. 판단 기록이 있으면 5단계 "계속할지 판단"이 채워진 것으로 본다. 판단은 도입 owner 이고 modeler·admin
+  (`rbac.can_decide_pilot`).
+- **자산화 내보내기**(`adoption.export`, `GET …/export` → `application/zip`): `ontology.yaml`(게시본, `importer.dump`),
+  `golden.yaml`(도입 골든셋에서 기대 값을 확정한 문항 — 기대 값·없어야 할 값·실패 사유가 있거나 답할 수 없다고 정한 것,
+  `evaluation.golden.Pack` 모양), `adoption/<kind>.json`(양식 — 선언의 `pii` 칸 값은 뺀다: 이름·연락처·아이디 칸),
+  `adoption/engagement.json`(이름·설명·판단 기록), `README.md`. **객체 행·원천 데이터는 담지 않는다.** 내보내기는 도입
+  owner 이고 modeler·admin(`rbac.can_export_engagement`), `adoption.exported`(설계도 버전·문항 수·양식 수)를 남긴다.
+- **합성 예시 데이터**(v1.4, `adoption.seeds`, `engagement_seed` 마이그레이션 0024, `GET|PUT|DELETE …/seeds/{type}`):
+  타입마다 CSV 하나. 게시본 설계도로 `workshop.demo.parse_rows` 와 같은 규칙으로 검사한다(첫 줄 = 속성 이름, 정의에 없는
+  열·pk 빈칸·겹침·자료형 오류가 하나라도 있으면 표 전체 422 `seed_invalid`, 최대 1000행). 올리는 사람이 "실제 값을 바꾼
+  합성 데이터"라고 밝혀야 하고(`synthetic`), 사람 정보(`pii_kind`) 속성 열이 있으면 응답·목록에 그 열을 알린다. 운영
+  `object` 표에는 넣지 않는다. zip 의 `seed/<타입 소문자>.csv`(`seed_domain_pack.py` 의 이름)로 들어가고, 내보낼 때 지금
+  게시본으로 다시 검사해 맞지 않는 것은 빼고 README 에 적는다. `adoption.seed_changed`(타입·행 수·사람 정보 열).
+- **한계**: 판단 근거의 평가 실행은 골든셋을 가리지 않고 마지막 실제 실행이다.
+
 ## 18. PRD 추적 매트릭스 (P0)
 
 | PRD | 요구사항                                                              | TRD       | 모듈                                      | 검증                            |
@@ -1064,6 +1174,11 @@ v1(PRD 8절 P1 행) 구현을 마쳤다. 출시 확인은 아래가 전부이고
 | v0.33 | 2026-10-31 | Phase 18c 샘플 데이터 시연(17.16) — 버전별 격리 스키마 `demo_v<id>`·`search_path` 주입 하나로 운영 파이프라인 그대로 질의, CSV 샘플 행(전체 실패 규칙), 그래프 없음 |
 | **v1.0** | 2026-10-31 | **v1(P1) 구현 확정**(Phase 19) — 출시 확인 20.1(게이트·부하·설치 → 업그레이드 → 롤백 왕복), 업그레이드가 새 LLM 역할·모델을 빠뜨리는 문제 수정(`ontobotctl` 설정 차이 알림·`--with-models`·`embedder_not_configured`), ADR-0016 을 21절에, 기반 PRD v0.5 |
 | v1.0.2 | 2026-11-01 | 9.1 보안 점검 반영 — 로컬 로그인 실패 잠금(5분 안에 아이디별 5회·접속 주소별 30회, `429 login_locked` — 배포 콘솔에는 있었으나 앱에 없었다), 응답 보안 헤더(클릭재킹·자료형 추측 방지), SSO `return_to` 의 제어 문자 거부. 의존성 점검: Python(앱·배포 콘솔·개발 콘솔) 알려진 취약점 0, npm 운영 의존성 0(개발 도구 eslint 의 minimatch 중간 등급 1 — 배포물에 들어가지 않음) |
+| v1.4 | 2026-11-02 | 17.17 빠진 보내기·자산화 보강 — 흔들리는 말 → 목록 값 더하기(`API 이름` 열), 36.8 설계도 후보 참고, 36.4 찾아보는 질문 → 골든 후보, 36.6 `SSO 그룹 ID` → 그룹 `external_id`(비었을 때만), 합성 예시 CSV 올리기·검사·zip seed/(`engagement_seed`, 마이그레이션 0024) |
+| v1.3 | 2026-11-02 | 17.17 Phase 22 파일럿 판단(`engagement_decision`, 마이그레이션 0023 — 실제 모델 평가·불변식·게이트가 맞지 않으면 보류만)·자산화 내보내기 zip(설계도·확정 골든·사람 정보 뺀 양식, 객체 행 없음) |
+| v1.2 | 2026-11-02 | 17.17 Phase 21 양식 → 제품 보내기 — 미리보기·지문·적용(`adoption.bridges`·`send`), 용어집 → draft·질문 → 도입 골든셋·성공 지표 → 목표·이해관계자 → 계정·그룹, 인터뷰 잇기(마이그레이션 0022: `golden_item.source` 에 `adoption`, `interview_session.engagement_id`), 36.6 에 `OntoBot 아이디` 열 |
+| v1.1 | 2026-11-02 | 17.17 도입 지원 — 착수 전 결정 A1~A11 확정, Phase 20 도입 작업 공간(`engagement`·`engagement_sheet`·`engagement_member`, 마이그레이션 0021, 양식 16종 선언·판 비교 저장·진행 판정·구성원 권한) |
+| v1.0.3 | 2026-11-02 | 17.4 Function 집계 대조 — 질문이 묻는 평균·합계·최대·최소를 계산하지 않는 Function 을 부르면 재계획(골든 fn05·fn06 추가, 실제 모델 게이트 통과·카세트 재녹화) |
 | v1.0.1 | 2026-10-31 | 8.2-3 인용 대조에서 조회 조건 값 제외 — 매뉴얼 촬영에서 건수 2인데 "2 이하인 철탑은 1개입니다 [[q:1#value]]"가 ① 을 받음(문장의 조건 값 2가 결과 값 2를 증명). 조건 값은 값마다 한 번씩(숫자 경계) 걷어 내고, 인용 속성이 대상 필터의 속성이면 그 조건 값은 남긴다(`GroundingContext.field_conditions`). 평가 재생은 변경 전후 같음(정답률 0.9706·등급 ①25 ②1 ③2) |
 | v0.24 | 2026-10-31 | Phase 14c 감사 로그 해시 체인(17.8) — `seq`·`hash`·`audit_chain_head`·트리거·해시 함수(마이그레이션 0014, 기존 행 채움), 검증(끊김 6종, 보고만)·매일 작업·CLI·관리 화면 |
 | v0.23 | 2026-10-31 | Phase 14b 속성 숨김·행 정책(17.7) — `group_property_hide`·`group_row_policy`·`golden_set.restrictions`(마이그레이션 0013), 합집합 규칙(`rbac.merge`), 보이는 문서(`without_properties`), 컴파일러 행 정책 주입(닫힌 쪽 실패), 근거 카드·Action 쓰기 정책, 관리 화면, 평가 침투 문항 |

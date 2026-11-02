@@ -7,13 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.0.2) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.4) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
-[v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~, 초안) · [ADR](docs/adr/).
+[v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
 설치는 미검증), v1 착수 결정(TRD 17.1), Phase 9(편집 레이어·값 계보)·10(Action·메일·SMS)·11(채팅에서 Action)·
 G1(스키마 그래프 편집기, [제안서](docs/plan/OntoBot_project-graph-editing-proposal.md))·12(Function)·13 일부(운영 지표·목표)·14(데이터 그룹·속성·행 권한·감사 해시 체인)·15(피드백·객체 탐색·트레이스 화면)·16a(문서 등록·색인)·16b(임베딩 측정, ADR-0016)·16c(문서 ↔ 객체 링크)·16d(문서 질문·문서 인용) 완료 — 다음은
-v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료. 설치 정본은
+v1(P1) 구현 확정(Phase 19, TRD v1.0 20.1 — 실제 폐쇄망 장비 설치·대상 OS 0단계 점검은 미검증). 17(게시 영향·공개 REST API)·18(워크숍 확장형)·19(게이트·부하·설치 → 업그레이드 → 롤백 왕복 — Phase 13 에서 남은 왕복도 여기서) 완료.
+도입 지원은 착수 전 결정 A1~A11 확정(TRD 17.17), Phase 20(도입 작업 공간 — 양식 16종 저장·편집·인쇄)·21(양식 → 제품 보내기)·22(파일럿 판단·자산화 zip) 완료 — Phase 23(용어집 동의어 → 플래너)은 실제 도입에서 동의어 오답이 골든으로 확인될 때만. 설치 정본은
 [deploy/INSTALL.md](deploy/INSTALL.md). 비개발자용 [운영자 매뉴얼](docs/manual/operator-manual.md)·
 [사용자 매뉴얼](docs/manual/user-manual.md)은 화면·운영 절차를 바꾸면 함께 고친다.
 
@@ -111,6 +112,9 @@ backend/src/ontobot/
   explorer/   객체 탐색(검색·1홉 이웃 — graph/traversal 의 Cypher, 제목은 reader) · limits(관리자 확장 한도)
   documents/  extract(txt·md·PDF 글자 층) · chunking(겹침 없는 청크, 순수) · store(그룹 소유·등록·삭제) · indexing(임베딩 작업) · vector_index(모델별 부분 HNSW)
               matching(본문의 객체 제목·pk 정확 일치, 순수) · links(링크 후보·확정, 찾는/보는 사람 권한)
+  adoption/   sheets(매뉴얼 36장 양식 16종 선언·검증, 순수) · progress(단계별 넘길 것, 순수) · store(도입·구성원·판 비교 저장)
+              bridges(양식 → 제품 미리보기, 순수) · send(지문 확인 뒤 기존 서비스 함수로 적용)
+              pilot(36.14 판단 근거·고를 수 있는 판단) · export(36.15 zip — 객체 행·사람 정보 없음)
 frontend/src/ React + TanStack Query. api/schema.d.ts 는 생성물(손대지 말 것), features/<화면>/
 domain-packs/sample/  ontology.yaml · seed/*.csv(합성) · golden.yaml(기대값은 시드에서 계산)
 ```
@@ -238,7 +242,8 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - **Function 은 선언형뿐**(TRD 17.4) — 사용자 코드를 받지 않는다. 내부 조회는 `QueryPlan` 으로 바꿔 `validate` 를
   그대로 지나야 한다(값 바인드·호출자 권한 — 읽을 수 없는 타입이면 `forbidden`). 내부 조회는 파이프라인의 실행기로만
   돈다(장애 주입 지점을 따로 만들지 말 것). 인자 값(enum·bool 제외)은 질문에 **그대로** 있어야 한다 — 기본값을 채워
-  넣으며 질문 조건을 빼는 계획을 막는 유일한 결정론적 장치다(ADR-0004 Phase 12). Function 이 요약에 없으면 플래너
+  넣으며 질문 조건을 빼는 계획을 막는 유일한 결정론적 장치다(ADR-0004 Phase 12). 질문이 묻는 평균·합계·최대·최소를 그 Function 이 계산하지
+  않으면 재계획(`binding.aggregate_mismatch`, 낱말 정확 포함 — 짧은 낱말 "합"·"최고"를 넣지 말 것, 다른 말에 섞인다). Function 이 요약에 없으면 플래너
   스키마는 `PlannerOutput` 그대로다(녹화 키) — `FunctionPlannerOutput` 을 기본으로 바꾸지 말 것.
 - **데이터 권한은 데이터 그룹이 준다**(Phase 14 — 역할은 화면·기능). 판정은 `security/rbac.py` 의 `readable_types`·
   `editable_types` 뿐이고 소속 그룹의 합집합이다(거부 규칙 없음). Action 요청에는 대상 타입 **편집**이 필요하다.
@@ -254,6 +259,22 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   부른다 — 공개용 우회 경로를 만들지 말 것. Action 은 요청까지만(승인은 사람).
 - **워크숍 시연(Phase 18c)은 `objects.demo_store.use` 의 `search_path` 하나로 저장소를 바꾼다** — 객체 SQL 에 스키마를
   적지 말 것(`public.object` 처럼 적으면 시연이 운영 표를 읽는다). 파이프라인에 시연용 분기·주입을 넣지 말 것.
+- **도입 양식(Phase 20, TRD 17.17)**: 양식의 정본은 `adoption/sheets.py` 하나다 — 화면은 그 선언을 그리고 서버는 같은
+  선언으로 검증한다. 칸·표를 바꾸면 매뉴얼 36장도 함께 고친다(`test_adoption.py` 가 머리글·고정 행을 매뉴얼과 대조한다).
+  양식 내용은 LLM 에 보내지 않고, 감사 payload 에 양식 값을 넣지 않는다(사람 정보 칸이 있다 — 종류·판·바뀐 묶음 이름만).
+  권한은 `rbac.engagement_access`(그 도입의 구성원 역할) 하나이고 구성원이 아니면 404(관리자도). 저장은 판 비교 —
+  판이 다르면 409 이지 덮어쓰지 않는다. 자산화 내보내기에 객체 행을 넣지 않는다.
+- **양식 → 제품 보내기(Phase 21)**: 미리보기 → 적용이고 적용은 미리보기 **지문**이 같아야 한다(`preview_stale`). 맞추기는
+  이름 정확 일치뿐(유사도 금지), 지우기·자료형 바꾸기·역할 빼기는 보내기로 하지 않는다. 적용은 받는 곳의 **기존 서비스
+  함수**만 부른다(`versioning`·`golden`·`targets`·`security.admin`) — 우회 쓰기 경로를 만들지 말 것. 권한은
+  `rbac.can_send`(도입 editor + 받는 곳 역할). 골든 후보는 도입 전용 골든셋에만(운영 게이트에 기대 값 없는 문항을 섞지
+  않는다). 새 계정 임시 비밀번호는 적용 응답에만 — 저장·감사·로그에 넣지 말 것. SSO 그룹 ID 는 비었을 때만 넣는다(덮어쓰지
+  말 것 — SSO 로그인의 그룹 맞추기가 그 값에 기댄다). 36.8 설계도 후보는 참고(`op=note`)뿐이다 — 만들기로 바꾸지 말 것.
+- **파일럿 판단(Phase 22)**: 불변식 위반·게이트 실패·실제 모델 평가 없음이면 보류만 — 판단하는 순간 서버가 근거를 다시
+  읽는다(`pilot.allowed`). 이 규칙을 화면에만 두지 말 것. "마지막 실제 실행"은 `targets._measured` 와 같은 정의(replay 제외,
+  id 순서)다 — 둘이 갈라지면 패널과 목표가 다른 실행을 본다. 자산화 zip 에는 객체 행·원천 데이터를 넣지 않고, 양식은
+  `export.strip_pii` 로 선언의 `pii` 칸을 뺀다(사람 정보 칸을 새로 만들면 `pii=True` 를 잊지 말 것). 합성 CSV(`adoption.seeds`)는
+  운영 `object` 표에 넣지 않고 zip 의 `seed/` 로만 나간다 — 검사는 `workshop.demo.parse_rows` 하나를 쓴다.
 - **로컬 로그인 실패 잠금**(`security.auth.login_throttle`, 5분 안에 아이디별 5회·접속 주소별 30회 → 429 — 주소 기준을 아이디와 같게 조이면
   사내 프록시 뒤 전원이 한 사람 실수로 막힌다)은 프로세스 메모리다 — 앱은
   워커 하나(`app.Dockerfile` `--workers 1`)라서 맞다. 워커를 늘리면 잠금을 DB 로 옮겨야 한다. 통합 테스트는 `client`

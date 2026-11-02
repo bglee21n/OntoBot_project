@@ -473,6 +473,265 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/adoption/engagements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Engagements */
+        get: operations["list_engagements_api_v1_adoption_engagements_get"];
+        put?: never;
+        /** Create Engagement */
+        post: operations["create_engagement_api_v1_adoption_engagements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Engagement */
+        get: operations["get_engagement_api_v1_adoption_engagements__engagement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Engagement */
+        patch: operations["patch_engagement_api_v1_adoption_engagements__engagement_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_adoption_engagements__engagement_id__decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Engagement */
+        get: operations["export_engagement_api_v1_adoption_engagements__engagement_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Member */
+        post: operations["set_member_api_v1_adoption_engagements__engagement_id__members_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Member */
+        delete: operations["remove_member_api_v1_adoption_engagements__engagement_id__members__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/pilot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pilot */
+        get: operations["get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/seeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Seeds */
+        get: operations["list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/seeds/{object_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Seed */
+        put: operations["put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put"];
+        post?: never;
+        /** Delete Seed */
+        delete: operations["delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Apply */
+        post: operations["send_apply_api_v1_adoption_engagements__engagement_id__send__bridge__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Preview */
+        post: operations["send_preview_api_v1_adoption_engagements__engagement_id__send__bridge__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Session */
+        post: operations["link_session_api_v1_adoption_engagements__engagement_id__sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink Session */
+        delete: operations["unlink_session_api_v1_adoption_engagements__engagement_id__sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/sheets/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Sheet */
+        get: operations["read_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__get"];
+        /** Save Sheet */
+        put: operations["save_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/sheet-kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sheet Kinds */
+        get: operations["sheet_kinds_api_v1_adoption_sheet_kinds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -2495,6 +2754,15 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** BusinessMetricOut */
+        BusinessMetricOut: {
+            /** Current */
+            current: string | null;
+            /** Label */
+            label: string;
+            /** Target */
+            target: string | null;
+        };
         /** ChangeImpactOut */
         ChangeImpactOut: {
             /**
@@ -2588,6 +2856,24 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** ColumnOut */
+        ColumnOut: {
+            /** Fixed */
+            fixed: boolean;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "long" | "choice" | "check";
+            /** Label */
+            label: string;
+            /** Options */
+            options: string[];
+            /** Pii */
+            pii: boolean;
+        };
         /** ColumnsIn */
         ColumnsIn: {
             /** Query */
@@ -2652,6 +2938,41 @@ export interface components {
         CreateVersion: {
             /** Parent Id */
             parent_id?: number | null;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "go" | "go_after_fix" | "no_go";
+            /** Reason */
+            reason: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided By */
+            decided_by: number | null;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "go" | "go_after_fix" | "no_go";
+            /** Eval Run Id */
+            eval_run_id: number | null;
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Id */
+            id: number;
+            /** Invariant Violations */
+            invariant_violations: number;
+            /** Reason */
+            reason: string;
         };
         /** DeliveryOut */
         DeliveryOut: {
@@ -2943,6 +3264,78 @@ export interface components {
              * @enum {string}
              */
             status: "confirmed" | "rejected";
+        };
+        /** EngagementCreate */
+        EngagementCreate: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+        };
+        /** EngagementDetail */
+        EngagementDetail: {
+            /** Can Decide */
+            can_decide: boolean;
+            /** Can Edit */
+            can_edit: boolean;
+            /** Can Export */
+            can_export: boolean;
+            /** Can Manage */
+            can_manage: boolean;
+            /** Can Send */
+            can_send: {
+                [key: string]: boolean;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: number;
+            /** Members */
+            members: components["schemas"]["MemberOut"][];
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "owner" | "editor" | "viewer";
+            /** Name */
+            name: string;
+            /** Sessions */
+            sessions: components["schemas"]["LinkedSessionOut"][];
+            /** Sheets */
+            sheets: components["schemas"]["SheetIndexOut"][];
+            /** Stages */
+            stages: components["schemas"]["StageOut"][];
+        };
+        /** EngagementPatch */
+        EngagementPatch: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+        };
+        /** EngagementSummary */
+        EngagementSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: number;
+            /**
+             * My Role
+             * @enum {string}
+             */
+            my_role: "owner" | "editor" | "viewer";
+            /** Name */
+            name: string;
         };
         /** Enqueued */
         Enqueued: {
@@ -3535,6 +3928,15 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HandoffOut */
+        HandoffOut: {
+            /** Filled */
+            filled: boolean;
+            /** Label */
+            label: string;
+            /** Sheets */
+            sheets: string[];
+        };
         /** ImpactRefOut */
         ImpactRefOut: {
             /** Blocking */
@@ -3813,6 +4215,18 @@ export interface components {
             /** To Type */
             to_type: string;
         };
+        /** LinkedSessionOut */
+        LinkedSessionOut: {
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "submitted" | "published";
+            /** Title */
+            title: string | null;
+        };
         /** LocalLogin */
         LocalLogin: {
             /** Password */
@@ -3906,6 +4320,30 @@ export interface components {
             id: number;
             /** Roles */
             roles: string[];
+        };
+        /** MemberIn */
+        MemberIn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "owner" | "editor" | "viewer";
+            /** Username */
+            username: string;
+        };
+        /** MemberOut */
+        MemberOut: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "owner" | "editor" | "viewer";
+            /** User Id */
+            user_id: number;
+            /** Username */
+            username: string | null;
         };
         /** MembersIn */
         MembersIn: {
@@ -4145,6 +4583,35 @@ export interface components {
         ParamRef: {
             /** Param */
             param: string;
+        };
+        /** PilotCheckOut */
+        PilotCheckOut: {
+            /** Kind */
+            kind: string;
+            /** Limit */
+            limit: number;
+            /** Metric */
+            metric: string;
+            /** Op */
+            op: string;
+            /** Passed */
+            passed: boolean;
+            /** Value */
+            value: number | null;
+        };
+        /** PilotOut */
+        PilotOut: {
+            /** Allowed */
+            allowed: {
+                [key: string]: string | null;
+            };
+            /** Business */
+            business: components["schemas"]["BusinessMetricOut"][];
+            /** Decisions */
+            decisions: components["schemas"]["DecisionOut"][];
+            run: components["schemas"]["RunEvidenceOut"] | null;
+            /** Targets */
+            targets: components["schemas"]["TargetEvidenceOut"][];
         };
         /** PreviewChange */
         PreviewChange: {
@@ -4455,6 +4922,21 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** RunEvidenceOut */
+        RunEvidenceOut: {
+            /** Checks */
+            checks: components["schemas"]["PilotCheckOut"][];
+            /** Finished At */
+            finished_at: string | null;
+            /** Gate Passed */
+            gate_passed: boolean | null;
+            /** Golden Set */
+            golden_set: string;
+            /** Invariant Violations */
+            invariant_violations: string[];
+            /** Run Id */
+            run_id: number;
+        };
         /** SameDisplayOut */
         SameDisplayOut: {
             /** Display Name */
@@ -4474,6 +4956,113 @@ export interface components {
             type: string;
             /** Type Display Name */
             type_display_name: string;
+        };
+        /** SectionOut */
+        SectionOut: {
+            /** Blank Rows */
+            blank_rows: number;
+            /** Columns */
+            columns: components["schemas"]["ColumnOut"][];
+            /** Key */
+            key: string;
+            /**
+             * Layout
+             * @enum {string}
+             */
+            layout: "fields" | "table";
+            /** Max Rows */
+            max_rows: number;
+            /** Note */
+            note: string | null;
+            /** Rows */
+            rows: string[][];
+            /** Title */
+            title: string | null;
+        };
+        /** SeedIn */
+        SeedIn: {
+            /** Csv */
+            csv: string;
+            /** Synthetic */
+            synthetic: boolean;
+        };
+        /** SeedOut */
+        SeedOut: {
+            /** Object Type */
+            object_type: string;
+            /** Pii Columns */
+            pii_columns: string[];
+            /** Rows */
+            rows: number;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** SendAppliedOut */
+        SendAppliedOut: {
+            /** Applied */
+            applied: number;
+            /**
+             * Bridge
+             * @enum {string}
+             */
+            bridge: "draft" | "golden" | "targets" | "accounts";
+            /** Golden Set Id */
+            golden_set_id: number | null;
+            /** Passwords */
+            passwords: {
+                [key: string]: string;
+            };
+            /** Version Id */
+            version_id: number | null;
+        };
+        /** SendApplyIn */
+        SendApplyIn: {
+            /** Fingerprint */
+            fingerprint: string;
+            /** Version Id */
+            version_id?: number | null;
+        };
+        /** SendChangeOut */
+        SendChangeOut: {
+            /** After */
+            after: string | null;
+            /** Before */
+            before: string | null;
+            /** Blocked */
+            blocked: string | null;
+            /** Field */
+            field: string | null;
+            /** Op */
+            op: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** SendIn */
+        SendIn: {
+            /** Version Id */
+            version_id?: number | null;
+        };
+        /** SendPreviewOut */
+        SendPreviewOut: {
+            /** Applicable */
+            applicable: number;
+            /**
+             * Bridge
+             * @enum {string}
+             */
+            bridge: "draft" | "golden" | "targets" | "accounts";
+            /** Changes */
+            changes: components["schemas"]["SendChangeOut"][];
+            /** Fingerprint */
+            fingerprint: string;
+            /** Golden Set Id */
+            golden_set_id: number | null;
+            /** Golden Set Name */
+            golden_set_name: string | null;
+            /** Version Id */
+            version_id: number | null;
         };
         /** ServiceAccountIn */
         ServiceAccountIn: {
@@ -4496,6 +5085,8 @@ export interface components {
             created_at: string;
             /** Current Topic */
             current_topic: string | null;
+            /** Engagement Id */
+            engagement_id: number | null;
             /** Id */
             id: number;
             /** Interviewee Id */
@@ -4514,6 +5105,11 @@ export interface components {
             /** Utterances */
             utterances: components["schemas"]["UtteranceOut"][];
         };
+        /** SessionLinkIn */
+        SessionLinkIn: {
+            /** Session Id */
+            session_id: number;
+        };
         /** SessionSummary */
         SessionSummary: {
             /**
@@ -4523,6 +5119,8 @@ export interface components {
             created_at: string;
             /** Current Topic */
             current_topic: string | null;
+            /** Engagement Id */
+            engagement_id: number | null;
             /** Id */
             id: number;
             /** Interviewee Id */
@@ -4536,6 +5134,58 @@ export interface components {
             status: "open" | "submitted" | "published";
             /** Title */
             title: string | null;
+        };
+        /** SheetIn */
+        SheetIn: {
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision: number;
+        };
+        /** SheetIndexOut */
+        SheetIndexOut: {
+            /** Kind */
+            kind: string;
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** SheetKindOut */
+        SheetKindOut: {
+            /** Intro */
+            intro: string;
+            /** Json Schema */
+            json_schema: {
+                [key: string]: unknown;
+            };
+            /** Kind */
+            kind: string;
+            /** Number */
+            number: string;
+            /** Sections */
+            sections: components["schemas"]["SectionOut"][];
+            /** Stage */
+            stage: number;
+            /** Title */
+            title: string;
+        };
+        /** SheetOut */
+        SheetOut: {
+            /** Kind */
+            kind: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Revision */
+            revision: number;
+            /** Updated At */
+            updated_at: string | null;
+            /** Updated By */
+            updated_by: number | null;
         };
         /** SourceIn */
         SourceIn: {
@@ -4596,6 +5246,17 @@ export interface components {
              * @enum {string}
              */
             stage: "planning" | "querying" | "answering" | "verifying";
+        };
+        /** StageOut */
+        StageOut: {
+            /** Done */
+            done: boolean;
+            /** Handoffs */
+            handoffs: components["schemas"]["HandoffOut"][];
+            /** Stage */
+            stage: number;
+            /** Title */
+            title: string;
         };
         /** SyncConflictOut */
         SyncConflictOut: {
@@ -4668,6 +5329,24 @@ export interface components {
             deployer_url: string | null;
             /** Version */
             version: string;
+        };
+        /** TargetEvidenceOut */
+        TargetEvidenceOut: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "min" | "max";
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Measured */
+            measured: number | null;
+            /** Met */
+            met: boolean | null;
+            /** Target */
+            target: number | null;
         };
         /** TargetOut */
         TargetOut: {
@@ -5897,6 +6576,609 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_engagements_api_v1_adoption_engagements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementSummary"][];
+                };
+            };
+        };
+    };
+    create_engagement_api_v1_adoption_engagements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EngagementCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_engagement_api_v1_adoption_engagements__engagement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_engagement_api_v1_adoption_engagements__engagement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EngagementPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_adoption_engagements__engagement_id__decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_engagement_api_v1_adoption_engagements__engagement_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_member_api_v1_adoption_engagements__engagement_id__members_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_member_api_v1_adoption_engagements__engagement_id__members__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pilot_api_v1_adoption_engagements__engagement_id__pilot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PilotOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                object_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeedIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                object_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_apply_api_v1_adoption_engagements__engagement_id__send__bridge__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                bridge: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendAppliedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_preview_api_v1_adoption_engagements__engagement_id__send__bridge__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                bridge: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_session_api_v1_adoption_engagements__engagement_id__sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EngagementDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_session_api_v1_adoption_engagements__engagement_id__sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                session_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SheetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_sheet_api_v1_adoption_engagements__engagement_id__sheets__kind__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SheetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SheetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sheet_kinds_api_v1_adoption_sheet_kinds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SheetKindOut"][];
                 };
             };
         };

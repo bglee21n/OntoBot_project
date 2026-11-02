@@ -2,6 +2,7 @@
 
 from ontobot.db.models import (  # noqa: F401
     actions,
+    adoption,
     chat,
     documents,
     evaluation,

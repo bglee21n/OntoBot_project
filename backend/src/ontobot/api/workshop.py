@@ -73,6 +73,7 @@ class SessionSummary(BaseModel):
     status: SessionStatus
     current_topic: str | None
     published_version_id: int | None
+    engagement_id: int | None  # 이은 도입(TRD 17.17 결정 A11) — 화면 옆 패널
     created_at: datetime
 
 
@@ -142,6 +143,7 @@ def _summary(s: InterviewSession) -> SessionSummary:
         status=s.status,  # type: ignore[arg-type]
         current_topic=s.topic_state.get("current"),
         published_version_id=s.published_version_id,
+        engagement_id=s.engagement_id,
         created_at=s.created_at,
     )
 
