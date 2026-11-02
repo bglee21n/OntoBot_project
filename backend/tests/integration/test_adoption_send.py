@@ -245,3 +245,72 @@ async def test_link_interview_session(client: httpx.AsyncClient, make_user: Make
 
     assert (await client.delete(f"{BASE}/engagements/{eid}/sessions/{sid}")).status_code == 204
     assert (await client.get(f"{BASE}/engagements/{eid}")).json()["sessions"] == []
+
+
+async def test_unstable_words_kickoff_questions_and_sso_group_id(
+    client: httpx.AsyncClient, make_user: MakeUser, sample_published: None
+) -> None:
+    await _as(client, await make_user("modeler", "admin"))
+    eid = await _engagement(client)
+    value = f"폐쇄{uuid.uuid4().hex[:4]}"
+    await _save(
+        client,
+        eid,
+        "glossary",
+        {
+            "unstable": [
+                {
+                    "word": "폐쇄",
+                    "api_name": "Facility.facility_type",
+                    "definition": f"{value} = 운영 끝",
+                }
+            ]
+        },
+    )
+    await _save(
+        client, eid, "asis", {"steps": [{"candidate": "객체 타입 Facility, 새 타입 Inspection"}]}
+    )
+    p = await _preview(client, eid, "draft")
+    assert [(c["target"], c["field"]) for c in p["changes"] if c["blocked"] is None] == [
+        ("Facility.facility_type", "enum_values")
+    ]
+    assert {c["target"]: c["op"] for c in p["changes"] if c["op"] == "note"} == {
+        "Facility": "note",
+        "Inspection": "note",
+    }
+    r = await _apply(client, eid, "draft", p["fingerprint"])
+    async with session_scope() as db:
+        doc = versioning.to_document(await versioning.get_version(db, r.json()["version_id"]))
+    assert value in (doc.object_type("Facility").property("facility_type").enum_values or [])  # type: ignore[union-attr]
+
+    memo = "고위험 시설은 몇 곳?\n강남 철탑 목록"
+    await _save(client, eid, "kickoff", {"questions": [{} for _ in range(11)] + [{"memo": memo}]})
+    p = await _preview(client, eid, "golden")
+    assert [c["source"] for c in p["changes"]] == [
+        "36.4 찾아보는 질문 1줄",
+        "36.4 찾아보는 질문 2줄",
+    ]
+
+    group, ext = f"sso_{uuid.uuid4().hex[:8]}", f"CN={uuid.uuid4().hex[:8]}"
+    await _save(
+        client,
+        eid,
+        "stakeholders",
+        {
+            "people": [
+                {
+                    "username": f"u_{uuid.uuid4().hex[:8]}",
+                    "role": "user",
+                    "group": group,
+                    "external_id": ext,
+                }
+            ]
+        },
+    )
+    p = await _preview(client, eid, "accounts")
+    assert ("set_external_id", f"group:{group}") in [(c["op"], c["target"]) for c in p["changes"]]
+    assert (await _apply(client, eid, "accounts", p["fingerprint"])).status_code == 200
+    async with session_scope() as db:
+        g = next(x for x in await admin.list_groups(db) if x.name == group)
+    assert g.external_id == ext
+    assert (await _preview(client, eid, "accounts"))["applicable"] == 0

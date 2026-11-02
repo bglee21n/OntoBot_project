@@ -594,6 +594,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/adoption/engagements/{engagement_id}/seeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Seeds */
+        get: operations["list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/adoption/engagements/{engagement_id}/seeds/{object_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Seed */
+        put: operations["put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put"];
+        post?: never;
+        /** Delete Seed */
+        delete: operations["delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/adoption/engagements/{engagement_id}/send/{bridge}/apply": {
         parameters: {
             query?: never;
@@ -4944,6 +4979,24 @@ export interface components {
             /** Title */
             title: string | null;
         };
+        /** SeedIn */
+        SeedIn: {
+            /** Csv */
+            csv: string;
+            /** Synthetic */
+            synthetic: boolean;
+        };
+        /** SeedOut */
+        SeedOut: {
+            /** Object Type */
+            object_type: string;
+            /** Pii Columns */
+            pii_columns: string[];
+            /** Rows */
+            rows: number;
+            /** Updated At */
+            updated_at: string | null;
+        };
         /** SendAppliedOut */
         SendAppliedOut: {
             /** Applied */
@@ -6796,6 +6849,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PilotOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                object_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeedIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: number;
+                object_type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

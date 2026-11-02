@@ -13,7 +13,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Response
 from pydantic import BaseModel, Field
 
-from ontobot.adoption import bridges, export, pilot, progress, send, sheets, store
+from ontobot.adoption import bridges, export, pilot, progress, seeds, send, sheets, store
 from ontobot.api.deps import CurrentUser, Db, User
 from ontobot.api.errors import ProblemError
 from ontobot.db.models.adoption import Engagement
@@ -661,3 +661,58 @@ async def export_engagement(engagement_id: int, db: Db, user: User) -> Response:
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{out.filename}"'},
     )
+
+
+# ---------------------------------------------------------------- 36.15 합성 예시 데이터(Phase 22)
+
+
+class SeedOut(BaseModel):
+    object_type: str
+    rows: int
+    pii_columns: list[str]  # 사람 정보 속성 열 — 합성 값인지 다시 확인할 것
+    updated_at: datetime | None
+
+
+class SeedIn(BaseModel):
+    csv: str = Field(min_length=1, max_length=1_000_000)
+    synthetic: bool  # "실제 값을 바꾼 합성 데이터"라고 올리는 사람이 밝힌다
+
+
+def _seed_out(v: seeds.SeedView) -> SeedOut:
+    return SeedOut(
+        object_type=v.object_type, rows=v.rows, pii_columns=v.pii_columns, updated_at=v.updated_at
+    )
+
+
+@router.get("/engagements/{engagement_id}/seeds", response_model=list[SeedOut])
+async def list_seeds(engagement_id: int, db: Db, user: User) -> list[SeedOut]:
+    await _engagement(db, engagement_id, user)
+    return [_seed_out(v) for v in await seeds.views(db, engagement_id)]
+
+
+@router.put("/engagements/{engagement_id}/seeds/{object_type}", response_model=SeedOut)
+async def put_seed(
+    engagement_id: int, object_type: str, body: SeedIn, db: Db, user: User
+) -> SeedOut:
+    _, _, access = await _engagement(db, engagement_id, user)
+    _need(access.edit)
+    try:
+        v = await seeds.upload(
+            db, engagement_id, object_type, body.csv, actor_id=user.id, synthetic=body.synthetic
+        )
+    except seeds.SeedError as e:
+        raise ProblemError(
+            422,
+            str(e),
+            code=e.code,
+            extra={"issues": [{"path": object_type, "message": m} for m in e.errors]},
+        ) from e
+    return _seed_out(v)
+
+
+@router.delete("/engagements/{engagement_id}/seeds/{object_type}", status_code=204)
+async def delete_seed(engagement_id: int, object_type: str, db: Db, user: User) -> None:
+    _, _, access = await _engagement(db, engagement_id, user)
+    _need(access.edit)
+    if not await seeds.remove(db, engagement_id, object_type, actor_id=user.id):
+        raise ProblemError(404, "올린 CSV 가 없습니다", code="seed_not_found")

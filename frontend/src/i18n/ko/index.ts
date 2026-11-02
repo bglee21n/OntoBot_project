@@ -781,6 +781,20 @@ export const ko = {
         "게시본 설계도·확정한 골든 문항·양식을 도메인 팩 모양 zip 하나로 받습니다. 객체 데이터는 담지 않고, 양식의 사람 정보 칸은 비웁니다.",
       exportButton: "zip 받기",
     },
+    seeds: {
+      title: "36.15 합성 예시 데이터",
+      intro:
+        "다음 도입에서 골든 기대 값을 다시 계산할 수 있도록 타입마다 합성 CSV 하나를 올립니다. 첫 줄은 속성 이름(API 이름)이고, 게시 설계도와 맞지 않는 값이 하나라도 있으면 그 표 전체를 받지 않습니다. 자산화 zip 의 seed/ 에 들어갑니다.",
+      none: "올린 CSV 가 없습니다",
+      objectType: "객체 타입(API 이름, 예: Facility)",
+      file: "CSV 파일",
+      csv: "CSV 내용",
+      csvHint: "facility_id,name,risk_grade\nF-0001,강남 변전소 01호,2",
+      synthetic: "실제 값을 바꾼 합성 데이터입니다(실제 고객 데이터가 아닙니다)",
+      upload: "올리기",
+      rows: (n: number) => `${n}행`,
+      pii: (cols: string) => `사람 정보 열이 있습니다(${cols}) — 값이 모두 가상인지 다시 확인하세요`,
+    },
     tacitPanel: {
       title: "이 도입의 36.9 암묵지 기록",
       empty: "36.9 양식에 적은 것이 없습니다",

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 게시된 온톨로지(객체 타입·속성·링크 타입) 위에서 자연어 질문을 **검증된 조회 계획**으로 바꿔 실행하고,
 답변 문장마다 조회 결과와 **정확 일치로 대조한 인용**을 붙여 등급(①②③)을 매기는 서비스다.
 
-정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.3) · [PRD](docs/prd/OntoBot_project-prd.md) ·
+정본 문서: [TRD](docs/trd/OntoBot_project-trd.md)(현재 v1.4) · [PRD](docs/prd/OntoBot_project-prd.md) ·
 [구현 계획·진행 기록](docs/plan/OntoBot_project-implementation-plan.md)(MVP, Phase 0~8) ·
 [v1 구현 계획](docs/plan/OntoBot_project-v1-implementation-plan.md)(Phase 9~) · [도입 지원 계획](docs/plan/OntoBot_project-adoption-implementation-plan.md)(Phase 20~) · [ADR](docs/adr/).
 구현 결정이 TRD 와 달라지면 TRD 를 고치고 개정 이력(22절)에 남긴다. 현재 진행: MVP(Phase 0~8) 완료(실제 폐쇄망 장비
@@ -268,11 +268,13 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   이름 정확 일치뿐(유사도 금지), 지우기·자료형 바꾸기·역할 빼기는 보내기로 하지 않는다. 적용은 받는 곳의 **기존 서비스
   함수**만 부른다(`versioning`·`golden`·`targets`·`security.admin`) — 우회 쓰기 경로를 만들지 말 것. 권한은
   `rbac.can_send`(도입 editor + 받는 곳 역할). 골든 후보는 도입 전용 골든셋에만(운영 게이트에 기대 값 없는 문항을 섞지
-  않는다). 새 계정 임시 비밀번호는 적용 응답에만 — 저장·감사·로그에 넣지 말 것.
+  않는다). 새 계정 임시 비밀번호는 적용 응답에만 — 저장·감사·로그에 넣지 말 것. SSO 그룹 ID 는 비었을 때만 넣는다(덮어쓰지
+  말 것 — SSO 로그인의 그룹 맞추기가 그 값에 기댄다). 36.8 설계도 후보는 참고(`op=note`)뿐이다 — 만들기로 바꾸지 말 것.
 - **파일럿 판단(Phase 22)**: 불변식 위반·게이트 실패·실제 모델 평가 없음이면 보류만 — 판단하는 순간 서버가 근거를 다시
   읽는다(`pilot.allowed`). 이 규칙을 화면에만 두지 말 것. "마지막 실제 실행"은 `targets._measured` 와 같은 정의(replay 제외,
   id 순서)다 — 둘이 갈라지면 패널과 목표가 다른 실행을 본다. 자산화 zip 에는 객체 행·원천 데이터를 넣지 않고, 양식은
-  `export.strip_pii` 로 선언의 `pii` 칸을 뺀다(사람 정보 칸을 새로 만들면 `pii=True` 를 잊지 말 것).
+  `export.strip_pii` 로 선언의 `pii` 칸을 뺀다(사람 정보 칸을 새로 만들면 `pii=True` 를 잊지 말 것). 합성 CSV(`adoption.seeds`)는
+  운영 `object` 표에 넣지 않고 zip 의 `seed/` 로만 나간다 — 검사는 `workshop.demo.parse_rows` 하나를 쓴다.
 - **로컬 로그인 실패 잠금**(`security.auth.login_throttle`, 5분 안에 아이디별 5회·접속 주소별 30회 → 429 — 주소 기준을 아이디와 같게 조이면
   사내 프록시 뒤 전원이 한 사람 실수로 막힌다)은 프로세스 메모리다 — 앱은
   워커 하나(`app.Dockerfile` `--workers 1`)라서 맞다. 워커를 늘리면 잠금을 DB 로 옮겨야 한다. 통합 테스트는 `client`

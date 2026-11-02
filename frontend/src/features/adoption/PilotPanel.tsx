@@ -9,6 +9,7 @@ import type { DecisionOut, EngagementDetail, PilotOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { engagementKey } from "./queries";
+import { SeedsPanel } from "./SeedsPanel";
 
 const t = ko.adoption.pilot;
 const DECISIONS = ["go", "go_after_fix", "no_go"] as const;
@@ -145,6 +146,7 @@ export function PilotPanel({ e }: { e: EngagementDetail }) {
           </tbody>
         </table>
       )}
+      <SeedsPanel e={e} />
       {e.can_export && (
         <div className="card stack">
           <strong>{t.export}</strong>

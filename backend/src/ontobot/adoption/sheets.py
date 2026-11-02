@@ -464,6 +464,7 @@ STAKEHOLDERS = Sheet(
             col("interest", "관심도", "choice", HML),
             col("role", "OntoBot 역할"),
             col("group", "데이터 그룹"),
+            col("external_id", "SSO 그룹 ID"),
             col("types", "읽기 / 고치기 타입"),
             blank=3,
             note=(
@@ -756,12 +757,16 @@ GLOSSARY = Sheet(
             "unstable",
             "뜻이 흔들리는 말 정리",
             col("word", "흔들리는 말"),
+            col("api_name", "API 이름"),
             col("meanings", "지금 쓰이는 뜻들"),
             col("confusion", "생긴 혼선"),
             col("definition", "합의한 정의(목록 값)"),
             col("agreed_by", "합의한 사람", pii=True),
             blank=2,
-            note='예: "처리 완료" — 조치 끝 / 보고까지 끝 — 건수가 부서마다 다름 — done = 결과 보고까지 마친 것',
+            note=(
+                '예: "처리 완료" — API 이름 Ticket.status — 조치 끝 / 보고까지 끝 — 건수가 부서마다 다름 — '
+                "합의한 정의 done = 결과 보고까지 마친 것(설계도로 보내면 done 을 목록 값에 더합니다)"
+            ),
         ),
         fixed_table(
             "notation",

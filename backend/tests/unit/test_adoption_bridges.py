@@ -6,7 +6,7 @@ from dataclasses import replace
 from decimal import Decimal
 
 from ontobot.adoption import bridges
-from ontobot.adoption.bridges import UserState
+from ontobot.adoption.bridges import GroupState, UserState
 from ontobot.ontology.models import OntologyDocument
 
 DOC = OntologyDocument.model_validate(
@@ -210,7 +210,7 @@ def test_accounts_create_only_missing_and_add_roles_never_remove() -> None:
     changes = bridges.stakeholders_to_accounts(
         payloads,
         users=users,
-        groups={"inspect": "점검팀"},
+        groups={"inspect": GroupState("점검팀")},
         known_roles=ROLES,
         service_usernames=frozenset({"svc"}),
     )
@@ -238,7 +238,7 @@ def test_accounts_twice_has_nothing_to_apply() -> None:
     }
     after = {"hong": UserState(frozenset({"user", "modeler"}), frozenset({"team_a"}))}
     changes = bridges.stakeholders_to_accounts(
-        payloads, users=after, groups={"team_a": "A"}, known_roles=ROLES
+        payloads, users=after, groups={"team_a": GroupState("A")}, known_roles=ROLES
     )
     assert bridges.applicable(changes) == []
 
@@ -247,3 +247,91 @@ def test_fingerprint_changes_with_content() -> None:
     a = bridges.questions_to_golden({"concepts": {"rows": [{"golden": "질문"}]}}, existing=[])
     assert bridges.fingerprint(a) == bridges.fingerprint(list(a))
     assert bridges.fingerprint(a) != bridges.fingerprint([replace(a[0], after="다른 질문")])
+
+
+def test_unstable_words_add_agreed_values_only() -> None:
+    payloads = {
+        "glossary": {
+            "terms": [{"api_name": "facility_type", "display_name": "시설 유형"}],
+            "unstable": [
+                {
+                    "word": "송전탑",
+                    "api_name": "Facility.facility_type",
+                    "definition": "`전주` = 배전용 기둥",
+                },
+                {"word": "철탑", "api_name": "facility_type", "definition": "철탑 = 이미 있는 값"},
+                {"word": "처리 완료", "api_name": "Facility", "definition": "done = 보고까지"},
+                {"word": "뜻만", "definition": "api 이름 없음"},
+            ],
+        }
+    }
+    changes = bridges.glossary_to_draft(payloads, DOC)
+    ok = [(c.target, c.field, c.after, c.source) for c in bridges.applicable(changes)]
+    assert ok == [
+        ("Facility.facility_type", "display_name", "시설 유형", "36.11 용어집 1행"),
+        ("Facility.facility_type", "enum_values", "변전소, 철탑, 전주", "36.11 흔들리는 말 1행"),
+    ]
+    assert {c.target: c.blocked for c in changes if c.blocked}["Facility"] == bridges.WHY[
+        "need_property"
+    ]
+    assert bridges.agreed_value("“done” = 결과 보고까지") == "done"
+    assert bridges.agreed_value("점검중") == "점검중"
+
+
+def test_asis_candidates_are_notes_never_applied() -> None:
+    payloads = {
+        "asis": {
+            "steps": [
+                {"candidate": "객체 타입 Facility, 속성 risk_grade(정수), Action 위험등급 변경"},
+                {"candidate": "Inspection.result 와 Facility.risk_grade"},
+            ]
+        }
+    }
+    notes = [c for c in bridges.glossary_to_draft(payloads, DOC) if c.op == "note"]
+    assert [(c.target, c.blocked) for c in notes] == [
+        ("Facility", bridges.WHY["note_exists"]),
+        ("risk_grade", bridges.WHY["note_exists"]),
+        ("Inspection.result", bridges.WHY["note_missing"]),
+        ("Facility.risk_grade", bridges.WHY["note_exists"]),
+    ]
+    assert bridges.applicable(notes) == []
+
+
+def test_kickoff_lookup_memo_lines_are_golden_candidates() -> None:
+    rows: list[dict[str, str]] = [{} for _ in range(12)]
+    rows[0] = {"memo": "예산 승인이 먼저다"}  # 다른 행의 메모는 질문이 아니다
+    rows[11] = {"memo": "- 고위험 시설은 몇 곳?\n\n· 강남 철탑 목록"}
+    changes = bridges.questions_to_golden({"kickoff": {"questions": rows}}, existing=[])
+    assert [(c.after, c.source) for c in changes] == [
+        ("고위험 시설은 몇 곳?", "36.4 찾아보는 질문 1줄"),
+        ("강남 철탑 목록", "36.4 찾아보는 질문 2줄"),
+    ]
+
+
+def test_sso_group_id_only_fills_empty_and_never_overwrites() -> None:
+    payloads = {
+        "stakeholders": {
+            "people": [
+                {"username": "a1", "role": "user", "group": "new_team", "external_id": "CN=New"},
+                {"username": "a2", "role": "user", "group": "empty", "external_id": "CN=Empty"},
+                {"username": "a3", "role": "user", "group": "set", "external_id": "CN=Other"},
+                {"username": "a4", "role": "user", "group": "same", "external_id": "CN=Same"},
+                {"username": "a5", "role": "user", "group": "other", "external_id": "CN=Same"},
+            ]
+        }
+    }
+    groups = {
+        "empty": GroupState("빈 그룹"),
+        "set": GroupState("정해진 그룹", "CN=Set"),
+        "same": GroupState("같은 그룹", "CN=Same"),
+        "other": GroupState("다른 그룹"),
+    }
+    changes = bridges.stakeholders_to_accounts(payloads, users={}, groups=groups, known_roles=ROLES)
+    ext = [(c.target, c.blocked) for c in changes if c.field == "external_id"]
+    assert ext == [
+        ("group:new_team", None),
+        ("group:empty", None),
+        ("group:set", bridges.WHY["external_conflict"].replace("{current}", "CN=Set")),
+        ("group:same", bridges.SAME),
+        ("group:other", bridges.WHY["external_taken"].replace("{group}", "same")),
+    ]

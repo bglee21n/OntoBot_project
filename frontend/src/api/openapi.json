@@ -8179,6 +8179,65 @@
         "title": "SectionOut",
         "type": "object"
       },
+      "SeedIn": {
+        "properties": {
+          "csv": {
+            "maxLength": 1000000,
+            "minLength": 1,
+            "title": "Csv",
+            "type": "string"
+          },
+          "synthetic": {
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "csv",
+          "synthetic"
+        ],
+        "title": "SeedIn",
+        "type": "object"
+      },
+      "SeedOut": {
+        "properties": {
+          "object_type": {
+            "title": "Object Type",
+            "type": "string"
+          },
+          "pii_columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pii Columns",
+            "type": "array"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "object_type",
+          "rows",
+          "pii_columns",
+          "updated_at"
+        ],
+        "title": "SeedOut",
+        "type": "object"
+      },
       "SendAppliedOut": {
         "properties": {
           "applied": {
@@ -12098,6 +12157,155 @@
           }
         },
         "summary": "Get Pilot",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/seeds": {
+      "get": {
+        "operationId": "list_seeds_api_v1_adoption_engagements__engagement_id__seeds_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SeedOut"
+                  },
+                  "title": "Response List Seeds Api V1 Adoption Engagements  Engagement Id  Seeds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Seeds",
+        "tags": [
+          "adoption"
+        ]
+      }
+    },
+    "/api/v1/adoption/engagements/{engagement_id}/seeds/{object_type}": {
+      "delete": {
+        "operationId": "delete_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Seed",
+        "tags": [
+          "adoption"
+        ]
+      },
+      "put": {
+        "operationId": "put_seed_api_v1_adoption_engagements__engagement_id__seeds__object_type__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "object_type",
+            "required": true,
+            "schema": {
+              "title": "Object Type",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Seed",
         "tags": [
           "adoption"
         ]

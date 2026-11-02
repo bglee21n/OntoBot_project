@@ -126,6 +126,8 @@ function Bridgework({ e, bridge }: { e: EngagementDetail; bridge: Bridge }) {
                     <span className="badge succeeded">{t.willApply}</span>
                   ) : c.blocked === "" ? (
                     <span className="badge archived">{t.same}</span>
+                  ) : c.op === "note" ? (
+                    <span className="muted">{c.blocked}</span>
                   ) : (
                     <span className="warn-text">{c.blocked}</span>
                   )}

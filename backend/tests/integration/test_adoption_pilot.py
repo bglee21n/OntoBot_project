@@ -7,6 +7,7 @@ import json
 import uuid
 import zipfile
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -174,3 +175,36 @@ async def test_export_zip_has_design_confirmed_golden_and_forms_without_people(
     assert "홍길동" not in r.content.decode("latin-1") and "홍길동".encode() not in b"".join(
         z.read(n) for n in names
     )
+
+
+SEED = Path(__file__).resolve().parents[3] / "domain-packs" / "sample" / "seed"
+
+
+async def test_synthetic_seed_upload_checks_against_design_and_goes_into_zip(
+    client: httpx.AsyncClient, make_user: MakeUser, sample_published: None
+) -> None:
+    await _as(client, await make_user("modeler"))
+    eid = (await client.post(f"{BASE}/engagements", json={"name": "합성 데이터"})).json()["id"]
+    url = f"{BASE}/engagements/{eid}/seeds"
+    org = (SEED / "organization.csv").read_text(encoding="utf-8")
+
+    r = await client.put(f"{url}/Organization", json={"csv": org, "synthetic": False})
+    assert r.status_code == 422 and r.json()["code"] == "synthetic_not_confirmed"
+    bad = "org_id,name,nope\nORG-01,강남지사,x\n,빈 pk,y\n"
+    r = await client.put(f"{url}/Organization", json={"csv": bad, "synthetic": True})
+    assert r.status_code == 422 and r.json()["code"] == "seed_invalid"
+    assert any("nope" in i["message"] for i in r.json()["issues"])
+
+    r = await client.put(f"{url}/Organization", json={"csv": org, "synthetic": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["rows"] == 4
+    assert r.json()["pii_columns"] == ["manager_name", "manager_phone"]  # 합성 값인지 다시 확인
+    listed = (await client.get(url)).json()
+    assert [(s["object_type"], s["rows"]) for s in listed] == [("Organization", 4)]
+
+    z = zipfile.ZipFile(io.BytesIO((await client.get(f"{BASE}/engagements/{eid}/export")).content))
+    assert z.read("seed/organization.csv").decode() == org.strip() + "\n"
+    assert "Organization" in z.read("README.md").decode()
+
+    assert (await client.delete(f"{url}/Organization")).status_code == 204
+    assert (await client.delete(f"{url}/Organization")).status_code == 404

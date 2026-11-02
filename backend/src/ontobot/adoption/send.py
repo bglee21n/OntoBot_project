@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ontobot.adoption import bridges, store
-from ontobot.adoption.bridges import Bridge, Change, UserState
+from ontobot.adoption.bridges import Bridge, Change, GroupState, UserState
 from ontobot.db.models.evaluation import GoldenItem, GoldenSet
 from ontobot.evaluation import golden, targets
 from ontobot.ontology import versioning
@@ -91,7 +91,7 @@ async def _golden_set(db: AsyncSession, engagement_id: int) -> GoldenSet | None:
 
 async def _account_state(
     db: AsyncSession,
-) -> tuple[dict[str, UserState], dict[str, str], frozenset[str]]:
+) -> tuple[dict[str, UserState], dict[str, GroupState], frozenset[str]]:
     people: dict[str, UserState] = {}
     services: set[str] = set()
     for u in await admin.list_users(db):
@@ -101,7 +101,9 @@ async def _account_state(
             services.add(u.username)
         else:
             people[u.username] = UserState(frozenset(u.roles), frozenset(u.groups))
-    groups = {g.name: g.display_name for g in await admin.list_groups(db)}
+    groups = {
+        g.name: GroupState(g.display_name, g.external_id) for g in await admin.list_groups(db)
+    }
     return people, groups, frozenset(services)
 
 
@@ -257,7 +259,8 @@ async def _apply_golden(
 
 
 async def _apply_accounts(db: AsyncSession, todo: list[Change], *, actor_id: int) -> Applied:
-    """그룹 만들기 → 계정 만들기 → 역할 더하기 → 구성원 넣기 순서. 실패하면 트랜잭션째 되돌린다."""
+    """그룹 만들기 → 계정 만들기 → 역할 더하기 → SSO 그룹 ID → 구성원 넣기 순서. 실패하면
+    트랜잭션째 되돌린다."""
     passwords: dict[str, str] = {}
     try:
         for c in todo:
@@ -292,6 +295,17 @@ async def _apply_accounts(db: AsyncSession, todo: list[Change], *, actor_id: int
                 db, actor_id=actor_id, user_id=u.id, roles=sorted({*u.roles, *extra})
             )
         groups = {g.name: g for g in await admin.list_groups(db)}
+        for c in todo:
+            if c.op == "set_external_id":
+                g = groups[c.target.removeprefix("group:")]
+                await admin.update_group(
+                    db,
+                    actor_id=actor_id,
+                    group_id=g.id,
+                    display_name=g.display_name,
+                    description=g.description,
+                    external_id=c.after,
+                )
         adds: dict[str, set[int]] = {}
         for c in todo:
             if c.op == "add_member":

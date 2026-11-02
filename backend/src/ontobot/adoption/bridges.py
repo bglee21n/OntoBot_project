@@ -33,6 +33,11 @@ SAME = ""  # blocked 값 — 이미 같다(할 일 없음)
 # 막는 까닭(미리보기 문구). {…} 은 str.format 이 아니라 아래 _why 의 치환이다.
 WHY = {
     "no_element": "설계도에 없는 이름입니다 — 설계도 화면에서 먼저 만드세요",
+    "need_property": "목록 값을 더할 속성(타입.속성)을 적으세요",
+    "note_exists": "참고 — 설계도에 이미 있습니다",
+    "note_missing": "참고 — 설계도에 없습니다. 설계도 화면에서 만드세요(보내기는 만들지 않습니다)",
+    "external_conflict": "그룹에 다른 SSO 그룹 ID({current})가 있습니다 — 관리 화면에서 고칩니다",
+    "external_taken": "다른 그룹({group})이 이 SSO 그룹 ID 를 씁니다",
     "bad_name": "API 이름 규칙(타입은 대문자·속성은 소문자로 시작하는 영문)에 맞지 않습니다",
     "ambiguous": "여러 타입에 있는 속성입니다({owners}) — 타입.속성 으로 적으세요",
     "repeated": "앞 행에서 이미 보낸 이름입니다",
@@ -55,7 +60,7 @@ def _why(key: str, **values: str) -> str:
 
 @dataclass(frozen=True)
 class Change:
-    op: str  # update·create·set·add_role·add_member·skip
+    op: str  # update·create·set·add_role·add_member·set_external_id·skip·note(참고, 적용 안 함)
     target: str  # 받는 곳에서 그것을 가리키는 이름(Facility.risk_grade, group:…, accuracy …)
     field: str | None
     before: str | None
@@ -106,14 +111,23 @@ def split_list(text: str) -> list[str]:
 
 
 def glossary_to_draft(payloads: Payloads, doc: OntologyDocument) -> list[Change]:
-    """36.11 용어집 → 표시 이름·설명·목록 값.
+    """36.11 용어집 → 표시 이름·설명·목록 값, 흔들리는 말 → 목록 값, 36.8 설계도 후보 → 참고.
 
     ``API 이름`` 칸은 ``Type``·``Type.prop``·``prop`` 셋 중 하나다. ``prop`` 만 적으면 그 속성이
     **한 타입에만** 있을 때만 맞춘다. 맞는 것이 없으면 추가하지 않고 막는다(자료형·소속 타입은
-    양식이 정하지 않는다 — 설계도 화면에서 만든다).
+    양식이 정하지 않는다 — 설계도 화면에서 만든다). 같은 속성의 목록 값은 용어집·흔들리는 말을
+    합쳐 한 번에 본다(더하기만).
     """
-    out: list[Change] = []
-    seen: set[str] = set()
+    # 양식 행 순서대로 — 막힌 행은 그 자리에, 대상은 처음 나온 자리에 모아 보인다.
+    order: list[str | Change] = []
+    entries: dict[str, _Entry] = {}
+
+    def entry(target: str, type_name: str, prop_name: str | None) -> _Entry:
+        if target not in entries:
+            entries[target] = _Entry(type_name, prop_name)
+            order.append(target)
+        return entries[target]
+
     for i, row in enumerate(_rows(payloads, "glossary", "terms"), start=1):
         name = _text(row, "api_name")
         if not name:
@@ -121,32 +135,110 @@ def glossary_to_draft(payloads: Payloads, doc: OntologyDocument) -> list[Change]
         source = f"36.11 용어집 {i}행"
         resolved = _resolve(doc, name)
         if isinstance(resolved, str):
-            out.append(_skip(name, source, resolved))
+            order.append(_skip(name, source, resolved))
             continue
         type_name, prop_name = resolved
         target = f"{type_name}.{prop_name}" if prop_name else type_name
-        if target in seen:
-            out.append(_skip(target, source, _why("repeated")))
+        e = entry(target, type_name, prop_name)
+        if e.row is not None:
+            order.append(_skip(target, source, _why("repeated")))
             continue
-        seen.add(target)
-        t = doc.object_type(type_name)
-        p = t.property(prop_name) if t and prop_name else None
-        if t is None or (prop_name and p is None):  # _resolve 가 찾았다
+        e.row, e.source = row, source
+        e.add_values(split_list(_text(row, "enum_values")), source)
+
+    for i, row in enumerate(_rows(payloads, "glossary", "unstable"), start=1):
+        name, definition = _text(row, "api_name"), _text(row, "definition")
+        if not name or not definition:
             continue
-        if p is None:
-            out.extend(_field_changes(target, source, row, t.display_name, t.description))
+        source = f"36.11 흔들리는 말 {i}행"
+        resolved = _resolve(doc, name)
+        if isinstance(resolved, str):
+            order.append(_skip(name, source, resolved))
             continue
-        changes = _field_changes(target, source, row, p.display_name, p.description)
-        values = split_list(_text(row, "enum_values"))
-        if values:
-            changes.append(_enum_change(target, source, p, values))
-        # 바뀐 정의가 정의 문서 규칙을 지나는지 미리 본다(길이 등).
-        try:
-            PropertyDef.model_validate({**p.model_dump(), **_patch(changes)})
-        except ValidationError as e:
-            msg = str(e.errors()[0]["msg"])
-            changes = [c if c.blocked is not None else replace(c, blocked=msg) for c in changes]
-        out.extend(changes)
+        type_name, prop_name = resolved
+        if prop_name is None:
+            order.append(_skip(name, source, _why("need_property")))
+            continue
+        entry(f"{type_name}.{prop_name}", type_name, prop_name).add_values(
+            [agreed_value(definition)], source
+        )
+
+    out: list[Change] = []
+    for x in order:
+        out.extend([x] if isinstance(x, Change) else _entry_changes(doc, x, entries[x]))
+    out.extend(candidate_notes(payloads, doc))
+    return out
+
+
+class _Entry:
+    """한 대상(타입 또는 타입.속성)에 모인 요청 — 용어집 행 하나와 목록 값들."""
+
+    def __init__(self, type_name: str, prop_name: str | None) -> None:
+        self.type_name, self.prop_name = type_name, prop_name
+        self.row: Mapping[str, Any] | None = None
+        self.source = ""
+        self.values: list[tuple[str, str]] = []  # (값, 그 값을 적은 양식 자리)
+
+    def add_values(self, values: list[str], source: str) -> None:
+        known = {v for v, _ in self.values}
+        self.values.extend((v, source) for v in values if v and v not in known)
+
+
+def agreed_value(definition: str) -> str:
+    """흔들리는 말의 합의한 정의 ``값 = 뜻`` → 값(따옴표·백틱은 뗀다). ``=`` 이 없으면 칸 전체."""
+    value = definition.split("=", 1)[0] if "=" in definition else definition
+    return value.strip().strip("`'\"“”‘’").strip()
+
+
+def _entry_changes(doc: OntologyDocument, target: str, e: _Entry) -> list[Change]:
+    t = doc.object_type(e.type_name)
+    if t is None:  # _resolve 가 찾았다
+        return []
+    row: Mapping[str, Any] = e.row or {}
+    if e.prop_name is None:
+        return _field_changes(target, e.source, row, t.display_name, t.description)
+    p = t.property(e.prop_name)
+    if p is None:
+        return []
+    changes = _field_changes(target, e.source, row, p.display_name, p.description)
+    if e.values:
+        # 목록 값은 더하기만 — 용어집에 적은 목록이 지금 값을 빼면 막는다(흔들리는 말은 더할
+        # 값만 준다). 양식 자리는 실제로 더해지는 값을 적은 곳만 보인다.
+        current = p.enum_values or []
+        listed = split_list(_text(row, "enum_values"))
+        base = listed or current
+        extra = [v for v, _ in e.values if v not in base]
+        sources = [src for v, src in e.values if v not in current] or [e.values[0][1]]
+        changes.append(_enum_change(target, ", ".join(dict.fromkeys(sources)), p, base + extra))
+    # 바뀐 정의가 정의 문서 규칙을 지나는지 미리 본다(길이 등).
+    try:
+        PropertyDef.model_validate({**p.model_dump(), **_patch(changes)})
+    except ValidationError as err:
+        msg = str(err.errors()[0]["msg"])
+        changes = [c if c.blocked is not None else replace(c, blocked=msg) for c in changes]
+    return changes
+
+
+# 영문 낱말이 섞인 한국어 글에서 이름이 아닌 것 — 제품 용어와 대문자 줄임말(API·DB·PK …)
+_NOT_NAMES = frozenset({"Action", "Function", "OntoBot", "Neo4j", "PostgreSQL", "Excel"})
+_IDENT = re.compile(r"\b[A-Z][A-Za-z0-9_]*(?:\.[a-z][a-z0-9_]*)?\b|\b[a-z][a-z0-9]*_[a-z0-9_]+\b")
+
+
+def candidate_notes(payloads: Payloads, doc: OntologyDocument) -> list[Change]:
+    """36.8 설계도 후보 열의 API 이름 → 참고(``op=note``, 적용하지 않는다). 있는지만 알려 준다.
+
+    보내기는 타입·속성·Action 을 만들지 않는다 — 자료형과 규칙은 사람이 설계도 화면에서 정한다.
+    """
+    out = []
+    seen: set[str] = set()
+    for i, row in enumerate(_rows(payloads, "asis", "steps"), start=1):
+        for name in _IDENT.findall(_text(row, "candidate")):
+            if name in seen or name in _NOT_NAMES or name.isupper():
+                continue
+            seen.add(name)
+            found = not isinstance(_resolve(doc, name), str)
+            why = _why("note_exists") if found else _why("note_missing")
+            out.append(Change("note", name, None, None, None, f"36.8 AS-IS {i}행", blocked=why))
     return out
 
 
@@ -230,21 +322,38 @@ def normalize_question(text: str) -> str:
     return " ".join(unicodedata.normalize("NFC", text).split())
 
 
-def questions_to_golden(payloads: Payloads, existing: Iterable[str]) -> list[Change]:
-    """관찰·개념·암묵지 양식의 질문 → 골든 후보. 이미 있는 문항(정규화 뒤 정확 일치)은 건너뛴다."""
-    known = {normalize_question(q) for q in existing}
+# 36.4 첫 미팅 질문지에서 "찾아보는 질문" 주제 행(마지막 행) — 메모의 줄마다 질문 하나
+KICKOFF_QUESTION_ROW = 11
+
+
+def _question_texts(payloads: Payloads) -> list[tuple[str, str]]:
+    """(질문, 양식 자리) — 관찰·개념·암묵지·첫 미팅 순서."""
     out = []
     for kind, section, key, label in QUESTION_SLOTS:
         for i, row in enumerate(_rows(payloads, kind, section), start=1):
-            q = normalize_question(_text(row, key))
-            if not q:
-                continue
-            source = f"{label} {i}행"
-            if q in known:
-                out.append(_skip(q, source, SAME))
-                continue
-            known.add(q)
-            out.append(Change("create", q, "question", None, q, source))
+            out.append((_text(row, key), f"{label} {i}행"))
+    rows = _rows(payloads, "kickoff", "questions")
+    if len(rows) > KICKOFF_QUESTION_ROW:
+        memo = _text(rows[KICKOFF_QUESTION_ROW], "memo")
+        for n, line in enumerate((x for x in memo.splitlines() if x.strip()), start=1):
+            out.append((line.strip().lstrip("-·•* ").strip(), f"36.4 찾아보는 질문 {n}줄"))
+    return out
+
+
+def questions_to_golden(payloads: Payloads, existing: Iterable[str]) -> list[Change]:
+    """관찰·개념·암묵지·첫 미팅 양식의 질문 → 골든 후보. 이미 있는 문항(정규화 뒤 정확 일치)은
+    건너뛴다."""
+    known = {normalize_question(q) for q in existing}
+    out = []
+    for text, source in _question_texts(payloads):
+        q = normalize_question(text)
+        if not q:
+            continue
+        if q in known:
+            out.append(_skip(q, source, SAME))
+            continue
+        known.add(q)
+        out.append(Change("create", q, "question", None, q, source))
     return out
 
 
@@ -307,6 +416,12 @@ def kpis_to_targets(payloads: Payloads, current: Mapping[str, Decimal | None]) -
 
 
 @dataclass(frozen=True)
+class GroupState:
+    display_name: str
+    external_id: str | None = None
+
+
+@dataclass(frozen=True)
 class UserState:
     roles: frozenset[str]
     groups: frozenset[str]  # 그룹 이름
@@ -316,7 +431,7 @@ def stakeholders_to_accounts(
     payloads: Payloads,
     *,
     users: Mapping[str, UserState],  # 사람 계정 아이디 → 지금 역할·그룹
-    groups: Mapping[str, str],  # 그룹 이름 → 표시 이름
+    groups: Mapping[str, GroupState],  # 그룹 이름 → 표시 이름·SSO 그룹 ID
     known_roles: frozenset[str],
     service_usernames: frozenset[str] = frozenset(),
 ) -> list[Change]:
@@ -324,9 +439,11 @@ def stakeholders_to_accounts(
 
     아이디·그룹 이름은 정확 일치다. 그룹 칸은 그룹 이름 또는 이미 있는 그룹의 **표시 이름**(정확
     일치)이다. 역할은 더하기만 한다(빼지 않는다 — 권한 축소·자기 잠금은 관리 화면의 일). SSO 계정은
-    만들지 않는다.
+    만들지 않는다 — 그룹의 SSO 그룹 ID(``external_id``)만 적는다(비었을 때만, 바꾸지 않는다).
     """
-    by_display = {d: n for n, d in groups.items()}
+    by_display = {g.display_name: n for n, g in groups.items()}
+    by_external = {g.external_id: n for n, g in groups.items() if g.external_id}
+    external_planned: dict[str, str] = {}  # 그룹 → 이번에 넣을 SSO 그룹 ID
     out: list[Change] = []
     new_groups: set[str] = set()
     planned: dict[str, UserState] = {}
@@ -373,8 +490,42 @@ def stakeholders_to_accounts(
                 before = ", ".join(sorted(state.roles))
                 out.append(Change("add_role", target, "roles", before, ", ".join(missing), source))
                 state = UserState(state.roles | set(missing), state.groups)
+        external = _text(row, "external_id")
+        if group and external:
+            out.extend(
+                _external_change(group, external, source, groups, by_external, external_planned)
+            )
         if group and group not in state.groups:
             out.append(Change("add_member", f"group:{group}", "member", None, username, source))
             state = UserState(state.roles, state.groups | {group})
         planned[username] = state
     return out
+
+
+def _external_change(
+    group: str,
+    external: str,
+    source: str,
+    groups: Mapping[str, GroupState],
+    by_external: Mapping[str, str],
+    planned: dict[str, str],
+) -> list[Change]:
+    target = f"group:{group}"
+    current = planned.get(group) or (groups[group].external_id if group in groups else None)
+    if current == external:
+        return (
+            []
+            if group in planned
+            else [_skip(target, source, SAME, field="external_id", after=external)]
+        )
+    if current:
+        why = _why("external_conflict", current=current)
+        return [_skip(target, source, why, field="external_id", before=current, after=external)]
+    owner = by_external.get(external) or next(
+        (g for g, x in planned.items() if x == external), None
+    )
+    if owner and owner != group:
+        why = _why("external_taken", group=owner)
+        return [_skip(target, source, why, field="external_id", after=external)]
+    planned[group] = external
+    return [Change("set_external_id", target, "external_id", None, external, source)]

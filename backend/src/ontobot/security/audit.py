@@ -69,6 +69,7 @@ ENGAGEMENT_SENT = "adoption.sent"  # 양식 → 제품 보내기 적용(받는 �
 ENGAGEMENT_SESSION_LINKED = "adoption.session_linked"
 ENGAGEMENT_DECIDED = "adoption.decided"  # 36.14 파일럿 판단
 ENGAGEMENT_EXPORTED = "adoption.exported"  # 36.15 자산화 내보내기(zip)
+ENGAGEMENT_SEED_CHANGED = "adoption.seed_changed"  # 36.15 합성 예시 CSV 올리기·지우기
 # 배포 콘솔(ADR-0014)이 작업이 끝난 뒤 `security.cli audit-deploy` 로 남긴다.
 DEPLOY_EVENTS = frozenset(
     {

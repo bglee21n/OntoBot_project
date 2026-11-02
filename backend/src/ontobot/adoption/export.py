@@ -2,8 +2,9 @@
 
 담는 것: 게시본 설계도(``ontology.yaml``, ``importer.dump``), 도입 골든셋의 **확정한** 문항
 (``golden.yaml``, ``evaluation.golden.Pack``), 양식(``adoption/<kind>.json``), 판단 기록과 목록
-(``adoption/engagement.json``·``README.md``). **객체 행은 담지 않는다** — 폐쇄망 밖으로 가져갈 수
-있는 것은 설계도·합성 데이터·양식뿐이다(매뉴얼 36.15). 양식의 사람 정보 칸(``pii``)은 비운다.
+(``adoption/engagement.json``·``README.md``), 도입에 올린 합성 CSV(``seed/``, ``adoption.seeds``).
+**운영 객체 행은 담지 않는다** — 폐쇄망 밖으로 가져갈 수 있는 것은 설계도·합성 데이터·양식뿐이다
+(매뉴얼 36.15). 양식의 사람 정보 칸(``pii``)은 비운다.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ontobot.adoption import pilot, sheets, store
+from ontobot.adoption import pilot, seeds, sheets, store
 from ontobot.adoption.send import golden_set_name
 from ontobot.db.models.evaluation import GoldenItem, GoldenSet
 from ontobot.ontology import importer, versioning
@@ -110,6 +111,18 @@ async def build(db: AsyncSession, engagement_id: int, *, actor_id: int) -> Expor
         pack = golden_pack(f"adoption-{engagement_id}", items)
         files["golden.yaml"] = yaml.safe_dump(pack, allow_unicode=True, sort_keys=False)
 
+    seed_files, seed_skipped = [], []
+    for sd in await seeds.stored(db, engagement_id):
+        try:
+            if published is None:
+                raise seeds.SeedError("게시본 없음", code="no_published_ontology")
+            seeds.check(doc, sd.object_type, sd.content)
+        except seeds.SeedError:
+            seed_skipped.append(sd.object_type)  # 올린 뒤 설계도가 바뀌어 맞지 않는다
+            continue
+        files[f"seed/{seeds.file_name(sd.object_type)}"] = sd.content
+        seed_files.append(sd.object_type)
+
     states = await store.sheet_states(db, engagement_id)
     for s in states:
         files[f"adoption/{s.kind}.json"] = json.dumps(
@@ -147,7 +160,9 @@ async def build(db: AsyncSession, engagement_id: int, *, actor_id: int) -> Expor
             else "- 설계도: 게시본 없음",
             f"- 골든 문항(확정한 것): {len(items)}",
             f"- 양식: {len(states)}종(사람 정보 칸은 비움)",
-            "- 객체 데이터는 담지 않았습니다. 합성 예시 데이터는 따로 만들어 seed/ 에 넣으세요.",
+            f"- 합성 예시 데이터(seed/): {', '.join(seed_files) or '없음'}"
+            + (f" — 설계도와 맞지 않아 뺀 것: {', '.join(seed_skipped)}" if seed_skipped else ""),
+            "- 운영 객체 데이터는 담지 않았습니다. seed/ 는 도입에서 올린 합성 CSV 뿐입니다.",
             "",
         ]
     )
@@ -165,6 +180,7 @@ async def build(db: AsyncSession, engagement_id: int, *, actor_id: int) -> Expor
             "ontology_version_id": published,
             "golden_items": len(items),
             "sheets": len(states),
+            "seeds": seed_files,
         },
     )
     await db.flush()

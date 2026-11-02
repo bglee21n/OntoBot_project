@@ -83,3 +83,20 @@ class EngagementDecision(IdMixin, Base):
     gate_passed: Mapped[bool | None] = mapped_column(Boolean)
     invariant_violations: Mapped[int] = mapped_column(Integer, default=0)
     decided_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+
+
+class EngagementSeed(IdMixin, Base):
+    """36.15 합성 예시 데이터 — 타입마다 CSV 하나(자산화 zip 의 seed/). 운영 object 표와
+    무관하다."""
+
+    __tablename__ = "engagement_seed"
+    __table_args__ = (UniqueConstraint("engagement_id", "object_type"),)
+
+    engagement_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("engagement.id", ondelete="CASCADE")
+    )
+    object_type: Mapped[str] = mapped_column(String(64))
+    content: Mapped[str] = mapped_column(Text)
+    rows: Mapped[int] = mapped_column(Integer)
+    uploaded_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("app_user.id"))
+    updated_at: Mapped[datetime] = mapped_column(tz(), server_default=func.now())
