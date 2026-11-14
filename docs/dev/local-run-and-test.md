@@ -14,7 +14,7 @@
 
 | 도구 | 버전·비고 |
 | --- | --- |
-| Docker Desktop | WSL2 백엔드. 개발 저장소(`dev-up`)·통합 테스트·평가 컨테이너를 띄운다. 처음이면 **부록 A** |
+| Docker Desktop | WSL2 백엔드. 개발 저장소(`dev-up`)·통합 테스트·평가 컨테이너를 띄운다. 처음이면 **부록 A**(컨테이너 올리기는 A-5) |
 | uv | Python 3.12 를 받아 `backend/.venv` 등을 만든다(`requires-python = ">=3.12,<3.13"`) |
 | Node.js 22 + npm | 프론트(`frontend/`)·개발 콘솔 화면 |
 | Ollama | 호스트에 설치(11434) 또는 `compose.dev` 의 `ollama` 프로필. 채팅·평가에 필요 |
@@ -350,9 +350,66 @@ Inspect·Bind mounts·Exec·Files·Stats 탭은 개발자용이다 — 특히 **
 
 ![Volumes 화면. 아래 두 줄 ontobot-dev_… 가 개발 데이터 보관함이다](images/docker-volumes.png)
 
-### A-5. OntoBot 작업과 Docker Desktop 화면의 관계
+### A-5. 컨테이너 올리기·내리기
 
-명령을 치면 Docker Desktop 화면이 이렇게 바뀐다. 명령 대신 화면 단추로 해도 같다(단, 처음 만드는 일은 명령으로).
+Docker Desktop 을 처음 켜거나 `test-down`·`dev-down` 을 한 뒤에는 Containers 화면이 아래처럼 **비어 있다. 정상이다.**
+가운데 "What is a container?"·"How do I run a container?" 안내 카드는 Docker 일반 강좌라 OntoBot 과 상관없다.
+
+![컨테이너가 하나도 없을 때의 Containers 화면 — "Your running containers show up here"](images/docker-containers-empty.png)
+
+**OntoBot 컨테이너는 Docker Desktop 화면이 아니라 명령으로 만든다.** 화면에는 OntoBot 컨테이너를 만드는 단추가 없다.
+Images 화면의 ▶(Run)으로 만들면 OntoBot 이 쓰는 비밀번호·포트·DB 이름이 빠진 엉뚱한 컨테이너가 생기니 쓰지 않는다.
+명령이 `deploy/docker/` 의 설정 파일을 읽어 필요한 컨테이너를 알맞게 만들어 준다.
+
+**올리기 — 처음 한 번 따라 하기**
+
+**1단계.** Docker Desktop 왼쪽 아래가 **"Engine running"** 인지 본다(A-3).
+
+**2단계.** PowerShell 을 연다 — 시작 단추를 누르고 `PowerShell` 을 입력해 나오는 "Windows PowerShell" 을 누른다
+(관리자 권한은 필요 없다).
+
+**3단계.** OntoBot 폴더로 옮겨 간다. 아래 줄을 붙여 넣고 Enter.
+
+```powershell
+cd D:\OntoBot_project
+```
+
+**4단계.** 필요한 묶음을 올린다. **이 PC 에서는 테스트용(`ontobot-test`)만 올린다** — 개발용 DB 는 Windows 에 직접
+설치돼 있어 `dev-up` 은 포트가 겹쳐 실패한다(3절).
+
+```powershell
+uv run --project backend python scripts/task.py test-up
+```
+
+개발용 DB 를 컨테이너로 쓰는 PC(3절의 포트 확인에서 아무것도 안 나온 PC)라면 대신 이것을 올린다.
+
+```powershell
+uv run --project backend python scripts/task.py dev-up
+```
+
+**5단계.** 기다린다. 처음 한 번은 이미지를 내려받느라 몇 분 걸리고(`Pulled`, `Pull complete` 줄이 지나간다), 다음부터는
+몇십 초면 된다. 아래처럼 컨테이너마다 **`Healthy`** 가 나오고 입력 줄(`PS D:\OntoBot_project>`)이 다시 보이면 끝이다.
+
+```text
+ Container ontobot-test-postgres-1  Healthy
+ Container ontobot-test-neo4j-1  Healthy
+```
+
+빨간 글씨로 `Error` 가 나오면 A-6 표에서 같은 문장을 찾는다.
+
+**6단계.** Docker Desktop 의 Containers 화면을 다시 보면 묶음이 생겨 있다(A-4 의 Containers 그림처럼 초록 점 두 개).
+`test-int`(통합 테스트)·`eval-prepare`(평가 준비)는 이 묶음이 없으면 스스로 올리므로, 테스트만 할 때는 4단계를
+건너뛰고 바로 그 명령을 실행해도 된다.
+
+**내리기**
+
+| 하고 싶은 것 | 방법 | 데이터 |
+| --- | --- | --- |
+| 잠깐 꺼 두기(메모리 아끼기) | Containers 화면에서 묶음 줄의 ■ | 그대로. 다시 쓸 때 ▶ |
+| 테스트 묶음 치우기 | `uv run --project backend python scripts/task.py test-down` | 테스트 데이터는 사라짐(정상) |
+| 개발 묶음 치우기 | `uv run --project backend python scripts/task.py dev-down` | Volumes 의 개발 데이터는 남음 |
+
+명령과 Docker Desktop 화면의 관계를 한눈에 보면:
 
 | 명령 | Docker Desktop 에서 보이는 변화 |
 | --- | --- |
@@ -361,8 +418,6 @@ Inspect·Bind mounts·Exec·Files·Stats 탭은 개발자용이다 — 특히 **
 | `task.py test-int`·`test-up`·`eval-prepare` | `ontobot-test` 묶음이 생기고 Running |
 | `task.py test-down` | `ontobot-test` 묶음이 사라짐(테스트 데이터도 사라짐 — 정상) |
 
-PC 를 오래 쓰지 않을 때는 Containers 화면에서 묶음 줄의 ■ 를 눌러 꺼 두면 메모리를 덜 쓴다. 다시 쓸 때 ▶ 를 누르거나
-`dev-up` 을 다시 실행한다.
 
 ### A-6. 자주 만나는 문제
 
