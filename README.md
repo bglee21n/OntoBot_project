@@ -11,6 +11,9 @@
 
 ## 개발 환경
 
+처음부터 끝까지의 순서(준비물 → 저장소 → 시드·계정 → 실행 → 테스트·평가)는
+[docs/dev/local-run-and-test.md](docs/dev/local-run-and-test.md) 에 있다.
+
 - Python 3.12 — 가상환경은 **uv**가 만든다(`backend/.venv`). 전체 고정은 `backend/uv.lock`.
 - Node 22 — 프론트 의존성은 `frontend/package-lock.json`에 고정.
 - PostgreSQL — 개발 PC에 설치한 인스턴스(`ontobot_db` / 계정 `ontobot`).
