@@ -4,6 +4,9 @@ import { createRoot } from "react-dom/client";
 
 import "../app/styles.css";
 import { DeployApp } from "./DeployApp";
+import { applyTheme } from "../app/theme";
+
+applyTheme();
 
 const root = document.getElementById("root");
 if (!root) {

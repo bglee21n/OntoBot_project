@@ -5,6 +5,7 @@ import { ErrorBox } from "../components/ErrorBox";
 import { JobTable, JobView as SharedJobView, type OpsJob, type OpsJobApi, when } from "../components/ops/Jobs";
 import { ko } from "../i18n/ko";
 import { type Bundle, deploy, type Job, type Status, uploadFile } from "./client";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const t = ko.deploy;
 type Tab = "status" | "bundles" | "rollback" | "jobs";
@@ -78,6 +79,7 @@ function Console({ name }: { name: string }) {
         {status.data?.busy && <span className="badge running">{t.busy}</span>}
         <span className="spacer" />
         <span className="muted">{name}</span>
+        <ThemeToggle />
         <button type="button" className="link" onClick={() => logout.mutate()}>
           {ko.nav.logout}
         </button>

@@ -5,6 +5,7 @@ import { ErrorBox } from "../components/ErrorBox";
 import { JobTable, JobView, Light, type OpsJob, when } from "../components/ops/Jobs";
 import { ko } from "../i18n/ko";
 import { type BuiltBundle, type CheckLight, dev, type FileChange, jobApi, type TaskEntry } from "./client";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const t = ko.devconsole;
 type Tab = keyof typeof t.tabs;
@@ -46,6 +47,7 @@ export function DevConsoleApp() {
         <span className="muted">
           {ov.data?.git.branch ?? "—"} · {t.localOnly}
         </span>
+        <ThemeToggle />
       </header>
       <main className="content stack">
         {tab === "overview" && <OverviewPanel onJob={openJob} />}

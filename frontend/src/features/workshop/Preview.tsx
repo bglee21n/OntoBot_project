@@ -7,6 +7,7 @@ import type { ElementOut } from "../../api/types";
 import { ko } from "../../i18n/ko";
 import { autoLayout, type Point } from "../ontology/graph/layout";
 import { buildPreview, type PreviewAction, type PreviewType } from "./previewModel";
+import { useTheme } from "../../app/theme";
 
 const t = ko.workshop.preview;
 type Tab = "review" | "graph" | "actions";
@@ -52,6 +53,7 @@ export function WorkshopPreview({ elements, review }: { elements: ElementOut[]; 
 const pending = (status: string) => status === "proposed";
 
 function ElementGraph({ types, links }: { types: PreviewType[]; links: ReturnType<typeof buildPreview>["links"] }) {
+  const colorMode = useTheme();
   const [pos, setPos] = useState<Map<string, Point>>(new Map());
   const key = useMemo(() => JSON.stringify([types.map((x) => x.name), links.map((l) => [l.from, l.to])]), [types, links]);
   useEffect(() => {
@@ -101,6 +103,7 @@ function ElementGraph({ types, links }: { types: PreviewType[]; links: ReturnTyp
   return (
     <div className="ws-graph">
       <ReactFlow
+        colorMode={colorMode}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}

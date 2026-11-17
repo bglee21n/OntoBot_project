@@ -24,6 +24,7 @@ import { ko } from "../../i18n/ko";
 import { ObjectCardPanel } from "../chat/AnswerView";
 import { autoLayout } from "../ontology/graph/layout";
 import { addNeighbors, collapse, frontier, type GraphState, hiddenCount, keyOf, type ObjNode, start } from "./model";
+import { useTheme } from "../../app/theme";
 
 const t = ko.explorer;
 
@@ -78,6 +79,7 @@ export function ExplorerPage() {
 }
 
 function Explorer() {
+  const colorMode = useTheme();
   const location = useLocation();
   const flow = useReactFlow();
   const [q, setQ] = useState("");
@@ -298,6 +300,7 @@ function Explorer() {
             {!graph && <p className="schema-empty muted">{t.empty}</p>}
             <NodeActions.Provider value={actions}>
               <ReactFlow
+                colorMode={colorMode}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
