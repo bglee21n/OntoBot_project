@@ -132,7 +132,7 @@ export function DeleteDialog({
             {inParent ? t.deleteAnyway : t.delete}
           </button>
           <span className="spacer" />
-          <button type="button" className="link" onClick={onClose}>
+          <button type="button" className="secondary" onClick={onClose}>
             {t.cancel}
           </button>
         </div>

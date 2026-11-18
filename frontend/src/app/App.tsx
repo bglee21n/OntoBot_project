@@ -43,6 +43,7 @@ export function App() {
         <Route path="/sources" element={<SourcesPage />} />
         <Route path="/actions" element={<ActionsPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/:section" element={<AdminPage />} />
         <Route path="/workshop" element={<WorkshopPage />} />
         <Route path="/adoption" element={<AdoptionPage />} />
         <Route path="/adoption/:engagementId" element={<EngagementPage />} />

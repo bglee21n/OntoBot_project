@@ -34,7 +34,19 @@ def env_value(key: str) -> str:
 os.environ.setdefault("ONTOBOT_MANUAL_PASSWORD", env_value("ONTOBOT_MANUAL_PASSWORD"))
 
 from playwright.sync_api import Browser, Locator, Page, sync_playwright  # noqa: E402
-from shots import BASE, Shooter, ask, go, last_answer, password, row_action, shot_turn  # noqa: E402
+from shots import (  # noqa: E402
+    BASE,
+    Shooter,
+    admin,
+    ask,
+    go,
+    last_answer,
+    open_dialog,
+    password,
+    row_action,
+    shot_turn,
+    tab,
+)
 from term import Term, ctl, sh  # noqa: E402
 
 IMAGES = ROOT / "docs" / "manual" / "ops" / "images"
@@ -88,6 +100,18 @@ def nav(pg: Page, label: str) -> None:
     pg.locator("nav.sidenav").get_by_role("link", name=label, exact=True).click()
     pg.wait_for_load_state("networkidle")
     pg.wait_for_timeout(1200)
+
+
+def sub(pg: Page, label: str) -> None:
+    """관리 화면의 하위 메뉴(개요·사용자·데이터 그룹·API 키·감사 로그·트레이스) — 주소는 /admin/<…>."""
+    pg.locator("nav.subnav").get_by_role("link", name=label, exact=True).click()
+    pg.wait_for_load_state("networkidle")
+    pg.wait_for_timeout(800)
+
+
+def admin_users(pg: Page) -> None:
+    nav(pg, "관리")
+    sub(pg, "사용자")
 
 
 # ---------------------------------------------------------------- 2장 구성 — 서버 안 들여다보기
@@ -191,8 +215,7 @@ def ch_web(c: Ctx) -> None:
             nav(pg, n)
             s.shot(pg, name, full=True)
         nav(pg, "관리")
-        tabs = pg.locator("nav[role=tablist] button")
-        # v1 관리 화면은 카드가 늘어 한 화면에 들지 않는다 — 페이지 전체를 찍는다.
+        # 관리 화면은 개요와 하위 메뉴로 나뉜다 — 개요 페이지 전체를 찍는다.
         card = lambda text: pg.locator("main .card", has_text=text).first  # noqa: E731
         s.shot(
             pg,
@@ -204,9 +227,7 @@ def ch_web(c: Ctx) -> None:
                 (card("운영 지표"), 3),
                 (card("성공 지표 목표"), 4),
                 (card("객체 탐색 확장 한도"), 5),
-                (pg.locator("nav[role=tablist]"), 6, "below"),
-                (pg.locator("main table", has=pg.locator("th", has_text="데이터 그룹")).first, 7),
-                (pg.locator("details.card summary", has_text="로컬 계정 추가"), 8),
+                (pg.locator("nav.subnav"), 6, "right"),
             ],
         )
         pg.locator(".user-menu-button").click()
@@ -227,10 +248,9 @@ USERS = [
 
 
 def _add_user(pg: Page, username: str, display: str, roles: list[str], pw: str) -> Locator:
-    box = pg.locator("details.card", has_text="로컬 계정 추가").first
-    if box.get_attribute("open") is None:
-        box.locator("summary").click()
-        pg.wait_for_timeout(300)
+    box = pg.locator(".dialog-backdrop .dialog").last
+    if not box.count():
+        box = open_dialog(pg, "+ 로컬 계정 추가")
     f = box.locator("form")
     f.get_by_label("아이디").fill(username)
     f.get_by_label("표시 이름").fill(display)
@@ -255,15 +275,14 @@ def _user_row(pg: Page, username: str) -> Locator:
 def ch_users(c: Ctx) -> None:
     s = c.s
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         table = _users_table(pg)
         heads = table.locator("thead th")
         s.shot(pg, "users-columns", clip=table, marks=[(heads.nth(i), i + 1, "below") for i in range(7)])
-        box = pg.locator("details.card", has_text="로컬 계정 추가").first
-        s.shot(pg, "add-closed", clip=box, marks=[(box.locator("summary"), 1)])
-        box.locator("summary").click()
-        pg.wait_for_timeout(400)
-        f = box.locator("form")
+        add_btn = pg.locator(".page-header").get_by_role("button", name="+ 로컬 계정 추가")
+        s.shot(pg, "add-closed", clip=pg.locator(".page-header"), marks=[(add_btn, 1, "right")])
+        box = open_dialog(pg, "+ 로컬 계정 추가")
+        f = pg.locator(".dialog-backdrop .dialog form")
         s.shot(
             pg,
             "add-open",
@@ -289,26 +308,27 @@ def ch_users(c: Ctx) -> None:
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "add-kim-done", marks=[(_user_row(pg, "kim.user"), None)])
-        _add_user(pg, "kim.user", "김사용", ["user"], password())
+        box = _add_user(pg, "kim.user", "김사용", ["user"], password())
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1200)
         s.shot(pg, "add-duplicate-error", clip=box)
+        pg.keyboard.press("Escape")
         for username, display, roles in USERS[1:]:
             _add_user(pg, username, display, roles, password())
             f.get_by_role("button", name="추가").click()
             pg.wait_for_timeout(1500)
-        go(pg, "/admin")
+        admin(pg, "users")
         s.shot(pg, "users-all", full=True)
         me = _user_row(pg, ADMIN)
         s.shot(pg, "self-row", clip=_users_table(pg), marks=[(me.locator("td").nth(5), 1)])
     # 첫 로그인 — 새 계정
     with c.app("kim.user") as pg:
         s.shot(pg, "kim-first-login", marks=[(".user-menu-button", 1, "below")])
-        go(pg, "/admin")
+        admin(pg, "users")
         s.shot(pg, "kim-admin-denied")
     # 역할 바꾸기 — 로그인해 있는 사람의 세션이 끊긴다
     with c.app("lee.modeler") as lee, c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         row = _user_row(pg, "lee.modeler")
         row.locator("label.check", has_text="domain_expert").locator("input").click()
         pg.wait_for_timeout(300)
@@ -320,7 +340,7 @@ def ch_users(c: Ctx) -> None:
         s.shot(lee, "role-kicked")
     # 정지·다시 사용
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         row = _user_row(pg, "kim.user")
         s.shot(pg, "disable-button", clip=row, marks=[(row.get_by_role("button", name="정지"), 1, "right")])
         row.get_by_role("button", name="정지").click()
@@ -354,7 +374,7 @@ def ch_users(c: Ctx) -> None:
         row.locator("input[placeholder^='휴대전화']").fill("010-2222-3333")
         row.get_by_role("button", name="저장").click()
         pg.wait_for_timeout(1200)
-        go(pg, "/admin")
+        admin(pg, "users")
         s.shot(pg, "users-final", full=True)
 
 
@@ -369,7 +389,7 @@ def ch_perms(c: Ctx) -> None:
     s = c.s
     with c.app() as pg:
         nav(pg, "관리")
-        pg.get_by_role("tab", name="역할별 읽기 권한").click()
+        sub(pg, "데이터 그룹")
         pg.wait_for_timeout(1200)
         s.shot(pg, "perms-page", full=True)
         card = _role_card(pg, "bot_builder")
@@ -384,7 +404,7 @@ def ch_perms(c: Ctx) -> None:
         shot_turn(s, pg, "denied-answer")
     with c.app() as pg:
         nav(pg, "관리")
-        pg.get_by_role("tab", name="역할별 읽기 권한").click()
+        sub(pg, "데이터 그룹")
         pg.wait_for_timeout(1200)
         card = _role_card(pg, "bot_builder")
         card.locator("label.check", has_text="Facility").locator("input").click()
@@ -401,7 +421,7 @@ def ch_perms(c: Ctx) -> None:
         shot_turn(s, pg, "link-denied-answer")
     with c.app() as pg:
         nav(pg, "관리")
-        pg.get_by_role("tab", name="역할별 읽기 권한").click()
+        sub(pg, "데이터 그룹")
         pg.wait_for_timeout(1200)
         for role in ("bot_builder", "modeler"):
             card = _role_card(pg, role)
@@ -411,8 +431,7 @@ def ch_perms(c: Ctx) -> None:
                     inp.click()
             card.get_by_role("button", name="권한 저장").click()
             pg.wait_for_timeout(1200)
-        go(pg, "/admin")
-        pg.get_by_role("tab", name="역할별 읽기 권한").click()
+        admin(pg, "groups")
         pg.wait_for_timeout(1200)
         s.shot(pg, "perms-final", full=True)
     with c.app("jung.builder") as pg:
@@ -448,7 +467,7 @@ def trace_ids() -> list[tuple[int, str, str]]:
 
 
 def open_trace(pg: Page, trace_id: int) -> Locator:
-    pg.get_by_role("tab", name="트레이스").click()
+    sub(pg, "트레이스")
     pg.wait_for_timeout(500)
     pg.get_by_label("트레이스 id").fill(str(trace_id))
     pg.get_by_role("button", name="열기").click()
@@ -471,7 +490,7 @@ def ch_trace(c: Ctx) -> None:
     failed = next((i for i, st, _ in rows if st == "failed"), None)
     with c.app() as pg:
         nav(pg, "관리")
-        pg.get_by_role("tab", name="트레이스").click()
+        sub(pg, "트레이스")
         pg.wait_for_timeout(600)
         s.shot(pg, "trace-tab", marks=[(pg.get_by_label("트레이스 id"), 1), (pg.get_by_role("button", name="열기"), 2, "right")])
         card = open_trace(pg, ok)
@@ -594,8 +613,7 @@ def ch_sources(c: Ctx) -> None:
     with c.app("lee.modeler") as pg:
         go(pg, "/sources")
         s.shot(pg, "page-empty", full=True)
-        add = pg.locator("details.card", has_text="데이터 소스 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 데이터 소스 추가")
         f = add.locator("form")
         s.shot(pg, "add-source-open", clip=add, marks=[
             (f.locator("label", has_text="종류").locator("select"), 1),
@@ -608,9 +626,7 @@ def ch_sources(c: Ctx) -> None:
         s.shot(pg, "add-source-filled", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
-        add = pg.locator("details.card", has_text="데이터 소스 추가").first
-        if add.get_attribute("open") is None:
-            add.locator("summary").click()
+        add = open_dialog(pg, "+ 데이터 소스 추가")
         f = add.locator("form")
         f.locator("label", has_text="이름").locator("input").fill("연습용(접속 정보 없음)")
         f.locator("label", has_text="시크릿 참조").locator("input").fill("env:ONTOBOT_SRC_NONE")
@@ -645,8 +661,7 @@ def ch_mapping(c: Ctx) -> None:
     s, t = c.s, c.t
     with c.app("lee.modeler") as pg:
         go(pg, "/sources")
-        add = pg.locator("details.card", has_text="매핑 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 매핑 추가")
         f = add.locator("form")
         f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
         f.locator("label", has_text="객체 타입").locator("select").select_option("Facility")
@@ -695,8 +710,7 @@ def ch_mapping(c: Ctx) -> None:
         card = _mapping(pg)
         s.shot(pg, "sync-ok", clip=card, marks=[(card.locator("tbody tr").first.locator(".badge"), 1), (card.locator("tbody tr").first.locator("td").nth(2), 2)])
         # 조직 매핑
-        add = pg.locator("details.card", has_text="매핑 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 매핑 추가")
         f = add.locator("form")
         f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
         f.locator("label", has_text="객체 타입").locator("select").select_option("Organization")
@@ -725,8 +739,9 @@ def ch_mapping(c: Ctx) -> None:
         s.shot(pg, "sync-fail-value", clip=card, marks=[(card.locator("tbody tr").first.locator(".error-text"), 1)])
         src_sql("UPDATE fac_master SET inst_date = (SELECT inst_date FROM fac_master WHERE fac_id='F-0001') WHERE fac_id='F-0002';")
         subprocess.run(pg_super(SRC_DB, "SELECT 1"), capture_output=True)
-        import manual_env  # type: ignore[import-not-found]
         import csv
+
+        import manual_env  # type: ignore[import-not-found]
 
         with (ROOT / "domain-packs/sample/seed/facility.csv").open(encoding="utf-8") as fh:
             orig = next(r for r in csv.DictReader(fh) if r["facility_id"] == "F-0002")["installed_on"]
@@ -1006,7 +1021,8 @@ def ch_notify(c: Ctx) -> None:
         go(pg, "/ontology")
         pg.locator("tbody tr", has_text="draft").first.get_by_role("link", name="열기").click()
         pg.wait_for_timeout(2000)
-        sec = pg.locator("h2:has-text('Action')").locator("xpath=..")
+        tab(pg, "Action")
+        sec = pg.locator("[role=tabpanel]")
         sec.get_by_role("button", name="Action 추가").click()
         pg.wait_for_timeout(600)
         form = sec.locator("form").last
@@ -1031,7 +1047,7 @@ def ch_notify(c: Ctx) -> None:
         s.shot(pg, "modeler-action-form", clip=form, marks=[(nt, None)])
         form.get_by_role("button", name="저장").click()
         pg.wait_for_timeout(2000)
-        pg.locator("main .row").first.get_by_role("button", name="게시").click()
+        pg.locator(".page-header").get_by_role("button", name="게시").click()
         pg.wait_for_timeout(3000)
         go(pg, "/ontology")
         s.shot(pg, "versions-after", full=True)
@@ -1513,9 +1529,9 @@ def ch_rollback(c: Ctx) -> None:
         pg.wait_for_timeout(1500)
         print("    재업그레이드:", wait_job(pg, 1200), flush=True)
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         _add_user(pg, "temp.after", "업그레이드 뒤 계정", ["user"], password())
-        pg.locator("details.card form").get_by_role("button", name="추가").click()
+        pg.locator(".dialog-backdrop .dialog form").get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "users-before-restore", clip=pg.locator("main table").first, marks=[(_user_row(pg, "temp.after"), None)])
     with c.console() as pg:
@@ -1537,7 +1553,7 @@ def ch_rollback(c: Ctx) -> None:
         status_ready(pg)
         s.shot(pg, "status-after-restore")
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         s.shot(pg, "users-after-restore", clip=pg.locator("main table").first)
     t.shot("state-after-restore", "wsl -d ontobot -u root -- cat /opt/ontobot/state.env", sh("cat state.env"))
 
@@ -1563,11 +1579,11 @@ def ch_restore_demo(c: Ctx) -> None:
     wait_healthy("api")
     time.sleep(10)
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         box = _add_user(pg, "temp.after", "업그레이드 뒤 계정", ["user"], password())
         box.locator("form").get_by_role("button", name="추가").click()
         pg.wait_for_timeout(2000)
-        go(pg, "/admin")
+        admin(pg, "users")
         assert _user_row(pg, "temp.after").count(), "temp.after 계정을 만들지 못했습니다"
         s.shot(pg, "users-before-restore", clip=pg.locator("main table").first, marks=[(_user_row(pg, "temp.after"), 1)])
     with c.console() as pg:
@@ -1591,7 +1607,7 @@ def ch_restore_demo(c: Ctx) -> None:
     wait_healthy("api")
     time.sleep(5)
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         s.shot(pg, "users-after-restore", clip=pg.locator("main table").first)
     t.shot("state-after-restore", "wsl -d ontobot -u root -- cat /opt/ontobot/state.env", sh("cat state.env"))
 
@@ -1639,7 +1655,7 @@ def ch_audit(c: Ctx) -> None:
     s = c.s
     with c.app() as pg:
         nav(pg, "관리")
-        pg.get_by_role("tab", name="감사 로그").click()
+        sub(pg, "감사 로그")
         pg.wait_for_timeout(1500)
         # v1 관리 화면은 감사 로그 표 앞에 성공 지표 목표 표가 있다 — "이벤트" 칸이 있는 표가 감사 로그다.
         table = pg.locator("main table", has=pg.locator("th", has_text="이벤트")).first
@@ -1928,14 +1944,12 @@ def ch_ontology(c: Ctx) -> None:
         pg.wait_for_timeout(2500)
         s.shot(pg, "published-top")
         s.shot(pg, "published-full", full=True)
-        for h in ("객체 타입", "링크 타입", "Action"):
-            sec = pg.locator("h2", has_text=h).first
-            if sec.count():
-                sec.scroll_into_view_if_needed()
-                pg.wait_for_timeout(400)
-                s.shot(pg, f"section-{h.replace(' ', '')}")
-        diff = pg.locator("details.card", has_text="버전 비교").first
-        diff.locator("summary").click()
+        # 버전 상세는 탭(요약·객체 타입·링크·Action·Function·비교·가져오기·내보내기·그래프)이다.
+        for h, name in (("객체 타입", "객체타입"), ("링크", "링크타입"), ("Action", "Action")):
+            tab(pg, h)
+            s.shot(pg, f"section-{name}")
+        tab(pg, "비교")
+        diff = pg.locator("[role=tabpanel] .card", has_text="버전 비교").first
         pg.wait_for_timeout(2000)
         s.shot(pg, "diff", clip=diff)
         vid = pg.url.rstrip("/").split("/")[-1]
@@ -1956,7 +1970,7 @@ LOAD_USER = "loadtest"
 def ch_load(c: Ctx) -> None:
     s, t = c.s, c.t
     with c.app() as pg:
-        nav(pg, "관리")
+        admin_users(pg)
         if not _user_row(pg, LOAD_USER).count():
             box = _add_user(pg, LOAD_USER, "부하 측정", ["user"], password())
             box.locator("form").get_by_role("button", name="추가").click()
@@ -2079,8 +2093,7 @@ def ch_incremental(c: Ctx) -> None:
            title="원천 DB 담당자 PC — psql", prompt="> ")
     with c.app("lee.modeler") as pg:
         go(pg, "/sources")
-        add = pg.locator("details.card", has_text="매핑 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 매핑 추가")
         f = add.locator("form")
         f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
         f.locator("label", has_text="객체 타입").locator("select").select_option("Region")

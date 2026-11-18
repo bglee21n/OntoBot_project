@@ -67,7 +67,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
               <span className="spacer" />
               {editable && (
                 <>
-                  <button type="button" className="link" onClick={() => setEditing({ kind: "action", id: a.id })}>
+                  <button type="button" className="secondary" onClick={() => setEditing({ kind: "action", id: a.id })}>
                     {t.edit}
                   </button>
                   <button type="button" className="link danger" onClick={() => void confirmDelete().then((ok) => ok && delAction.mutate(a.id, deleted))}>
@@ -88,7 +88,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
               onSubmit={(body) => addAction.mutate(body, done)}
             />
           ) : (
-            <button type="button" className="link" onClick={() => setEditing({ kind: "action", id: "new" })}>
+            <button type="button" className="secondary" onClick={() => setEditing({ kind: "action", id: "new" })}>
               {t.addActionType}
             </button>
           ))}
@@ -115,7 +115,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
               <span className="spacer" />
               {editable && (
                 <>
-                  <button type="button" className="link" onClick={() => setEditing({ kind: "function", id: f.id })}>
+                  <button type="button" className="secondary" onClick={() => setEditing({ kind: "function", id: f.id })}>
                     {t.edit}
                   </button>
                   <button type="button" className="link danger" onClick={() => void confirmDelete().then((ok) => ok && delFn.mutate(f.id, deleted))}>
@@ -135,7 +135,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
               onSubmit={(body) => addFn.mutate(body, done)}
             />
           ) : (
-            <button type="button" className="link" onClick={() => setEditing({ kind: "function", id: "new" })}>
+            <button type="button" className="secondary" onClick={() => setEditing({ kind: "function", id: "new" })}>
               {t.addFunction}
             </button>
           ))}

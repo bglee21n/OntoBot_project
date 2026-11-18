@@ -24,6 +24,7 @@ export function ObjectTypeCard({
 }) {
   const base = `${V}/${versionId}/object-types/${t.id}`;
   const [editing, setEditing] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
   const addProp = useVersionMutation(versionId, (p: PropertyDef) => api.post(`${base}/properties`, p));
   const editProp = useVersionMutation(versionId, (a: { id: number; p: PropertyDef }) =>
     api.patch(`${base}/properties/${a.id}`, a.p),
@@ -125,11 +126,20 @@ export function ObjectTypeCard({
         </tbody>
       </table>
       {error && <ErrorBox error={error} />}
-      {editable && (
-        <details>
-          <summary>{ko.ontology.addProperty}</summary>
-          <PropertyForm key={t.properties.length} pending={addProp.isPending} onSubmit={(p) => addProp.mutate(p)} />
-        </details>
+      {editable && !adding && (
+        <div>
+          <button type="button" className="secondary" onClick={() => setAdding(true)}>
+            + {ko.ontology.addProperty}
+          </button>
+        </div>
+      )}
+      {editable && adding && (
+        <PropertyForm
+          key={t.properties.length}
+          pending={addProp.isPending}
+          onCancel={() => setAdding(false)}
+          onSubmit={(p) => addProp.mutate(p, { onSuccess: () => setAdding(false) })}
+        />
       )}
     </article>
   );

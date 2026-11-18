@@ -371,7 +371,7 @@ function NotificationsPanel() {
         {list.data && list.data.unread > 0 && <span className="badge failed">{list.data.unread}</span>}
         <span className="spacer" />
         {list.data && list.data.unread > 0 && (
-          <button type="button" className="link" onClick={() => read.mutate()}>
+          <button type="button" className="secondary" onClick={() => read.mutate()}>
             {t.markRead}
           </button>
         )}

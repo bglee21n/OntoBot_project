@@ -84,6 +84,24 @@ def row_action(row: Any, label: str) -> None:
     row.page.get_by_role("menuitem", name=label, exact=True).click()
 
 
+def tab(page: Page, name: str, wait: int = 600) -> None:
+    """버전 상세 같은 화면의 탭을 고른다(`[role=tab]`, 이름 앞부분 — 탭에 개수 표시가 붙는다)."""
+    page.locator("[role=tab]", has_text=name).first.click()
+    page.wait_for_timeout(wait)
+
+
+def open_dialog(page: Page, label: str, wait: int = 500) -> Locator:
+    """머리의 "+ 만들기" 단추를 눌러 대화상자를 열고 그 상자를 돌려준다(components/Dialog)."""
+    page.get_by_role("button", name=label).first.click()
+    page.wait_for_timeout(wait)
+    return page.locator(".dialog-backdrop .dialog").last
+
+
+def admin(page: Page, section: str = "", wait: int = 1200) -> None:
+    """관리 하위 화면 — ''(개요)·users·groups·api-keys·audit·trace."""
+    go(page, f"/admin/{section}" if section else "/admin", wait)
+
+
 class Shooter:
     def __init__(self, browser: Browser, chapter: str, root: Path | None = None) -> None:
         self.browser = browser

@@ -207,7 +207,7 @@ export function ElementCard({
             <button type="submit" disabled={save.isPending}>
               {t.save}
             </button>
-            <button type="button" className="link" onClick={() => setEditing(false)}>
+            <button type="button" className="secondary" onClick={() => setEditing(false)}>
               {t.cancel}
             </button>
           </div>
@@ -223,7 +223,7 @@ export function ElementCard({
             >
               {t.confirm}
             </button>
-            <button type="button" className="link" onClick={startEdit}>
+            <button type="button" className="secondary" onClick={startEdit}>
               {t.edit}
             </button>
             <button

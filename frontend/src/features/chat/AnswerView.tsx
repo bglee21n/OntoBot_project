@@ -180,7 +180,7 @@ export function ObjectCardPanel({
       <div className="row">
         <strong>{t.card.title}</strong>
         <span className="spacer" />
-        <button type="button" className="link" onClick={onClose}>
+        <button type="button" className="secondary" onClick={onClose}>
           {t.card.close}
         </button>
       </div>

@@ -89,7 +89,7 @@ export function PropertyForm({
           {initial ? ko.common.save : ko.common.add}
         </button>
         {onCancel && (
-          <button type="button" className="link" onClick={onCancel}>
+          <button type="button" className="secondary" onClick={onCancel}>
             {ko.common.cancel}
           </button>
         )}

@@ -15,7 +15,7 @@ import sys
 import subprocess
 import time
 
-from shots import Shooter, ask, go, last_answer, row_action, run, shot_turn
+from shots import Shooter, admin, ask, go, last_answer, open_dialog, row_action, run, shot_turn, tab
 
 # ---------------------------------------------------------------- 1. 로그인
 
@@ -464,10 +464,11 @@ def ch_workshop(s: Shooter) -> None:
     with s.as_user("choi.expert") as pg:
         go(pg, "/workshop")
         s.shot(pg, "list-empty")
-        title = pg.locator("form.row input")
+        dlg = open_dialog(pg, "+ 새 인터뷰")
+        title = dlg.locator("input").first
         title.fill("변전소 안전 점검 업무")
-        s.shot(pg, "new-session", marks=[(title, 1), (pg.get_by_role("button", name="새 인터뷰"), 2, "right")])
-        pg.get_by_role("button", name="새 인터뷰").click()
+        s.shot(pg, "new-session", marks=[(title, 1), (dlg.get_by_role("button", name="새 인터뷰"), 2, "right")])
+        dlg.get_by_role("button", name="새 인터뷰").click()
         pg.wait_for_timeout(3000)
         s.shot(pg, "session-start", full=True)
         url = pg.url
@@ -613,12 +614,12 @@ def ch_ontology(s: Shooter) -> None:
         _open_version(pg, "draft")
         issues = pg.locator(".card", has_text="게시 전 검사").first
         s.shot(pg, "draft-issues", clip=issues)
-        diff = pg.locator("details.card", has_text="버전 비교")
-        diff.locator("summary").click()
+        tab(pg, "비교")
+        diff = pg.locator("[role=tabpanel] .card", has_text="버전 비교")
         diff.locator("select").select_option(index=1)
         pg.wait_for_timeout(1500)
         s.shot(pg, "diff-before", clip=diff)
-        diff.locator("summary").click()
+        tab(pg, "객체 타입")
         # 1) pk 없는 타입(Substation·Pole)을 지운다.
         for name in ("Substation", "Pole"):
             art = _type_article(pg, name)
@@ -651,18 +652,16 @@ def ch_ontology(s: Shooter) -> None:
         pg.wait_for_timeout(1500)
         # 4) 속성 추가
         fac = _type_article(pg, "Facility")
-        add = fac.locator("details", has_text="속성 추가").first
-        add.locator("summary").click()
-        f = add.locator("form")
+        fac.get_by_role("button", name="+ 속성 추가").click()
+        f = fac.locator(":scope > form").last
         f.locator("label", has_text="api_name").locator("input").fill("inspection_cycle_days")
         f.locator("label", has_text="표시 이름").locator("input").fill("점검 주기(일)")
         f.locator("label", has_text="자료형").locator("select").select_option("int")
-        s.shot(pg, "add-property", clip=add)
+        s.shot(pg, "add-property", clip=f)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
-        # 5) 객체 타입 추가 — 점검 기록
-        add = pg.locator("details.card", has_text="객체 타입 추가").first
-        add.locator("summary").click()
+        # 5) 객체 타입 추가 — 점검 기록(대화상자)
+        add = open_dialog(pg, "+ 객체 타입 추가")
         f = add.locator("form")
         f.locator("label", has_text="api_name").locator("input").fill("Inspection")
         f.locator("label", has_text="표시 이름").locator("input").fill("점검 기록")
@@ -671,7 +670,9 @@ def ch_ontology(s: Shooter) -> None:
         s.shot(pg, "add-type", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(2000)
+        tab(pg, "요약")
         s.shot(pg, "issues-after-type", clip=pg.locator(".card", has_text="게시 전 검사").first)
+        tab(pg, "객체 타입")
         ins = _type_article(pg, "Inspection")
         for api, disp, dtype, nullable in [
             ("inspection_id", "점검 ID", "string", False),
@@ -679,10 +680,8 @@ def ch_ontology(s: Shooter) -> None:
             ("inspected_on", "점검일", "date", True),
             ("result", "점검 결과", "string", True),
         ]:
-            add = ins.locator("details", has_text="속성 추가").first
-            if add.get_attribute("open") is None:
-                add.locator("summary").click()
-            f = add.locator("form")
+            ins.get_by_role("button", name="+ 속성 추가").click()
+            f = ins.locator(":scope > form").last
             f.locator("label", has_text="api_name").locator("input").fill(api)
             f.locator("label", has_text="표시 이름").locator("input").fill(disp)
             f.locator("label", has_text="자료형").locator("select").select_option(dtype)
@@ -693,9 +692,9 @@ def ch_ontology(s: Shooter) -> None:
             pg.wait_for_timeout(1300)
             ins = _type_article(pg, "Inspection")
         s.shot(pg, "inspection-type", clip=ins)
-        # 6) 링크 타입 추가
-        add = pg.locator("details.card", has_text="링크 타입 추가").first
-        add.locator("summary").click()
+        # 6) 링크 타입 추가(링크 탭의 대화상자)
+        tab(pg, "링크")
+        add = open_dialog(pg, "+ 링크 타입 추가")
         f = add.locator("form")
         f.locator("label", has_text="api_name").locator("input").fill("inspects")
         f.locator("label", has_text="표시 이름").locator("input").fill("점검 대상 시설")
@@ -711,19 +710,20 @@ def ch_ontology(s: Shooter) -> None:
         s.shot(pg, "add-link", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
-        s.shot(pg, "links", clip=pg.locator("h2:has-text('링크 타입') + table, table:near(h2:has-text('링크 타입'))").first)
+        s.shot(pg, "links", clip=pg.locator("[role=tabpanel] table").first)
+        tab(pg, "요약")
         s.shot(pg, "issues-pass", clip=pg.locator(".card", has_text="게시 전 검사").first)
-        diff = pg.locator("details.card", has_text="버전 비교")
-        diff.locator("summary").click()
+        tab(pg, "비교")
+        diff = pg.locator("[role=tabpanel] .card", has_text="버전 비교")
         diff.locator("select").select_option(index=1)
         pg.wait_for_timeout(1500)
         s.shot(pg, "diff-after", clip=diff)
-        imp = pg.locator("details.card", has_text="임포트").first
-        imp.locator("summary").click()
+        tab(pg, "가져오기")
+        imp = pg.locator("[role=tabpanel] .card", has_text="임포트").first
         s.shot(pg, "import-panel", clip=imp)
-        imp.locator("summary").click()
-        head = pg.locator("main .row").first
-        s.shot(pg, "export-publish", clip=head, marks=[(head.get_by_role("link", name="YAML"), 1, "below"), (head.get_by_role("button", name="게시"), 2, "below")], pad=40)
+        head = pg.locator(".page-header")
+        s.shot(pg, "export-publish", marks=[(pg.locator("[role=tabpanel]").get_by_role("link", name="YAML"), 1, "below"), (head.get_by_role("button", name="게시"), 2, "below")])
+        tab(pg, "객체 타입")
         s.shot(pg, "draft-full", full=True)
         head.get_by_role("button", name="게시").click()
         pg.wait_for_timeout(3000)
@@ -744,7 +744,8 @@ def ch_action_types(s: Shooter) -> None:
         go(pg, "/ontology")
         s.shot(pg, "new-draft-row", marks=[("tbody tr >> nth=0", 1)])
         _open_version(pg, "draft")
-        sec = pg.locator("h2:has-text('Action')").locator("xpath=..")
+        tab(pg, "Action")
+        sec = pg.locator("[role=tabpanel]")
         s.shot(pg, "action-section", clip=sec)
         cand = sec.locator("details", has_text="워크숍 Action 후보에서 시작").first
         if cand.count():
@@ -797,10 +798,12 @@ def ch_action_types(s: Shooter) -> None:
         s.shot(pg, "form-full", clip=form)
         form.get_by_role("button", name="저장").click()
         pg.wait_for_timeout(2000)
-        s.shot(pg, "saved", clip=pg.locator("h2:has-text('Action')").locator("xpath=.."))
+        s.shot(pg, "saved", clip=pg.locator("[role=tabpanel]"))
+        tab(pg, "요약")
         s.shot(pg, "issues", clip=pg.locator(".card", has_text="게시 전 검사").first)
         # 금지 규칙 보기: pk 를 바꾸는 Action 은 게시 전 검사가 막는다.
-        sec = pg.locator("h2:has-text('Action')").locator("xpath=..")
+        tab(pg, "Action")
+        sec = pg.locator("[role=tabpanel]")
         sec.get_by_role("button", name="Action 추가").click()
         form = sec.locator("form").last
         form.locator("label", has_text="api_name").locator("input").fill("rename_facility")
@@ -820,12 +823,13 @@ def ch_action_types(s: Shooter) -> None:
         cancel = sec.get_by_role("button", name="취소")
         if cancel.count():
             cancel.first.click()
-        art = pg.locator("h2:has-text('Action')").locator("xpath=..").locator(".card", has_text="rename_facility")
+        art = pg.locator("[role=tabpanel] .card", has_text="rename_facility")
         if art.count():
             art.get_by_role("button", name="삭제").click()
             pg.wait_for_timeout(1500)
+        tab(pg, "요약")
         s.shot(pg, "issues-final", clip=pg.locator(".card", has_text="게시 전 검사").first)
-        pg.locator("main .row").first.get_by_role("button", name="게시").click()
+        pg.locator(".page-header").get_by_role("button", name="게시").click()
         pg.wait_for_timeout(3000)
     with s.as_user("kim.user") as pg:
         go(pg, "/chat")
@@ -884,17 +888,14 @@ def ch_sources(s: Shooter) -> None:
     with s.as_user("lee.modeler") as pg:
         go(pg, "/sources")
         s.shot(pg, "page", full=True)
-        add = pg.locator("details.card", has_text="데이터 소스 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 데이터 소스 추가")
         f = add.locator("form")
         f.locator("label", has_text="이름").locator("input").fill("시설 원장 DB")
         f.locator("label", has_text="시크릿 참조").locator("input").fill("env:ONTOBOT_SRC_FAC")
         s.shot(pg, "add-source", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(1500)
-        add = pg.locator("details.card", has_text="데이터 소스 추가").first
-        if add.get_attribute("open") is None:
-            add.locator("summary").click()
+        add = open_dialog(pg, "+ 데이터 소스 추가")
         f = add.locator("form")
         f.locator("label", has_text="이름").locator("input").fill("연습용(잘못된 참조)")
         f.locator("label", has_text="시크릿 참조").locator("input").fill("env:ONTOBOT_SRC_NONE")
@@ -911,8 +912,7 @@ def ch_sources(s: Shooter) -> None:
         pg.wait_for_timeout(2500)
         s.shot(pg, "test-fail", full=True)
         # 매핑
-        add = pg.locator("details.card", has_text="매핑 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 매핑 추가")
         f = add.locator("form")
         f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
         f.locator("label", has_text="객체 타입").locator("select").select_option("Facility")
@@ -1036,10 +1036,11 @@ def ch_eval(s: Shooter) -> None:
     with s.as_user("jung.builder") as pg:
         go(pg, "/eval")
         s.shot(pg, "eval-page", full=True)
-        name = pg.locator("form input").first
+        dlg = open_dialog(pg, "+ 새 골든셋")
+        name = dlg.locator("input").first
         name.fill("매뉴얼 기본 점검")
-        s.shot(pg, "new-set", marks=[(name, 1), (pg.get_by_role("button", name="만들기"), 2, "right")])
-        pg.get_by_role("button", name="만들기").click()
+        s.shot(pg, "new-set", marks=[(name, 1), (dlg.get_by_role("button", name="만들기"), 2, "right")])
+        dlg.get_by_role("button", name="만들기").click()
         pg.wait_for_timeout(2000)
         s.shot(pg, "set-empty", full=True)
         for i, (q, exp, vals, answerable, fault) in enumerate(EVAL_ITEMS, 1):
@@ -1092,11 +1093,11 @@ def ch_eval(s: Shooter) -> None:
 
 def ch_admin(s: Shooter) -> None:
     with s.as_user("park.admin") as pg:
-        go(pg, "/admin")
-        s.shot(pg, "users", full=True)
+        admin(pg)
         s.shot(pg, "version-card", clip=pg.locator("main .card").first)
-        add = pg.locator("details", has_text="로컬 계정 추가").first
-        add.locator("summary").click()
+        admin(pg, "users")
+        s.shot(pg, "users", full=True)
+        add = open_dialog(pg, "+ 로컬 계정 추가")
         f = add.locator("form")
         f.locator("label", has_text="아이디").locator("input").fill("han.new")
         f.locator("label", has_text="표시 이름").locator("input").fill("한신입")
@@ -1108,7 +1109,7 @@ def ch_admin(s: Shooter) -> None:
         s.shot(pg, "add-user", clip=add)
         f.get_by_role("button", name="추가").click()
         pg.wait_for_timeout(2000)
-        go(pg, "/admin")
+        admin(pg, "users")
         row = pg.locator("tbody tr", has_text="han.new").first
         row.locator("label.check", has_text="bot_builder").locator("input").check()
         s.shot(pg, "role-change", clip=row, marks=[(row.get_by_role("button", name="역할 저장"), 1, "right")])
@@ -1128,10 +1129,8 @@ def ch_admin(s: Shooter) -> None:
         pg.wait_for_timeout(1500)
         s.shot(pg, "contacts-saved", clip=pg.locator("tbody tr", has_text="kim.user").first)
         s.shot(pg, "self-row", clip=pg.locator("tbody tr", has_text="park.admin").first)
-        tabs = pg.locator("main nav button, main [role=tablist] button")
         # 데이터 그룹(Phase 14). user 그룹에 점검 기록 읽기를 준다 — 24장(점검 기록 질문)이 이 상태에 기댄다.
-        tabs.filter(has_text="데이터 그룹").first.click()
-        pg.wait_for_timeout(1500)
+        admin(pg, "groups", wait=1500)
         s.shot(pg, "permissions", full=True)
         card = pg.locator(".card.stack", has=pg.locator("code", has_text=re.compile(r"^user$"))).first
         card.locator("details summary").first.click()
@@ -1151,15 +1150,13 @@ def ch_admin(s: Shooter) -> None:
         card.get_by_role("button", name="권한 저장").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "permission-saved", clip=card)
-        tabs.filter(has_text="감사 로그").first.click()
-        pg.wait_for_timeout(2000)
+        admin(pg, "audit", wait=2000)
         s.shot(pg, "audit", full=False)
         flt = pg.locator("label", has_text="이벤트로 거르기").locator("input")
         flt.fill("action.executed")
         pg.wait_for_timeout(2000)
         s.shot(pg, "audit-filter", full=False, marks=[(flt, 1)])
-        tabs.filter(has_text="트레이스").first.click()
-        pg.wait_for_timeout(1500)
+        admin(pg, "trace", wait=1500)
         s.shot(pg, "trace-empty")
         tid = db_value("SELECT id FROM trace WHERE cypher_masked IS NOT NULL ORDER BY id DESC LIMIT 1") or db_value(
             "SELECT max(id) FROM trace"
@@ -1174,10 +1171,7 @@ def ch_admin(s: Shooter) -> None:
                 d.locator("summary").first.click()
         pg.wait_for_timeout(800)
         s.shot(pg, "trace-open", full=True)
-        go(pg, "/admin")
-        tabs = pg.locator("main nav button, main [role=tablist] button")
-        tabs.filter(has_text="감사 로그").first.click()
-        pg.wait_for_timeout(1500)
+        admin(pg, "audit", wait=1500)
         pg.locator("label", has_text="이벤트로 거르기").locator("input").fill("security.trace_viewed")
         pg.wait_for_timeout(2000)
         s.shot(pg, "audit-trace-view")
@@ -1254,8 +1248,7 @@ def ch_scenarios(s: Shooter) -> None:
     # S5 조직 데이터 연결(모델러)
     with s.as_user("lee.modeler") as pg:
         go(pg, "/sources")
-        add = pg.locator("details.card", has_text="매핑 추가").first
-        add.locator("summary").click()
+        add = open_dialog(pg, "+ 매핑 추가")
         f = add.locator("form")
         f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
         f.locator("label", has_text="객체 타입").locator("select").select_option("Organization")
@@ -1396,32 +1389,33 @@ def ch_screens(s: Shooter) -> None:
         go(pg, "/sources")
         _numbered(s, pg, "sources", [
             ".card:has-text('그래프 투영')", ".card:has-text('편집 충돌') nav, .card:has-text('편집 충돌') button",
-            "table:has(th:has-text('시크릿 참조'))", "details:has-text('데이터 소스 추가')", "article.card",
-            "article.card button", "details:has-text('매핑 추가')",
+            "table:has(th:has-text('시크릿 참조'))", "button:has-text('데이터 소스 추가')", "article.card",
+            "article.card button", "button:has-text('매핑 추가')",
         ])
-        go(pg, "/admin")
+        admin(pg, "users")
         _numbered(s, pg, "admin-users", [
-            "main .card", "main nav, main [role=tablist]", "tbody tr >> nth=0", "tbody tr td:nth-child(4) >> nth=0",
-            "tbody tr td:nth-child(5) >> nth=1", "tbody tr td:nth-child(6) >> nth=0", "details:has-text('로컬 계정 추가')",
+            "nav.subnav", "main h1", "tbody tr >> nth=0", "tbody tr td:nth-child(4) >> nth=0",
+            "tbody tr td:nth-child(5) >> nth=1", "tbody tr td:nth-child(6) >> nth=0", "button:has-text('로컬 계정 추가')",
         ])
     with s.as_user("lee.modeler") as pg:
         go(pg, "/ontology")
         _numbered(s, pg, "ontology-list", ["main h1", "button:has-text('빈 draft 만들기')", "tbody tr >> nth=0",
                                           "a:has-text('열기') >> nth=0", "button:has-text('이 버전으로 새 draft') >> nth=0"])
         _open_version(pg, "게시됨")
+        tab(pg, "객체 타입")
         _numbered(s, pg, "ontology-detail", [
-            "main h1", "main .row a >> nth=0", "main .notice, main .muted >> nth=0", "details:has-text('버전 비교')",
-            "article.card >> nth=0", "article.card table >> nth=0", "h2:has-text('링크 타입')", "h2:has-text('Action')",
+            "main h1", "main .notice >> nth=0", "[role=tablist]", "[role=tab]:has-text('비교')",
+            "article.card >> nth=0", "article.card table >> nth=0", "[role=tab]:has-text('링크')", "[role=tab]:has-text('Action')",
         ])
         go(pg, "/workshop")
-        _numbered(s, pg, "workshop-list", ["main h1", "form.row input", "button:has-text('새 인터뷰')", "tbody tr >> nth=0",
+        _numbered(s, pg, "workshop-list", ["main h1", ".page-header button:has-text('새 인터뷰')", "tbody tr >> nth=0",
                                           "a:has-text('열기') >> nth=0"])
     with s.as_user("jung.builder") as pg:
         go(pg, "/eval")
         pg.locator("nav a, .stack a").filter(has_text="매뉴얼").first.click()
         pg.wait_for_timeout(2000)
         _numbered(s, pg, "eval", [
-            "h2:has-text('골든셋')", "main nav a, main .stack a >> nth=0", "form input", "button:has-text('평가 실행')",
+            "h2:has-text('골든셋')", "main nav a, main .stack a >> nth=0", ".page-header button:has-text('새 골든셋')", "button:has-text('평가 실행')",
             "h3:has-text('실행 기록') + table, table >> nth=0", "a:has-text('보기')", "button:has-text('문항 추가')",
         ])
 
@@ -1458,9 +1452,7 @@ def ch_traces(s: Shooter) -> None:
             if not tid:
                 print("    트레이스 없음:", q, flush=True)
                 continue
-            go(pg, "/admin")
-            pg.locator("main nav button, main [role=tablist] button").filter(has_text="트레이스").first.click()
-            pg.wait_for_timeout(800)
+            admin(pg, "trace", wait=800)
             pg.locator("label", has_text="트레이스 id").locator("input").fill(tid)
             pg.get_by_role("button", name="열기").click()
             pg.wait_for_timeout(2000)
@@ -1494,8 +1486,7 @@ def ch_inspection(s: Shooter) -> None:
     with s.as_user("lee.modeler") as pg:
         go(pg, "/sources")
         if not pg.locator("article.card", has_text="inspection_log").count():
-            add = pg.locator("details.card", has_text="매핑 추가").first
-            add.locator("summary").click()
+            add = open_dialog(pg, "+ 매핑 추가")
             f = add.locator("form")
             f.locator("label", has_text="데이터 소스").locator("select").select_option(label="시설 원장 DB")
             f.locator("label", has_text="객체 타입").locator("select").select_option("Inspection")
@@ -1651,6 +1642,7 @@ def ch_naming(s: Shooter) -> None:
         row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         _open_version(pg, "draft")
+        tab(pg, "객체 타입")
         # 1) 시설 유형 표시 이름에 값 목록을 드러낸다.
         fac = _type_article(pg, "Facility")
         row = fac.locator("tbody tr").filter(has=pg.locator("td:first-child code:text-is('facility_type')")).first
@@ -1671,12 +1663,12 @@ def ch_naming(s: Shooter) -> None:
         s.shot(pg, "edit-inspection-id", clip=form)
         form.get_by_role("button", name="저장").click()
         pg.wait_for_timeout(1500)
-        diff = pg.locator("details.card", has_text="버전 비교")
-        diff.locator("summary").click()
+        tab(pg, "비교")
+        diff = pg.locator("[role=tabpanel] .card", has_text="버전 비교")
         diff.locator("select").select_option(index=1)
         pg.wait_for_timeout(1500)
         s.shot(pg, "diff", clip=diff)
-        pg.locator("main .row").first.get_by_role("button", name="게시").click()
+        pg.locator(".page-header").get_by_role("button", name="게시").click()
         pg.wait_for_timeout(3000)
     after = _probe(s, "after")
     (s.dir / "probes.json").write_text(json.dumps(before + after, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -1698,8 +1690,9 @@ INTERVIEW2 = [
 def ch_interview2(s: Shooter) -> None:
     with s.as_user("choi.expert") as pg:
         go(pg, "/workshop")
-        pg.locator("form.row input").fill("점검 기록 관리 업무")
-        pg.get_by_role("button", name="새 인터뷰").click()
+        dlg = open_dialog(pg, "+ 새 인터뷰")
+        dlg.locator("input").first.fill("점검 기록 관리 업무")
+        dlg.get_by_role("button", name="새 인터뷰").click()
         pg.wait_for_timeout(3000)
         answers = list(INTERVIEW2)
         for turn in range(1, 16):
@@ -1738,7 +1731,7 @@ def ch_narrow(s: Shooter) -> None:
         _open_version(pg, "게시됨")
         s.shot(pg, "ontology", full=False)
     with s.as_user("park.admin", viewport=vp) as pg:
-        go(pg, "/admin")
+        admin(pg, "users")
         s.shot(pg, "admin", full=False)
 
 
@@ -1748,7 +1741,7 @@ def ch_narrow(s: Shooter) -> None:
 
 def ch_notify_setup(s: Shooter) -> None:
     with s.as_user("park.admin") as pg:
-        go(pg, "/admin")
+        admin(pg, "users")
         row = pg.locator("tbody tr", has_text="park.admin").first
         row.get_by_role("button", name="고치기").click()
         pg.wait_for_timeout(500)
@@ -1762,7 +1755,8 @@ def ch_notify_setup(s: Shooter) -> None:
         row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         _open_version(pg, "draft")
-        sec = pg.locator("h2:has-text('Action')").locator("xpath=..")
+        tab(pg, "Action")
+        sec = pg.locator("[role=tabpanel]")
         sec.get_by_role("button", name="Action 추가").click()
         pg.wait_for_timeout(600)
         form = sec.locator("form").last
@@ -1787,8 +1781,9 @@ def ch_notify_setup(s: Shooter) -> None:
         s.shot(pg, "action-form", clip=form)
         form.get_by_role("button", name="저장").click()
         pg.wait_for_timeout(2000)
+        tab(pg, "요약")
         s.shot(pg, "issues", clip=pg.locator(".card", has_text="게시 전 검사").first)
-        pg.locator("main .row").first.get_by_role("button", name="게시").click()
+        pg.locator(".page-header").get_by_role("button", name="게시").click()
         pg.wait_for_timeout(3000)
 
 

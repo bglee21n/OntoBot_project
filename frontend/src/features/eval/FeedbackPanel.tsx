@@ -171,7 +171,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
             <button type="submit" disabled={promote.isPending || !draft.question.trim()}>
               {f.save}
             </button>
-            <button type="button" className="link" onClick={() => setOpen(null)}>
+            <button type="button" className="secondary" onClick={() => setOpen(null)}>
               {t.cancel}
             </button>
           </div>

@@ -152,7 +152,7 @@ export function ItemsTable({ set }: { set: GoldenSetDetail }) {
         <button type="submit" disabled={!draft.question.trim() || save.isPending}>
           {t.save}
         </button>
-        <button type="button" className="link" onClick={() => setEditing(null)}>
+        <button type="button" className="secondary" onClick={() => setEditing(null)}>
           {t.cancel}
         </button>
       </div>
@@ -199,7 +199,7 @@ export function ItemsTable({ set }: { set: GoldenSetDetail }) {
               <td>{i.fault === "none" ? "—" : i.fault}</td>
               <td className="muted">{i.source}</td>
               <td className="actions">
-                <button type="button" className="link" onClick={() => open(i.id, fromItem(i))}>
+                <button type="button" className="secondary" onClick={() => open(i.id, fromItem(i))}>
                   {t.edit}
                 </button>
               </td>

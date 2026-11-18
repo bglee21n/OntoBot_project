@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "../../api/client";
@@ -13,7 +13,8 @@ import { SchemaGraph } from "./graph/SchemaGraph";
 import { ObjectTypeCard } from "./ObjectTypeCard";
 import { useDiff, useImpact, useVersion, useVersionMutation, useVersions, V } from "./queries";
 import { confirmDialog, toast } from "../../components/feedback";
-import { RowMenu } from "../../components/page";
+import { EmptyState, PageHeader, RowMenu } from "../../components/page";
+import { CreateDialogButton } from "../../components/Dialog";
 
 export function VersionDetailPage() {
   const id = Number(useParams().id);
@@ -27,144 +28,203 @@ export function VersionDetailPage() {
   return <VersionEditor v={version.data} />;
 }
 
+/** 버전 상세의 탭 — URL `?view=<키>` 로 연다(예전 `?view=graph` 링크도 그대로 열린다). */
+const TABS = ["summary", "types", "links", "actions", "functions", "diff", "io", "graph"] as const;
+type Tab = (typeof TABS)[number];
+
 function VersionEditor({ v }: { v: VersionDetail }) {
   const editable = v.status === "draft";
   const me = useMe();
   const [params, setParams] = useSearchParams();
-  const view = params.get("view") === "graph" ? "graph" : "list";
+  const raw = params.get("view") ?? "summary";
+  const view: Tab = (TABS as readonly string[]).includes(raw) ? (raw as Tab) : "summary";
   const isModeler = me.data?.roles.includes("modeler") ?? false;
   const othersDraft = editable && v.created_by != null && me.data != null && v.created_by !== me.data.id;
   const publish = useVersionMutation(v.id, () => api.post(`${V}/${v.id}/publish`));
   const impact = useImpact(v.id, editable);
   // 정의 문서 밖에서 깨지는 참조(행 정책이 지우는 속성을 쓴다)도 게시를 막는다 — 서버가 다시 확인한다.
   const blocked = impact.data?.some((i) => i.refs.some((r) => r.blocking && r.kind !== "document")) ?? false;
+  const count: Partial<Record<Tab, number>> = {
+    types: v.object_types.length,
+    links: v.link_types.length,
+    actions: v.action_types.length,
+    functions: v.functions.length,
+  };
+  const tl = ko.ontology.tabs;
 
   return (
     <section className="stack">
-      <div className="row">
-        <h1>{ko.ontology.version(v.version_no)}</h1>
-        <span className={`badge ${v.status}`}>{ko.status[v.status]}</span>
-        <span className="spacer" />
-        <ExportLinks id={v.id} />
-        {editable && (
-          <button
-            type="button"
-            disabled={publish.isPending || v.issues.length > 0 || blocked}
-            title={v.issues.length > 0 || blocked ? ko.ontology.issuesTitle : undefined}
-            onClick={() => void confirmDialog(ko.ontology.publishConfirm, { confirmLabel: ko.ontology.publish }).then((ok) => ok && publish.mutate(undefined, { onSuccess: () => toast(ko.ontology.published) }))}
-          >
-            {ko.ontology.publish}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        id="version-detail"
+        title={ko.ontology.version(v.version_no)}
+        badge={<span className={`badge ${v.status}`}>{ko.status[v.status]}</span>}
+        actions={
+          editable && (
+            <button
+              type="button"
+              disabled={publish.isPending || v.issues.length > 0 || blocked}
+              title={v.issues.length > 0 || blocked ? ko.ontology.issuesTitle : undefined}
+              onClick={() => void confirmDialog(ko.ontology.publishConfirm, { confirmLabel: ko.ontology.publish }).then((ok) => ok && publish.mutate(undefined, { onSuccess: () => toast(ko.ontology.published) }))}
+            >
+              {ko.ontology.publish}
+            </button>
+          )
+        }
+      />
       {publish.isError && <ErrorBox error={publish.error} />}
       {!editable && <p className="notice">{ko.ontology.readonly}</p>}
       {othersDraft && <p className="notice warn">{ko.ontology.draftOwner(v.created_by_name ?? `#${v.created_by}`)}</p>}
 
-      {editable && <Issues issues={v.issues} />}
-      {editable && impact.isError && <ErrorBox error={impact.error} />}
-      {editable && impact.data && impact.data.length > 0 && <ImpactPanel impacts={impact.data} />}
-      <div className="row tabs" role="tablist">
-        {(["list", "graph"] as const).map((x) => (
+      <div className="tabs tab-strip" role="tablist" aria-label={ko.ontology.tabsLabel}>
+        {TABS.map((x) => (
           <button
             key={x}
             type="button"
             role="tab"
             aria-selected={view === x}
             className={view === x ? "tab active" : "tab"}
-            onClick={() => setParams(x === "graph" ? { view: "graph" } : {}, { replace: true })}
+            onClick={() => setParams(x === "summary" ? {} : { view: x }, { replace: true })}
           >
-            {x === "graph" ? ko.ontology.viewGraph : ko.ontology.viewList}
+            {tl[x]}
+            {count[x] != null && <span className="tab-count">{count[x]}</span>}
+            {x === "summary" && editable && v.issues.length > 0 && <span className="tab-count warn">{v.issues.length}</span>}
           </button>
         ))}
       </div>
-      {view === "graph" ? (
-        <SchemaGraph v={v} editable={editable && isModeler} canSaveLayout={isModeler} />
-      ) : (
-        <ListView v={v} editable={editable} />
-      )}
+      <div role="tabpanel" className="stack">
+        {view === "summary" && (
+          <>
+            <dl className="kv card">
+              {(["types", "links", "actions", "functions"] as const).map((x) => (
+                <Fragment key={x}>
+                  <dt>{tl[x]}</dt>
+                  <dd>
+                    <button type="button" className="link" onClick={() => setParams({ view: x }, { replace: true })}>
+                      {count[x]}
+                    </button>
+                  </dd>
+                </Fragment>
+              ))}
+            </dl>
+            {editable && <Issues issues={v.issues} />}
+            {editable && impact.isError && <ErrorBox error={impact.error} />}
+            {editable && impact.data && impact.data.length > 0 && <ImpactPanel impacts={impact.data} />}
+          </>
+        )}
+        {view === "types" && <TypesTab v={v} editable={editable} />}
+        {view === "links" && <LinksTab v={v} editable={editable} />}
+        {view === "actions" && <ActionTypesSection v={v} editable={editable} />}
+        {view === "functions" && <FunctionsSection v={v} editable={editable} />}
+        {view === "diff" && <DiffPanel v={v} />}
+        {view === "io" && (
+          <>
+            <div className="card stack">
+              <strong>{ko.ontology.export}</strong>
+              <p className="muted">{ko.ontology.exportHint}</p>
+              <ExportLinks id={v.id} />
+            </div>
+            {editable && <ImportPanel id={v.id} />}
+          </>
+        )}
+        {view === "graph" && <SchemaGraph v={v} editable={editable && isModeler} canSaveLayout={isModeler} />}
+      </div>
     </section>
   );
 }
 
-function ListView({ v, editable }: { v: VersionDetail; editable: boolean }) {
+function TypesTab({ v, editable }: { v: VersionDetail; editable: boolean }) {
   const addType = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/object-types`, body));
+  return (
+    <>
+      {editable && (
+        <div className="row">
+          <span className="spacer" />
+          <CreateDialogButton label={`+ ${ko.ontology.addObjectType}`} wide>
+            {(close) => (
+              <>
+                <ObjectTypeForm pending={addType.isPending} onSubmit={(t) => addType.mutate(t, { onSuccess: () => (toast(ko.common.created), close()) })} />
+                {addType.isError && <ErrorBox error={addType.error} />}
+              </>
+            )}
+          </CreateDialogButton>
+        </div>
+      )}
+      {v.object_types.length === 0 && <EmptyState message={ko.ontology.noTypes} />}
+      {v.object_types.map((t) => (
+        <ObjectTypeCard key={t.id} versionId={v.id} t={t} editable={editable} />
+      ))}
+    </>
+  );
+}
+
+function LinksTab({ v, editable }: { v: VersionDetail; editable: boolean }) {
   const addLink = useVersionMutation(v.id, (body: unknown) => api.post(`${V}/${v.id}/link-types`, body));
   const delLink = useVersionMutation(v.id, (linkId: number) => api.del(`${V}/${v.id}/link-types/${linkId}`));
   return (
     <>
-      {editable && <ImportPanel id={v.id} />}
-      <DiffPanel v={v} />
-
-      <h2>{ko.ontology.objectTypes}</h2>
-      {v.object_types.map((t) => (
-        <ObjectTypeCard key={t.id} versionId={v.id} t={t} editable={editable} />
-      ))}
       {editable && (
-        <details className="card">
-          <summary>{ko.ontology.addObjectType}</summary>
-          <ObjectTypeForm pending={addType.isPending} onSubmit={(t) => addType.mutate(t)} />
-          {addType.isError && <ErrorBox error={addType.error} />}
-        </details>
+        <div className="row">
+          <span className="spacer" />
+          <CreateDialogButton label={`+ ${ko.ontology.addLinkType}`} wide>
+            {(close) => (
+              <>
+                <LinkTypeForm
+                  typeNames={v.object_types.map((t) => t.api_name)}
+                  pending={addLink.isPending}
+                  onSubmit={(l) => addLink.mutate(l, { onSuccess: () => (toast(ko.common.created), close()) })}
+                />
+                {addLink.isError && <ErrorBox error={addLink.error} />}
+              </>
+            )}
+          </CreateDialogButton>
+        </div>
       )}
-
-      <h2>{ko.ontology.linkTypes}</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>{ko.ontology.apiName}</th>
-            <th>{ko.ontology.displayName}</th>
-            <th>{ko.ontology.fromType}</th>
-            <th>{ko.ontology.toType}</th>
-            <th>{ko.ontology.cardinality}</th>
-            <th>{ko.ontology.fkProperty}</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {v.link_types.map((l) => (
-            <tr key={l.id}>
-              <td>
-                <code>{l.api_name}</code>
-              </td>
-              <td>{l.display_name}</td>
-              <td>{l.from_type}</td>
-              <td>{l.to_type}</td>
-              <td>{l.cardinality}</td>
-              <td>{l.source.property ?? l.source.kind}</td>
-              <td className="actions">
-                {editable && (
-                  <RowMenu
-                    items={[
-                      {
-                        label: ko.common.delete,
-                        danger: true,
-                        onSelect: () =>
-                          void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && delLink.mutate(l.id, { onSuccess: () => toast(ko.common.deleted) })),
-                      },
-                    ]}
-                  />
-                )}
-              </td>
+      {v.link_types.length === 0 ? (
+        <EmptyState message={ko.ontology.noLinks} />
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>{ko.ontology.apiName}</th>
+              <th>{ko.ontology.displayName}</th>
+              <th>{ko.ontology.fromType}</th>
+              <th>{ko.ontology.toType}</th>
+              <th>{ko.ontology.cardinality}</th>
+              <th>{ko.ontology.fkProperty}</th>
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {delLink.isError && <ErrorBox error={delLink.error} />}
-      {editable && (
-        <details className="card">
-          <summary>{ko.ontology.addLinkType}</summary>
-          <LinkTypeForm
-            typeNames={v.object_types.map((t) => t.api_name)}
-            pending={addLink.isPending}
-            onSubmit={(l) => addLink.mutate(l)}
-          />
-          {addLink.isError && <ErrorBox error={addLink.error} />}
-        </details>
+          </thead>
+          <tbody>
+            {v.link_types.map((l) => (
+              <tr key={l.id}>
+                <td>
+                  <code>{l.api_name}</code>
+                </td>
+                <td>{l.display_name}</td>
+                <td>{l.from_type}</td>
+                <td>{l.to_type}</td>
+                <td>{l.cardinality}</td>
+                <td>{l.source.property ?? l.source.kind}</td>
+                <td className="actions">
+                  {editable && (
+                    <RowMenu
+                      items={[
+                        {
+                          label: ko.common.delete,
+                          danger: true,
+                          onSelect: () =>
+                            void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && delLink.mutate(l.id, { onSuccess: () => toast(ko.common.deleted) })),
+                        },
+                      ]}
+                    />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-
-      <ActionTypesSection v={v} editable={editable} />
-      <FunctionsSection v={v} editable={editable} />
+      {delLink.isError && <ErrorBox error={delLink.error} />}
     </>
   );
 }
@@ -232,8 +292,8 @@ function ImportPanel({ id }: { id: number }) {
   };
 
   return (
-    <details className="card">
-      <summary>{ko.ontology.import}</summary>
+    <div className="card stack">
+      <strong>{ko.ontology.import}</strong>
       <p className="muted">{ko.ontology.importHint}</p>
       <div className="row">
         <input type="file" accept=".yaml,.yml,.json" onChange={(e) => void readFile(e.target.files?.[0])} />
@@ -243,20 +303,21 @@ function ImportPanel({ id }: { id: number }) {
         </select>
       </div>
       <textarea rows={10} value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
-      <button type="button" disabled={!content || run.isPending} onClick={() => run.mutate(undefined)}>
-        {ko.ontology.importRun}
-      </button>
+      <div className="row">
+        <button type="button" disabled={!content || run.isPending} onClick={() => run.mutate(undefined)}>
+          {ko.ontology.importRun}
+        </button>
+      </div>
       {run.isError && <ErrorBox error={run.error} />}
-    </details>
+    </div>
   );
 }
 
 function ExportLinks({ id }: { id: number }) {
   // 같은 오리진 링크라 세션 쿠키가 붙는다. 파일명은 서버의 Content-Disposition 이 정한다.
   return (
-    <span className="muted">
-      {ko.ontology.export}: <a href={`/api/v1${V}/${id}/export?format=yaml`}>YAML</a> ·{" "}
-      <a href={`/api/v1${V}/${id}/export?format=json`}>JSON</a>
+    <span>
+      <a href={`/api/v1${V}/${id}/export?format=yaml`}>YAML</a> · <a href={`/api/v1${V}/${id}/export?format=json`}>JSON</a>
     </span>
   );
 }
@@ -268,8 +329,8 @@ function DiffPanel({ v }: { v: VersionDetail }) {
   const others = (versions.data ?? []).filter((x) => x.id !== v.id);
 
   return (
-    <details className="card">
-      <summary>{ko.ontology.diff}</summary>
+    <div className="card stack">
+      <strong>{ko.ontology.diff}</strong>
       <label className="row">
         {ko.ontology.diffBase}
         <select value={base ?? ""} onChange={(e) => setBase(e.target.value ? Number(e.target.value) : null)}>
@@ -293,6 +354,6 @@ function DiffPanel({ v }: { v: VersionDetail }) {
           ))}
         </ul>
       )}
-    </details>
+    </div>
   );
 }
