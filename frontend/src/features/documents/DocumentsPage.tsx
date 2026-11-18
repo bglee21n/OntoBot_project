@@ -9,6 +9,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { confirmDialog, toast } from "../../components/feedback";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.documents;
 
@@ -30,11 +32,10 @@ export function DocumentsPage() {
   const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="documents" title={t.title} intro={t.intro} />
       {canUpload && <UploadForm />}
       {list.isError && <ErrorBox error={list.error} />}
-      {list.data?.length === 0 && <p className="notice">{t.none}</p>}
+      {list.data?.length === 0 && <EmptyState message={t.none} />}
       {list.data && list.data.length > 0 && (
         <>
         <table>
@@ -182,7 +183,7 @@ function DocumentView({ id, canEdit }: { id: number; canEdit: boolean }) {
               type="button"
               className="link"
               disabled={remove.isPending}
-              onClick={() => window.confirm(t.confirmDelete(d.title)) && remove.mutate()}
+              onClick={() => void confirmDialog(t.confirmDelete(d.title), { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && remove.mutate(undefined, { onSuccess: () => toast(ko.common.deleted) }))}
             >
               {t.remove}
             </button>
@@ -265,7 +266,7 @@ function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
       {(links.isError || scan.isError || decide.isError) && (
         <ErrorBox error={links.error ?? scan.error ?? decide.error} />
       )}
-      {links.data?.length === 0 && <p className="muted">{t.noLinks}</p>}
+      {links.data?.length === 0 && <EmptyState message={t.noLinks} />}
       {links.data && links.data.length > 0 && (
         <>
         <table>

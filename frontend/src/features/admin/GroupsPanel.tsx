@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { GroupOut, TypeGrantIO, TypeOut, UserOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.admin.groups;
 const FLAGS = ["can_read", "can_create", "can_edit", "can_delete"] as const;
@@ -181,7 +182,7 @@ function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; 
         <button
           type="button"
           className="link danger"
-          onClick={() => window.confirm(t.confirmDelete(g.display_name)) && del.mutate()}
+          onClick={() => void confirmDialog(t.confirmDelete(g.display_name), { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && del.mutate(undefined, { onSuccess: () => toast(ko.common.deleted) }))}
         >
           {ko.common.delete}
         </button>
@@ -301,10 +302,9 @@ function GroupCard({ g, users, types, links }: { g: GroupOut; users: UserOut[]; 
         </div>
       )}
       <div className="row">
-        <button type="button" disabled={savePerms.isPending} onClick={() => savePerms.mutate()}>
+        <button type="button" disabled={savePerms.isPending} onClick={() => savePerms.mutate(undefined, { onSuccess: () => toast(ko.admin.saved) })}>
           {t.savePermissions}
         </button>
-        {savePerms.isSuccess && <span className="ok-text">{ko.admin.saved}</span>}
       </div>
       {[saveMembers, savePerms, del].map((m, i) => m.isError && <ErrorBox key={i} error={m.error} />)}
     </div>

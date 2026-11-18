@@ -10,6 +10,8 @@ import { engagementKey, useEngagement, useSheetKinds } from "./queries";
 import { PilotPanel } from "./PilotPanel";
 import { SendPanel } from "./SendPanel";
 import { formatDateTime } from "../../app/format";
+import { RowMenu } from "../../components/page";
+import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.adoption;
 
@@ -172,9 +174,16 @@ function Members({ e }: { e: EngagementDetail }) {
               <td>{t.roles[m.role]}</td>
               <td className="actions">
                 {e.can_manage && (
-                  <button type="button" className="link" onClick={() => remove.mutate(m.user_id)}>
-                    {t.remove}
-                  </button>
+                  <RowMenu
+                    items={[
+                      {
+                        label: t.remove,
+                        danger: true,
+                        onSelect: () =>
+                          void confirmDialog(t.confirmRemove(m.display_name), { danger: true, confirmLabel: t.remove }).then((ok) => ok && remove.mutate(m.user_id, { onSuccess: () => toast(ko.common.done) })),
+                      },
+                    ]}
+                  />
                 )}
               </td>
             </tr>
@@ -243,9 +252,16 @@ function Sessions({ e }: { e: EngagementDetail }) {
                 <td>{ko.workshop.status[x.status]}</td>
                 <td className="actions">
                   {e.can_edit && (
-                    <button type="button" className="link" onClick={() => unlink.mutate(x.id)}>
-                      {s.unlink}
-                    </button>
+                    <RowMenu
+                      items={[
+                        {
+                          label: s.unlink,
+                          danger: true,
+                          onSelect: () =>
+                            void confirmDialog(s.confirmUnlink, { danger: true, confirmLabel: s.unlink }).then((ok) => ok && unlink.mutate(x.id, { onSuccess: () => toast(ko.common.done) })),
+                        },
+                      ]}
+                    />
                   )}
                 </td>
               </tr>

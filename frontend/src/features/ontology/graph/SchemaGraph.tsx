@@ -36,6 +36,7 @@ import { TypeBehaviors } from "./TypeBehaviors";
 import { NodeActions, type TypeNode, TypeNodeView } from "./TypeNode";
 import { useTheme } from "../../../app/theme";
 import { FullscreenButton, useGraphFullscreen } from "../../../components/GraphFullscreen";
+import { confirmDialog } from "../../../components/feedback";
 
 type Selection =
   | { kind: "type"; name: string }
@@ -207,8 +208,8 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
   }, [canSaveLayout, elements.types, saveLayout]);
   useEffect(() => () => window.clearTimeout(saveTimer.current), []);
 
-  const resetLayout = () => {
-    if (!window.confirm(ko.ontology.graph.autoLayoutConfirm)) return;
+  const resetLayout = async () => {
+    if (!(await confirmDialog(ko.ontology.graph.autoLayoutConfirm))) return;
     placed.current.clear();
     fitted.current = false;
     setNodes((prev) => prev.map((n) => ({ ...n, position: { x: 0, y: 0 } })));

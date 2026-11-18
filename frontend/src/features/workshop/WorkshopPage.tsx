@@ -10,6 +10,7 @@ import { ko } from "../../i18n/ko";
 import { MergePanel } from "./MergePanel";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.workshop;
 
@@ -41,8 +42,7 @@ export function WorkshopPage() {
   const { rows: pagedRows, pager } = usePaged(sessions.data);
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="workshop" title={t.title} intro={t.intro} />
       <form className="row" onSubmit={submit}>
         <label>
           {t.sessionTitle}
@@ -59,7 +59,7 @@ export function WorkshopPage() {
       {create.isError && <ErrorBox error={create.error} />}
       {sessions.isPending && <p>{ko.common.loading}</p>}
       {sessions.isError && <ErrorBox error={sessions.error} />}
-      {sessions.data?.length === 0 && <p className="muted">{t.noSessions}</p>}
+      {sessions.data?.length === 0 && <EmptyState message={t.noSessions} />}
       {isModeler && picked.length > 0 && <MergePanel key={picked.join(",")} ids={picked} />}
       {sessions.data && sessions.data.length > 0 && (
         <>

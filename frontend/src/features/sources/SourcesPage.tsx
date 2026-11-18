@@ -19,6 +19,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ConflictsPanel } from "./ConflictsPanel";
 import { formatDateTime } from "../../app/format";
+import { confirmDialog, toast } from "../../components/feedback";
+import { PageHeader } from "../../components/page";
 
 const t = ko.sources;
 
@@ -41,7 +43,7 @@ export function SourcesPage() {
 
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
+      <PageHeader id="sources" title={t.title} />
       <GraphPanel />
       <ConflictsPanel />
 
@@ -158,11 +160,10 @@ function MappingCard({ m, sources }: { m: MappingOut; sources: SourceOut[] }) {
     queryFn: () => api.get<SyncRunOut[]>(`/sync-runs?mapping_id=${m.id}&limit=5`),
     refetchInterval: 5000,
   });
-  const [notice, setNotice] = useState<string | null>(null);
   const sync = useMutation({
     mutationFn: () => api.post<Enqueued>(`/mappings/${m.id}/sync`),
     onSuccess: (r) => {
-      setNotice(r.already_queued ? t.alreadyQueued : t.queued);
+      toast(r.already_queued ? t.alreadyQueued : t.queued);
       void qc.invalidateQueries({ queryKey: ["mappings"] });
     },
   });
@@ -184,7 +185,6 @@ function MappingCard({ m, sources }: { m: MappingOut; sources: SourceOut[] }) {
           {t.syncNow}
         </button>
       </div>
-      {notice && <p className="muted">{notice}</p>}
       {sync.isError && <ErrorBox error={sync.error} />}
       <table>
         <thead>
@@ -434,7 +434,7 @@ function GraphPanel() {
         <button
           type="button"
           className="link danger"
-          onClick={() => window.confirm(g.rebuildConfirm) && rebuild.mutate()}
+          onClick={() => void confirmDialog(g.rebuildConfirm, { danger: true }).then((ok) => ok && rebuild.mutate(undefined, { onSuccess: () => toast(ko.common.done) }))}
         >
           {g.rebuild}
         </button>

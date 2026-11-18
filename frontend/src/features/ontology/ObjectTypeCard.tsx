@@ -6,6 +6,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { PropertyForm } from "./forms";
 import { useVersionMutation, V } from "./queries";
+import { confirmDialog, toast } from "../../components/feedback";
+import { RowMenu } from "../../components/page";
 
 /** 객체 타입 하나 — 속성 표와 속성 추가·수정·삭제. 목록 화면과 그래프 옆 패널이 함께 쓴다. */
 export function ObjectTypeCard({
@@ -52,7 +54,7 @@ export function ObjectTypeCard({
             <button
               type="button"
               className="link danger"
-              onClick={() => window.confirm(ko.common.confirmDelete) && delType.mutate(undefined)}
+              onClick={() => void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && delType.mutate(undefined, { onSuccess: () => toast(ko.common.deleted) }))}
             >
               {ko.common.delete}
             </button>
@@ -100,18 +102,21 @@ export function ObjectTypeCard({
                 <td>{p.pii_kind ?? ""}</td>
                 <td className="actions">
                   {editable && (
-                    <>
-                      <button type="button" className="link" onClick={() => setEditing(p.id)}>
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        className="link danger"
-                        onClick={() => window.confirm(ko.common.confirmDelete) && delProp.mutate(p.id)}
-                      >
-                        {ko.common.delete}
-                      </button>
-                    </>
+                    <RowMenu
+                      items={[
+                        {
+                          label: ko.common.edit,
+                          onSelect: () =>
+                            setEditing(p.id),
+                        },
+                        {
+                          label: ko.common.delete,
+                          danger: true,
+                          onSelect: () =>
+                            void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && delProp.mutate(p.id, { onSuccess: () => toast(ko.common.deleted) })),
+                        },
+                      ]}
+                    />
                   )}
                 </td>
               </tr>

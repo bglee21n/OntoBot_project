@@ -6,6 +6,8 @@ import type { ActionCandidateOut, ActionTypeDef, ActionTypeOut, ObjectTypeOut, V
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { useVersionMutation, V } from "./queries";
+import { confirmDialog, toast } from "../../components/feedback";
+import { EmptyState } from "../../components/page";
 
 const t = ko.ontology;
 type Param = NonNullable<ActionTypeDef["parameters"]>[number];
@@ -35,7 +37,7 @@ export function ActionTypesSection({ v, editable }: { v: VersionDetail; editable
     <>
       <h2>{t.actionTypes}</h2>
       <p className="muted">{t.actionTypesHint}</p>
-      {v.action_types.length === 0 && <p className="muted">{t.noActionTypes}</p>}
+      {v.action_types.length === 0 && <EmptyState message={t.noActionTypes} />}
       {v.action_types.map((a) =>
         editing === a.id ? (
           <div key={a.id} className="card">
@@ -54,7 +56,7 @@ export function ActionTypesSection({ v, editable }: { v: VersionDetail; editable
             a={a}
             editable={editable}
             onEdit={() => setEditing(a.id)}
-            onDelete={() => window.confirm(ko.common.confirmDelete) && del.mutate(a.id)}
+            onDelete={() => void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && del.mutate(a.id, { onSuccess: () => toast(ko.common.deleted) }))}
           />
         ),
       )}
@@ -492,7 +494,7 @@ function CandidatePicker({ onPick }: { onPick: (c: ActionCandidateOut) => void }
   return (
     <details>
       <summary>{t.fromCandidate}</summary>
-      {list.data.length === 0 && <p className="muted">{t.candidateNone}</p>}
+      {list.data.length === 0 && <EmptyState message={t.candidateNone} />}
       <ul>
         {list.data.map((c) => (
           <li key={c.element_id}>

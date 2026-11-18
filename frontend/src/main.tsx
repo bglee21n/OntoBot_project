@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./app/App";
 import "./app/styles.css";
 import { applyTheme } from "./app/theme";
+import { FeedbackHost } from "./components/feedback";
 
 applyTheme();
 
@@ -19,6 +20,7 @@ createRoot(root).render(
     <QueryClientProvider client={new QueryClient()}>
       <BrowserRouter>
         <App />
+        <FeedbackHost />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

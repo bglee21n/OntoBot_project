@@ -10,6 +10,7 @@ import { ko } from "../../i18n/ko";
 import { ActionProposal } from "./ActionProposal";
 import { FeedbackButtons } from "./Feedback";
 import { AnswerView, ObjectCardPanel, type Selection, type Status } from "./AnswerView";
+import { PageHeader } from "../../components/page";
 
 const t = ko.chat;
 
@@ -138,7 +139,7 @@ export function ChatPage() {
       </nav>
 
       <div className="chat-thread">
-        <h1>{t.title}</h1>
+        <PageHeader id="chat" title={t.title} />
         {messages.isError && <ErrorBox error={messages.error} />}
         {history.length === 0 && !pending && <p className="notice">{t.empty}</p>}
         {history.map((m) =>

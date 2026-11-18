@@ -25,6 +25,7 @@ import { ApiKeysPanel } from "./ApiKeysPanel";
 import { GroupsPanel } from "./GroupsPanel";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { PageHeader } from "../../components/page";
 
 const t = ko.admin;
 type Tab = keyof typeof t.tabs;
@@ -33,7 +34,7 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>("users");
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
+      <PageHeader id="admin" title={t.title} />
       <SystemCard />
       <MetricsCard />
       <TargetsCard />

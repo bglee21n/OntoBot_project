@@ -28,6 +28,7 @@ import { useTheme } from "../../app/theme";
 import { FullscreenButton, useGraphFullscreen } from "../../components/GraphFullscreen";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.explorer;
 
@@ -242,8 +243,7 @@ function Explorer() {
 
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="explore" title={t.title} intro={t.intro} />
       <div className={fs.on ? "explorer graph-fullscreen" : "explorer"}>
         <aside className="stack explorer-search">
           <form className="row" onSubmit={submit}>
@@ -349,7 +349,7 @@ function EditHistory({ type, pk }: { type: string; pk: string }) {
     <div className="card stack">
       <strong>{t.history}</strong>
       {history.isError && <ErrorBox error={history.error} />}
-      {history.data?.length === 0 && <p className="muted">{t.noHistory}</p>}
+      {history.data?.length === 0 && <EmptyState message={t.noHistory} />}
       {history.data && history.data.length > 0 && (
         <>
         <table>

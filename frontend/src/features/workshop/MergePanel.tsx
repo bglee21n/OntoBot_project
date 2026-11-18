@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { MergeCandidatesOut, PublishOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.workshop.merge;
 
@@ -35,7 +36,7 @@ export function MergePanel({ ids }: { ids: number[] }) {
           type="button"
           disabled={!data || conflicts > 0 || merge.isPending || merge.isSuccess}
           title={conflicts > 0 ? t.blocked : undefined}
-          onClick={() => window.confirm(t.confirm(ids.length)) && merge.mutate()}
+          onClick={() => void confirmDialog(t.confirm(ids.length)).then((ok) => ok && merge.mutate(undefined, { onSuccess: () => toast(ko.common.done) }))}
         >
           {t.merge}
         </button>

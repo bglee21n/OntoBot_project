@@ -6,6 +6,7 @@ import { JobTable, JobView as SharedJobView, type OpsJob, type OpsJobApi, when }
 import { ko } from "../i18n/ko";
 import { type Bundle, deploy, type Job, type Status, uploadFile } from "./client";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { confirmDialog, toast } from "../components/feedback";
 
 const t = ko.deploy;
 type Tab = "status" | "bundles" | "rollback" | "jobs";
@@ -157,7 +158,7 @@ function StatusPanel({ status, error, onJob }: { status: Status | undefined; err
             <button
               type="button"
               disabled={status.busy || start.isPending}
-              onClick={() => window.confirm(t.deployerUpdateConfirm) && start.mutate({ kind: "deployer_update" })}
+              onClick={() => void confirmDialog(t.deployerUpdateConfirm).then((ok) => ok && start.mutate({ kind: "deployer_update" }))}
             >
               {t.deployerUpdate}
             </button>
@@ -258,7 +259,7 @@ function BundlesPanel({ current, busy, onJob }: { current: string | undefined; b
             <button type="button" disabled={busy || !b.preflight?.ok} onClick={() => setUpgrading(b)}>
               {t.upgrade}
             </button>
-            <button type="button" className="link danger" disabled={busy} onClick={() => window.confirm(t.removeConfirm) && remove.mutate(b.name)}>
+            <button type="button" className="link danger" disabled={busy} onClick={() => void confirmDialog(t.removeConfirm, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && remove.mutate(b.name, { onSuccess: () => toast(ko.common.deleted) }))}>
               {t.remove}
             </button>
           </div>

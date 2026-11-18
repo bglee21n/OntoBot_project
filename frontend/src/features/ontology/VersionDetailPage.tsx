@@ -12,6 +12,8 @@ import { LinkTypeForm, ObjectTypeForm } from "./forms";
 import { SchemaGraph } from "./graph/SchemaGraph";
 import { ObjectTypeCard } from "./ObjectTypeCard";
 import { useDiff, useImpact, useVersion, useVersionMutation, useVersions, V } from "./queries";
+import { confirmDialog, toast } from "../../components/feedback";
+import { RowMenu } from "../../components/page";
 
 export function VersionDetailPage() {
   const id = Number(useParams().id);
@@ -49,7 +51,7 @@ function VersionEditor({ v }: { v: VersionDetail }) {
             type="button"
             disabled={publish.isPending || v.issues.length > 0 || blocked}
             title={v.issues.length > 0 || blocked ? ko.ontology.issuesTitle : undefined}
-            onClick={() => window.confirm(ko.ontology.publishConfirm) && publish.mutate(undefined)}
+            onClick={() => void confirmDialog(ko.ontology.publishConfirm, { confirmLabel: ko.ontology.publish }).then((ok) => ok && publish.mutate(undefined, { onSuccess: () => toast(ko.ontology.published) }))}
           >
             {ko.ontology.publish}
           </button>
@@ -132,13 +134,16 @@ function ListView({ v, editable }: { v: VersionDetail; editable: boolean }) {
               <td>{l.source.property ?? l.source.kind}</td>
               <td className="actions">
                 {editable && (
-                  <button
-                    type="button"
-                    className="link danger"
-                    onClick={() => window.confirm(ko.common.confirmDelete) && delLink.mutate(l.id)}
-                  >
-                    {ko.common.delete}
-                  </button>
+                  <RowMenu
+                    items={[
+                      {
+                        label: ko.common.delete,
+                        danger: true,
+                        onSelect: () =>
+                          void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && delLink.mutate(l.id, { onSuccess: () => toast(ko.common.deleted) })),
+                      },
+                    ]}
+                  />
                 )}
               </td>
             </tr>

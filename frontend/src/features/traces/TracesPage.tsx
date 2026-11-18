@@ -9,6 +9,7 @@ import { ko } from "../../i18n/ko";
 import { GradeBadge } from "../chat/AnswerView";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.traces;
 const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
@@ -49,8 +50,7 @@ export function TracesPage() {
   const { rows: pagedRows, pager } = usePaged(rows, `${status}|${reason}`);
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="traces" title={t.title} intro={t.intro} />
       <div className="traces">
         <div className="stack traces-list">
           <div className="row">
@@ -83,7 +83,7 @@ export function TracesPage() {
             </form>
           </div>
           {list.isError && <ErrorBox error={list.error} />}
-          {list.isSuccess && rows.length === 0 && <p className="muted">{t.none}</p>}
+          {list.isSuccess && rows.length === 0 && <EmptyState message={t.none} />}
           {rows.length > 0 && (
             <>
             <table>

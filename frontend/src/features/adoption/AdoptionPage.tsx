@@ -9,6 +9,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.adoption;
 
@@ -43,8 +44,7 @@ export function AdoptionPage() {
   const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="adoption" title={t.title} intro={t.intro} />
       {canCreate && (
         <form className="row" onSubmit={submit}>
           <label>
@@ -67,7 +67,7 @@ export function AdoptionPage() {
       {create.isError && <ErrorBox error={create.error} />}
       {list.isPending && <p>{ko.common.loading}</p>}
       {list.isError && <ErrorBox error={list.error} />}
-      {list.data?.length === 0 && <p className="muted">{t.none}</p>}
+      {list.data?.length === 0 && <EmptyState message={t.none} />}
       {list.data && list.data.length > 0 && (
         <>
         <table>

@@ -7,6 +7,7 @@ import type { DemoAnswerOut, DemoOut, DemoRowsOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { GradeBadge, QueryConditions } from "../chat/AnswerView";
+import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.workshop.demo;
 
@@ -56,7 +57,7 @@ export function DemoPage() {
               type="button"
               className="link"
               disabled={drop.isPending}
-              onClick={() => window.confirm(t.confirmDrop) && drop.mutate()}
+              onClick={() => void confirmDialog(t.confirmDrop, { danger: true }).then((ok) => ok && drop.mutate(undefined, { onSuccess: () => toast(ko.common.done) }))}
             >
               {t.drop}
             </button>
