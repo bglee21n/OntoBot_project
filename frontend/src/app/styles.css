@@ -337,6 +337,23 @@ tr.selected-row td { background: var(--accent-bg); }
 pre { overflow: auto; }
 dl.kv dd, .object-card dd { overflow-wrap: anywhere; }
 
+/* 그래프 전체 화면(components/GraphFullscreen) — 그래프 상자(캔버스 + 옆 패널)가 화면을 덮는다.
+   확인 창(.dialog-backdrop, z 50)은 이보다 위에 뜬다. */
+body.graph-fullscreen-open { overflow: hidden; }
+.graph-fs-button { display: inline-flex; gap: 0.3rem; align-items: center; font-size: 0.85em; padding: 0.3rem 0.6rem; background: var(--card); color: var(--fg); border-color: var(--line); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.graph-fullscreen {
+  position: fixed; inset: 0; z-index: 40; margin: 0; border-radius: 0; box-sizing: border-box;
+  background: var(--bg); padding: 0.5rem; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  display: flex; gap: 0.75rem; align-items: stretch;
+}
+.graph-fullscreen .schema-canvas { height: auto; min-height: 0; flex: 1; }
+.graph-fullscreen .schema-panel { max-height: none; overflow: auto; }
+.graph-fullscreen.explorer .explorer-search { display: none; }
+.graph-fullscreen .explorer-main { display: flex; flex-direction: column; min-height: 0; }
+.graph-fullscreen.ws-graph { flex-direction: column; height: auto; border: none; }
+.graph-fullscreen.ws-graph > .react-flow { flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.graph-fullscreen.ws-graph > p { margin: 0; }
+
 /* 좁은 화면(태블릿 세로) — 옆으로 놓인 목록·상세를 위아래로 */
 @media (max-width: 900px) {
   .explorer, .traces { flex-direction: column; align-items: stretch; }
@@ -387,4 +404,8 @@ dl.kv dd, .object-card dd { overflow-wrap: anywhere; }
   .schema-panel .grid-form { grid-template-columns: 1fr; }
   .ws-graph { height: 55vh; }
   .login { margin: 6vh 1rem; }
+  /* 전체 화면 그래프: 패널은 아래쪽에, 그래프가 위쪽 대부분을 쓴다 */
+  .graph-fullscreen { flex-direction: column; }
+  .graph-fullscreen .schema-panel, .graph-fullscreen.explorer > .schema-panel { width: auto; max-height: 45vh; flex: none; }
+  .graph-fs-button { padding: 0.45rem 0.6rem; }
 }
