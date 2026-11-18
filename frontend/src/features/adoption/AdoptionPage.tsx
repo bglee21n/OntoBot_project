@@ -8,6 +8,7 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.adoption;
 
@@ -46,14 +47,18 @@ export function AdoptionPage() {
       <p className="muted">{t.intro}</p>
       {canCreate && (
         <form className="row" onSubmit={submit}>
-          <input aria-label={t.name} placeholder={t.name} value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
-          <input
-            aria-label={t.description}
-            placeholder={t.description}
-            value={description}
-            maxLength={4000}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+          <label>
+            {t.name}
+            <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            {t.description}
+            <input
+              value={description}
+              maxLength={4000}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
           <button type="submit" disabled={create.isPending || !name.trim()}>
             {t.create}
           </button>
@@ -83,7 +88,7 @@ export function AdoptionPage() {
                 <td>{e.name}</td>
                 <td className="muted">{e.description ?? "—"}</td>
                 <td>{t.roles[e.my_role]}</td>
-                <td>{new Date(e.created_at).toLocaleString("ko-KR")}</td>
+                <td>{formatDateTime(e.created_at)}</td>
                 <td className="actions">
                   <Link to={`/adoption/${e.id}`}>{t.open}</Link>
                 </td>

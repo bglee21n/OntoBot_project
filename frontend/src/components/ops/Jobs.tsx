@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ErrorBox } from "../ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.ops;
 
@@ -30,7 +31,7 @@ export interface OpsJobApi {
   logUrl: (id: string) => string;
 }
 
-export const when = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : "—");
+export const when = (v: string | null | undefined) => formatDateTime(v);
 
 export function JobBadge({ status }: { status: OpsJob["status"] }) {
   const cls = status === "succeeded" ? "succeeded" : status === "running" ? "running" : "failed";

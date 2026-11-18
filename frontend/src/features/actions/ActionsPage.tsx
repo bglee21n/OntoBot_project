@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { ActionRunOut, ActionTypeView, NotificationList } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.actions;
 type Scope = "to_decide" | "mine" | "all";
@@ -199,7 +200,7 @@ export function RunCard({ run, open = false }: { run: ActionRunOut; open?: boole
   });
   const latest = decide.data ?? run;
   const pv = latest.preview;
-  const when = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : "—");
+  const when = (v: string | null | undefined) => formatDateTime(v);
   const irreversible = useMemo(() => pv.notify.some((n) => n.irreversible && n.count > 0), [pv]);
 
   return (
@@ -380,7 +381,7 @@ function NotificationsPanel() {
         {list.data?.items.map((n) => (
           <li key={n.id} className={n.read_at ? "muted" : ""}>
             {n.kind === "compensation" && <span className="badge failed">{t.deliveryKind.compensation}</span>} {n.body}{" "}
-            <span className="muted">· {new Date(n.created_at).toLocaleString()}</span>
+            <span className="muted">· {formatDateTime(n.created_at)}</span>
           </li>
         ))}
       </ul>

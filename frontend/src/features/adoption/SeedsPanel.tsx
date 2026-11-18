@@ -70,7 +70,10 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
       {e.can_edit && (
         <form className="card stack" onSubmit={submit}>
           <div className="row">
-            <input aria-label={t.objectType} placeholder={t.objectType} value={objectType} maxLength={64} onChange={(ev) => setObjectType(ev.target.value)} />
+            <label>
+              {t.objectType}
+              <input value={objectType} maxLength={64} onChange={(ev) => setObjectType(ev.target.value)} />
+            </label>
             <input
               type="file"
               accept=".csv,text/csv"
@@ -81,8 +84,11 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
               }}
             />
           </div>
-          <textarea className="plain" aria-label={t.csv} placeholder={t.csvHint} rows={4} value={csv} onChange={(ev) => setCsv(ev.target.value)} />
           <label>
+            {t.csv}
+            <textarea className="plain" placeholder={t.csvHint} rows={4} value={csv} onChange={(ev) => setCsv(ev.target.value)} />
+          </label>
+          <label className="check">
             <input type="checkbox" checked={synthetic} onChange={(ev) => setSynthetic(ev.target.checked)} /> {t.synthetic}
           </label>
           <div>

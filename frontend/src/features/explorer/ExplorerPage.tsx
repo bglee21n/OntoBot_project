@@ -27,6 +27,7 @@ import { addNeighbors, collapse, frontier, type GraphState, hiddenCount, keyOf, 
 import { useTheme } from "../../app/theme";
 import { FullscreenButton, useGraphFullscreen } from "../../components/GraphFullscreen";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.explorer;
 
@@ -369,9 +370,9 @@ function EditHistory({ type, pk }: { type: string; pk: string }) {
                 </td>
                 <td>
                   {h.edited_by ?? "—"}
-                  <div className="muted">{new Date(h.edited_at).toLocaleString("ko-KR")}</div>
+                  <div className="muted">{formatDateTime(h.edited_at)}</div>
                 </td>
-                <td>{h.cleared_at ? t.cleared(new Date(h.cleared_at).toLocaleString("ko-KR")) : t.active}</td>
+                <td>{h.cleared_at ? t.cleared(formatDateTime(h.cleared_at)) : t.active}</td>
               </tr>
             ))}
           </tbody>

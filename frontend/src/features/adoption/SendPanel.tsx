@@ -76,7 +76,7 @@ function Bridgework({ e, bridge }: { e: EngagementDetail; bridge: Bridge }) {
   return (
     <div className="card stack">
       {bridge === "draft" && (
-        <label className="row">
+        <label>
           {t.draftTarget}
           <select aria-label={t.draftTarget} value={versionId ?? ""} onChange={(ev) => setVersionId(ev.target.value ? Number(ev.target.value) : null)}>
             <option value="">{t.newDraft}</option>

@@ -4,6 +4,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { useCreateDraft, useVersions } from "./queries";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 export function VersionsPage() {
   const versions = useVersions();
@@ -46,8 +47,8 @@ export function VersionsPage() {
                 <td>
                   <span className={`badge ${v.status}`}>{ko.status[v.status]}</span>
                 </td>
-                <td>{new Date(v.created_at).toLocaleString("ko-KR")}</td>
-                <td>{v.published_at ? new Date(v.published_at).toLocaleString("ko-KR") : "—"}</td>
+                <td>{formatDateTime(v.created_at)}</td>
+                <td>{v.published_at ? formatDateTime(v.published_at) : "—"}</td>
                 <td className="actions">
                   <Link to={`/ontology/versions/${v.id}`}>{ko.ontology.open}</Link>
                   {v.status !== "draft" && (

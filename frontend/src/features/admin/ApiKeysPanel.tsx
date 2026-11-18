@@ -6,6 +6,7 @@ import type { ApiKeyIssued, ApiKeyOut, UserOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDate, formatDateTime } from "../../app/format";
 
 const t = ko.admin.apiKeys;
 const SCOPES = ["query", "objects:read", "actions:request"] as const;
@@ -72,9 +73,9 @@ export function ApiKeysPanel() {
                   <td>{k.scopes.map((s) => t.scopeName[s] ?? s).join(", ")}</td>
                   <td>
                     {state}
-                    {k.expires_at && !k.revoked_at && <div className="muted">{t.until(new Date(k.expires_at).toLocaleDateString("ko-KR"))}</div>}
+                    {k.expires_at && !k.revoked_at && <div className="muted">{t.until(formatDate(k.expires_at))}</div>}
                   </td>
-                  <td>{k.last_used_at ? new Date(k.last_used_at).toLocaleString("ko-KR") : "—"}</td>
+                  <td>{k.last_used_at ? formatDateTime(k.last_used_at) : "—"}</td>
                   <td>
                     {!k.revoked_at && (
                       <button
@@ -119,8 +120,14 @@ function ServiceAccountForm({ onDone }: { onDone: () => void }) {
       <strong>{t.newAccount}</strong>
       <span className="muted">{t.accountHint}</span>
       <div className="row">
-        <input aria-label={t.username} placeholder={t.username} value={username} onChange={(e) => setUsername(e.target.value)} required />
-        <input aria-label={t.displayName} placeholder={t.displayName} value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+        <label>
+          {t.username}
+          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+        </label>
+        <label>
+          {t.displayName}
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+        </label>
         <button type="submit" disabled={create.isPending}>
           {t.create}
         </button>
@@ -158,7 +165,7 @@ function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: 
     <form className="card stack" onSubmit={submit}>
       <strong>{t.issue}</strong>
       <div className="row">
-        <label className="row">
+        <label>
           {t.account}
           <select value={chosen} onChange={(e) => setUserId(e.target.value)}>
             {services.map((u) => (
@@ -168,12 +175,19 @@ function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: 
             ))}
           </select>
         </label>
-        <input aria-label={t.name} placeholder={t.name} value={name} maxLength={64} onChange={(e) => setName(e.target.value)} required />
-        <input aria-label={t.days} placeholder={t.days} type="number" min={1} max={3650} value={days} onChange={(e) => setDays(e.target.value)} />
+        <label>
+          {t.name}
+          <input value={name} maxLength={64} onChange={(e) => setName(e.target.value)} required />
+        </label>
+        <label>
+          {t.days}
+          <input type="number" min={1} max={3650} value={days} onChange={(e) => setDays(e.target.value)} />
+        </label>
       </div>
       <div className="row">
+        <span className="field-title">{t.scopes}</span>
         {SCOPES.map((s) => (
-          <label key={s} className="row">
+          <label key={s} className="check">
             <input type="checkbox" checked={scopes.includes(s)} onChange={() => toggle(s)} />
             {t.scopeName[s]}
           </label>

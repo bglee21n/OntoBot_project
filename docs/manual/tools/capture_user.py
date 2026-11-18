@@ -46,8 +46,10 @@ def ch_login(s: Shooter) -> None:
         s.shot(pg, "redirect-to-login")
     with s.as_user("kim.user") as pg:
         s.shot(pg, "after-login")
-        s.shot(pg, "logout-button", marks=[("header button.link", 1, "right")])
-        pg.locator("header button.link").click()
+        # 로그아웃은 오른쪽 위 이름(내 정보 메뉴) 안에 있다.
+        pg.locator(".user-menu-button").click()
+        s.shot(pg, "logout-button", marks=[(".user-menu-panel button.link", 1, "right")])
+        pg.locator(".user-menu-panel").get_by_role("menuitem", name="로그아웃").click()
         pg.wait_for_timeout(1200)
         s.shot(pg, "after-logout")
 
@@ -58,11 +60,12 @@ def ch_login(s: Shooter) -> None:
 def ch_layout(s: Shooter) -> None:
     for user in ("kim.user", "choi.expert", "lee.modeler", "jung.builder", "park.admin"):
         with s.as_user(user) as pg:
-            s.shot(pg, f"topbar-{user}", clip=pg.locator("header.topbar"), pad=0)
+            # 메뉴는 왼쪽 nav.sidenav, 내 정보는 오른쪽 위 이름 단추(파일 이름은 그대로).
+            s.shot(pg, f"topbar-{user}", clip=pg.locator("nav.sidenav"), pad=0)
             if user == "park.admin":
-                links = pg.locator("header nav a")
-                marks = [(links.nth(i), i + 1, "below") for i in range(links.count())]
-                s.shot(pg, "topbar-numbered", marks=[*marks, ("header .muted", len(marks) + 1, "below")])
+                links = pg.locator("nav.sidenav a")
+                marks = [(links.nth(i), i + 1, "right") for i in range(links.count())]
+                s.shot(pg, "topbar-numbered", marks=[*marks, (".user-menu-button", len(marks) + 1, "below")])
     with s.as_user("kim.user") as pg:
         s.shot(
             pg,
@@ -398,7 +401,7 @@ def ch_approve(s: Shooter) -> None:
         c = run_card(pg, "F-0012")
         _open(c)
         s.shot(pg, "rejected-card", clip=c)
-        s.shot(pg, "nav-badge", clip=pg.locator("header.topbar"), pad=0)
+        s.shot(pg, "nav-badge", clip=pg.locator("nav.sidenav"), pad=0)
         inbox = pg.locator(".card", has_text="알림함")
         s.shot(pg, "inbox", clip=inbox, marks=[(inbox.get_by_role("button", name="모두 읽음"), 1, "right")])
         # 롤백 — F-0005 를 되돌린다(F-0004 는 편집 충돌 장에서 쓴다).
@@ -417,7 +420,7 @@ def ch_approve(s: Shooter) -> None:
         inbox.get_by_role("button", name="모두 읽음").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "inbox-read", clip=pg.locator(".card", has_text="알림함"))
-        s.shot(pg, "nav-no-badge", clip=pg.locator("header.topbar"), pad=0)
+        s.shot(pg, "nav-no-badge", clip=pg.locator("nav.sidenav"), pad=0)
     print("    확인 창:", s.dialogs, flush=True)
 
 
@@ -1376,7 +1379,7 @@ def ch_screens(s: Shooter) -> None:
         ans.locator(".citations button").first.click()
         pg.wait_for_timeout(1500)
         _numbered(s, pg, "chat", [
-            "header nav", "header .muted", ".chat-list button", ".chat-list a.active", ".chat-thread .bubble-user",
+            "nav.sidenav", ".user-menu-button", ".chat-list button", ".chat-list a.active", ".chat-thread .bubble-user",
             ans.locator(".conditions"), ans.locator(".answer-text"), ans.locator(".badge"), ans.locator(".citations"),
             ".object-card", ".chat-input textarea", ".chat-input button",
         ])

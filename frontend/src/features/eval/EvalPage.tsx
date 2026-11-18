@@ -10,6 +10,7 @@ import { FeedbackPanel } from "./FeedbackPanel";
 import { ItemsTable } from "./ItemsTable";
 import { RunView } from "./RunView";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.eval;
 
@@ -78,13 +79,15 @@ export function EvalPage() {
             ))}
           </nav>
           <form className="stack" onSubmit={submit}>
-            <input
-              aria-label={t.setName}
-              placeholder={t.newSet}
-              value={name}
-              maxLength={128}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <label>
+              {t.setName}
+              <input
+                placeholder={t.newSet}
+                value={name}
+                maxLength={128}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
             <button type="submit" disabled={!name.trim() || create.isPending}>
               {t.create}
             </button>
@@ -130,7 +133,7 @@ export function EvalPage() {
                     {pagedRows.map((r) => (
                       <tr key={r.id} className={r.id === runId ? "selected-row" : ""}>
                         <td>{r.id}</td>
-                        <td>{new Date(r.started_at).toLocaleString("ko-KR")}</td>
+                        <td>{formatDateTime(r.started_at)}</td>
                         <td>{modelOf(r)}</td>
                         <td>
                           <span className={`badge ${r.status}`}>{t.runStatus[r.status]}</span>{" "}

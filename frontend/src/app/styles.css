@@ -114,7 +114,8 @@ code { font-family: Consolas, "D2Coding", monospace; font-size: 0.9em; }
 .topbar { display: flex; gap: 1rem; align-items: center; padding: 0.6rem 1.2rem; background: var(--card); border-bottom: 1px solid var(--line); }
 .topbar nav a { color: var(--fg); text-decoration: none; }
 .topbar nav a.active { color: var(--accent); font-weight: 600; }
-.content { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
+/* 기준 해상도는 FHD(1920×1080) — 왼쪽 메뉴(200px)를 뺀 1720px 안에서 본문을 1600px 까지 쓴다. 점검 폭: 1920·1280·768·375 */
+.content { padding: 1.2rem 1.5rem; max-width: 1600px; margin: 0 auto; box-sizing: border-box; width: 100%; }
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
 .spacer { flex: 1; }
@@ -183,7 +184,7 @@ a.button { display: block; text-align: center; padding: 0.5rem; border-radius: 4
 .chat-input { display: flex; gap: 0.5rem; }
 .chat-input textarea { font-family: inherit; resize: vertical; min-height: 2.6rem; }
 .stage { color: var(--muted); font-style: italic; }
-.object-card { position: sticky; top: 1rem; }
+.object-card { position: sticky; top: calc(var(--topbar-h) + 1rem); }
 .object-card dl { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.7rem; margin: 0.5rem 0; }
 .object-card dt { color: var(--muted); font-size: 0.85em; }
 .object-card dd { margin: 0; }
@@ -209,7 +210,7 @@ textarea.plain { font-family: inherit; }
 .badge.el-rejected { background: var(--neutral-bg); color: var(--muted); }
 .badge.ws-submitted { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
 .mobile-only { display: none; }
-.ws-preview { position: sticky; top: 0.5rem; }
+.ws-preview { position: sticky; top: calc(var(--topbar-h) + 0.5rem); }
 .ws-graph { height: 26rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
 .ws-graph .react-flow__node { width: 220px; text-align: left; font-size: 0.8em; }
 .ws-node ul { margin: 0.3rem 0 0; padding-left: 1rem; }
@@ -323,7 +324,7 @@ tr.selected-row td { background: var(--accent-bg); }
 .sheet .pii { border-color: var(--warn); }
 .print-only { display: none; }
 @media print {
-  .topbar, .no-print { display: none !important; }
+  .topbar, .sidenav, .nav-backdrop, .no-print { display: none !important; }
   .content { padding: 0; max-width: none; }
   .print-only { display: table-row; }
   .print-only td { height: 1.8em; }
@@ -334,8 +335,46 @@ tr.selected-row td { background: var(--accent-bg); }
 
 /* 상단 바 — 테마 전환·메뉴 단추(메뉴 단추는 좁은 화면에서만) */
 .topbar { position: sticky; top: 0; z-index: 20; }
+.app-topbar { height: var(--topbar-h); box-sizing: border-box; flex-wrap: nowrap !important; }
 .theme-toggle { display: inline-flex; gap: 0.25rem; align-items: center; white-space: nowrap; }
 .menu-toggle { display: none; }
+
+/* 앱 틀(app/Layout) — 왼쪽 묶음 메뉴 + 본문. 1100px 미만은 ☰ 로 여는 서랍 */
+:root { --topbar-h: 3rem; --sidenav-w: 12.5rem; }
+.brand { white-space: nowrap; }
+.shell-body { display: flex; align-items: flex-start; }
+.shell-body > .content { flex: 1; min-width: 0; }
+.sidenav {
+  width: var(--sidenav-w); flex: none; box-sizing: border-box; position: sticky; top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h)); overflow-y: auto; padding: 0.75rem 0.5rem;
+  background: var(--card); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 1rem;
+}
+.nav-group { display: flex; flex-direction: column; gap: 0.125rem; }
+.nav-group-title { font-size: 0.75rem; font-weight: 600; color: var(--muted); padding: 0 0.5rem 0.25rem; letter-spacing: 0.02em; }
+.sidenav a { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.5rem; border-radius: 6px; color: var(--fg); text-decoration: none; white-space: nowrap; }
+.sidenav a:hover { background: var(--subtle-bg); }
+.sidenav a.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+.nav-count { margin-left: auto; font-size: 0.75em; }
+.nav-backdrop { position: fixed; inset: var(--topbar-h) 0 0 0; background: var(--backdrop); z-index: 24; }
+.user-menu { position: relative; }
+.user-menu-button { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--fg); white-space: nowrap; }
+.user-menu-panel { position: absolute; right: 0; top: calc(100% + 0.4rem); min-width: 14rem; z-index: 30; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+.user-menu-panel hr { border: none; border-top: 1px solid var(--line); margin: 0; width: 100%; }
+.user-menu-panel button.link { align-self: flex-start; padding: 0.25rem 0; }
+.stack-tight { display: flex; flex-direction: column; gap: 0.25rem; }
+.row-tight { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+@media (max-width: 1100px) {
+  .menu-toggle { display: inline-flex; gap: 0.3rem; align-items: center; padding: 0.3rem 0.4rem; }
+  .sidenav {
+    position: fixed; top: var(--topbar-h); left: 0; bottom: 0; height: auto; z-index: 25;
+    width: min(16rem, 85vw); transform: translateX(-105%); box-shadow: none;
+    /* 닫힌 서랍은 보이지도, 초점을 받지도 않는다(들어가는 동안만 보이게 visibility 를 늦춘다) */
+    visibility: hidden; transition: transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .sidenav.open { transform: none; visibility: visible; transition: transform 0.18s ease; box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2); }
+  .sidenav a { padding: 0.65rem 0.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { .sidenav { transition: none; } }
 pre { overflow: auto; }
 dl.kv dd, .object-card dd { overflow-wrap: anywhere; }
 
@@ -376,13 +415,8 @@ body.graph-fullscreen-open { overflow: hidden; }
   h1 { font-size: 1.35rem; }
   .content { padding: 0.75rem; }
   .topbar { flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0.75rem; }
-  .hide-narrow, .theme-toggle-text { display: none; }
-  .user-name { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-name { max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
   /* 앱 메뉴: 접었다 펴기 */
-  .menu-toggle { display: inline-flex; gap: 0.3rem; align-items: center; padding: 0.3rem 0.4rem; }
-  .topbar nav.collapsible { display: none; order: 10; width: 100%; flex-direction: column; gap: 0; }
-  .topbar nav.collapsible.open { display: flex; }
-  .topbar nav.collapsible a { padding: 0.65rem 0.25rem; border-top: 1px solid var(--line); }
   /* 배포·개발 콘솔 탭: 한 줄 가로 스크롤 */
   .topbar nav:not(.collapsible) { order: 10; width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 0.4rem; }
   .topbar nav:not(.collapsible) button { white-space: nowrap; flex: none; }
@@ -426,3 +460,31 @@ body.graph-fullscreen-open { overflow: hidden; }
 .pager-pages button.current { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .pager-pages button:disabled { opacity: 0.4; }
 .pager-size { flex-direction: row; align-items: center; gap: 0.3rem; }
+
+/* 폼 기본기(1단계 UI 개선) — 칸·단추 높이, 체크박스 줄, 제목 칸과 단추 정렬, 초점 테두리 */
+:root { --control-h: 2.25rem; }
+input, select, textarea { font-size: 1rem; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select {
+  height: var(--control-h); box-sizing: border-box; padding: 0 0.55rem;
+}
+input[type="file"] { padding: 0.3rem 0; border: none; }
+:is(form, .row, .grid-form, .chat-input) > button:not(.link) { min-height: var(--control-h); box-sizing: border-box; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.85; }
+/* 체크박스·선택 상자와 글자를 한 줄로(label 은 기본이 "제목 위·칸 아래") */
+label.row, label.check { flex-direction: row; align-items: center; gap: 0.4rem; }
+/* 제목이 위에 붙은 칸과 단추가 한 줄이면 아래쪽에 맞춘다 */
+.row:has(> label:not(.check):not(.row)) { align-items: flex-end; }
+label { color: var(--fg); font-weight: 500; }
+label > :is(input, select, textarea), label.check, label.row { font-weight: 400; }
+:is(input, select, textarea, button, a, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (max-width: 720px) { :root { --control-h: 2.5rem; } }
+.field-title { font-size: 0.9em; font-weight: 500; }
+
+/* FHD(1600px 이상) — 넓은 화면에서 옆 칸을 넓힌다 */
+@media (min-width: 1600px) {
+  .chat { grid-template-columns: 260px minmax(0, 1fr) 380px; }
+  .eval { grid-template-columns: 260px minmax(0, 1fr); }
+  .explorer-search { width: 300px; }
+  .schema-panel { width: 520px; }
+  .schema-canvas { height: 72vh; }
+}

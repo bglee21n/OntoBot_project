@@ -6,6 +6,7 @@ import type { SyncConflictOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.conflicts;
 type Filter = "live" | "acknowledged" | "cleared";
@@ -34,7 +35,7 @@ export function ConflictsPanel() {
       await qc.invalidateQueries({ queryKey: ["object"] });
     },
   });
-  const when = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : "—");
+  const when = (v: string | null | undefined) => formatDateTime(v);
 
   const { rows: pagedRows, pager } = usePaged(list.data);
   return (

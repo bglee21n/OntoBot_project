@@ -281,6 +281,9 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
   픽스처가 비운다(모든 테스트가 같은 접속 주소). 보안 응답 헤더는 `main._SECURITY_HEADERS` 하나에서 붙인다.
 - 설정의 비밀번호는 `URL.create` 로만 조립한다(문자열 조립 금지 — `!@` 가 구분자로 읽힌다). 시크릿 참조는
   `env:PREFIX`(프로세스 환경 → `.env`) 또는 `file:경로`.
+- **화면 기준 해상도는 FHD(1920×1080)** 다 — 본문은 왼쪽 메뉴(200px)를 뺀 폭에서 최대 1600px. 화면을 바꾸면 **1920·1280·768·375**
+  네 폭(768·375 는 다크 모드도)에서 단추·입력칸 겹침과 가로 넘침이 없는지 본다. 1100px 미만은 왼쪽 메뉴가 ☰ 서랍, 720px 미만은
+  휴대폰 배치다. 색은 `styles.css` 토큰으로만(다크 모드), 날짜 표기는 `app/format.ts` 하나, 목록 표는 `components/Pager`.
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.
   화면 문구는 `frontend/src/i18n/ko/index.ts`, 서버 안내 문구는 `chat/templates.py` 가 정본.
 - TypeScript 는 5.9.3 고정(openapi-typescript·typescript-eslint 호환). 프롬프트·안내 문구 파일

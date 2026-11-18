@@ -6,6 +6,7 @@ import { api } from "../../api/client";
 import type { CitationData, FieldOut, MessageOut, ObjectCard, RelatedDocumentOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { formatDateTime, formatTime } from "../../app/format";
 
 const t = ko.chat;
 // 서버 grounding/grader.py 의 ESTIMATE_MARK 와 같은 표기.
@@ -54,7 +55,7 @@ export function QueryConditions({ text, graphAsOf }: { text: string; graphAsOf: 
   return (
     <div className="conditions">
       {t.conditions}: {text}
-      {graphAsOf && <div>{t.graphAsOf(new Date(graphAsOf).toLocaleTimeString())}</div>}
+      {graphAsOf && <div>{t.graphAsOf(formatTime(graphAsOf))}</div>}
     </div>
   );
 }
@@ -244,7 +245,7 @@ export function ObjectCardPanel({
           </dl>
           <div className="muted">
             {t.card.syncedAt}:{" "}
-            {card.data.synced_at ? new Date(card.data.synced_at).toLocaleString() : t.card.neverSynced}
+            {card.data.synced_at ? formatDateTime(card.data.synced_at) : t.card.neverSynced}
           </div>
           <div className="muted">
             {t.card.lineage}:{" "}
@@ -254,7 +255,7 @@ export function ObjectCardPanel({
                   card.data.source.sync_run_id != null && card.data.source.run_finished_at
                     ? t.card.lineageRun(
                         card.data.source.sync_run_id,
-                        new Date(card.data.source.run_finished_at).toLocaleString(),
+                        formatDateTime(card.data.source.run_finished_at),
                       )
                     : null,
                 ]
@@ -296,7 +297,7 @@ function RelatedDocuments({ type, pk }: { type: string; pk: string }) {
 
 function FieldRow({ field, cited }: { field: FieldOut; cited: boolean }) {
   const e = field.edit;
-  const when = (v: string) => new Date(v).toLocaleString();
+  const when = (v: string) => formatDateTime(v);
   return (
     <>
       <dt>{field.display_name}</dt>
