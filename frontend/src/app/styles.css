@@ -296,6 +296,8 @@ tr.selected-row td { background: var(--accent-bg); }
 .explorer-search .hit { text-align: left; padding: 0.25rem 0.4rem; }
 .explorer-search .hit.active { font-weight: 600; }
 .explorer-main { flex: 1; min-width: 0; }
+/* 세로로 쌓인 상자 안의 캔버스는 높이(68vh·60vh)를 그대로 쓴다 — flex: 1 이면 높이가 0 이 되어 그래프가 사라진다 */
+.explorer-main > .schema-canvas { flex: none; }
 .obj-node.root { border-width: 2px; border-color: var(--accent); }
 
 /* 트레이스 화면(Phase 15) */
@@ -349,7 +351,8 @@ body.graph-fullscreen-open { overflow: hidden; }
 .graph-fullscreen .schema-canvas { height: auto; min-height: 0; flex: 1; }
 .graph-fullscreen .schema-panel { max-height: none; overflow: auto; }
 .graph-fullscreen.explorer .explorer-search { display: none; }
-.graph-fullscreen .explorer-main { display: flex; flex-direction: column; min-height: 0; }
+.graph-fullscreen .explorer-main { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.graph-fullscreen .explorer-main > .schema-canvas { flex: 1; height: auto; min-height: 0; }
 .graph-fullscreen.ws-graph { flex-direction: column; height: auto; border: none; }
 .graph-fullscreen.ws-graph > .react-flow { flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
 .graph-fullscreen.ws-graph > p { margin: 0; }
@@ -360,6 +363,12 @@ body.graph-fullscreen-open { overflow: hidden; }
   .explorer-search { width: auto; }
   .trace-detail { width: auto; max-height: none; }
   .schema-canvas { height: 60vh; min-height: 320px; }
+  /* 세로 배치에서 flex: 1 이면 캔버스 높이가 0 이 된다 */
+  .schema-body > .schema-canvas { flex: none; }
+  .graph-fullscreen.schema-body > .schema-canvas { flex: 1; height: auto; min-height: 0; }
+  /* 전체 화면 그래프: 패널은 아래쪽에, 그래프가 위쪽 대부분을 쓴다 */
+  .graph-fullscreen { flex-direction: column; }
+  .graph-fullscreen .schema-panel { width: auto; max-height: 45vh; flex: none; }
 }
 
 /* 휴대폰 */
@@ -393,19 +402,18 @@ body.graph-fullscreen-open { overflow: hidden; }
   .chat-list p { margin: 0; white-space: nowrap; }
   .bubble-user, .bubble-agent { max-width: 90%; }
   .chat-input textarea { min-width: 0; }
-  .object-card {
+  .chat .object-card {
     position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 30;
     max-height: 65vh; overflow: auto; border-radius: 12px 12px 0 0; box-shadow: var(--sheet-shadow);
     padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
   }
+  /* 시트가 열려 있으면 대화 아래에 시트만큼 여백 — 입력란·보내기를 시트 위로 올려 볼 수 있다 */
+  .chat:has(.object-card) .chat-thread { padding-bottom: 65vh; }
   .eval > :first-child { min-width: 0; }
   .dialog { max-height: 90vh; }
   .grid-form { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .schema-panel .grid-form { grid-template-columns: 1fr; }
   .ws-graph { height: 55vh; }
   .login { margin: 6vh 1rem; }
-  /* 전체 화면 그래프: 패널은 아래쪽에, 그래프가 위쪽 대부분을 쓴다 */
-  .graph-fullscreen { flex-direction: column; }
-  .graph-fullscreen .schema-panel, .graph-fullscreen.explorer > .schema-panel { width: auto; max-height: 45vh; flex: none; }
   .graph-fs-button { padding: 0.45rem 0.6rem; }
 }
