@@ -390,6 +390,7 @@ body.graph-fullscreen-open { overflow: hidden; }
   input, select, textarea { font-size: 16px; }
   button { padding: 0.45rem 0.9rem; }
   button.link { padding: 0.3rem; }
+  .pager-pages button { min-width: 1.9rem; padding: 0.3rem 0.25rem; }
   /* 넓은 표는 표 안에서만 가로로 민다(화면 전체가 밀리지 않게) */
   .content table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .schema-panel table { display: table; }
@@ -417,3 +418,11 @@ body.graph-fullscreen-open { overflow: hidden; }
   .login { margin: 6vh 1rem; }
   .graph-fs-button { padding: 0.45rem 0.6rem; }
 }
+
+/* 목록 표 페이지 나누기(components/Pager) */
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: 0.9em; margin-top: 0.4rem; }
+.pager-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; }
+.pager-pages button { min-width: 2rem; padding: 0.2rem 0.4rem; background: var(--card); color: var(--fg); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.pager-pages button.current { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.pager-pages button:disabled { opacity: 0.4; }
+.pager-size { flex-direction: row; align-items: center; gap: 0.3rem; }

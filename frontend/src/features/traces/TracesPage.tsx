@@ -7,6 +7,7 @@ import type { TraceOut, TraceSummaryOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { GradeBadge } from "../chat/AnswerView";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.traces;
 const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
@@ -44,6 +45,7 @@ export function TracesPage() {
     if (Number.isInteger(n) && n > 0) navigate(`/traces/${n}`);
   };
 
+  const { rows: pagedRows, pager } = usePaged(rows, `${status}|${reason}`);
   return (
     <section className="stack">
       <h1>{t.title}</h1>
@@ -82,6 +84,7 @@ export function TracesPage() {
           {list.isError && <ErrorBox error={list.error} />}
           {list.isSuccess && rows.length === 0 && <p className="muted">{t.none}</p>}
           {rows.length > 0 && (
+            <>
             <table>
               <thead>
                 <tr>
@@ -94,7 +97,7 @@ export function TracesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {pagedRows.map((r) => (
                   <tr key={r.id} className={r.id === id ? "selected-row" : ""}>
                     <td>
                       <Link to={`/traces/${r.id}`}>{r.id}</Link>
@@ -118,11 +121,11 @@ export function TracesPage() {
                 ))}
               </tbody>
             </table>
-          )}
-          {list.hasNextPage && (
-            <button type="button" className="link" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
-              {t.more}
-            </button>
+            <Pager
+              pager={pager}
+              more={{ has: list.hasNextPage, loading: list.isFetchingNextPage, load: () => void list.fetchNextPage() }}
+            />
+            </>
           )}
         </div>
         {id !== null && <TraceDetail id={id} />}

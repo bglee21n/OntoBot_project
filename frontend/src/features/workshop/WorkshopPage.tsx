@@ -8,6 +8,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { useMe } from "../../app/auth";
 import { ko } from "../../i18n/ko";
 import { MergePanel } from "./MergePanel";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.workshop;
 
@@ -36,6 +37,7 @@ export function WorkshopPage() {
     create.mutate();
   };
 
+  const { rows: pagedRows, pager } = usePaged(sessions.data);
   return (
     <section className="stack">
       <h1>{t.title}</h1>
@@ -58,6 +60,7 @@ export function WorkshopPage() {
       {sessions.data?.length === 0 && <p className="muted">{t.noSessions}</p>}
       {isModeler && picked.length > 0 && <MergePanel key={picked.join(",")} ids={picked} />}
       {sessions.data && sessions.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -70,7 +73,7 @@ export function WorkshopPage() {
             </tr>
           </thead>
           <tbody>
-            {sessions.data.map((s) => (
+            {pagedRows.map((s) => (
               <tr key={s.id}>
                 {isModeler && (
                   <td>
@@ -97,6 +100,8 @@ export function WorkshopPage() {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </section>
   );

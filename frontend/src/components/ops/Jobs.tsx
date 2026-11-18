@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { ErrorBox } from "../ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../Pager";
 
 const t = ko.ops;
 
@@ -138,10 +139,12 @@ export function JobView({
 
 /** 작업 목록 표. */
 export function JobTable({ jobs, kindLabel, onOpen }: { jobs: OpsJob[]; kindLabel: (job: OpsJob) => string; onOpen: (j: OpsJob) => void }) {
+  const { rows: pagedRows, pager } = usePaged(jobs);
   if (jobs.length === 0) {
     return <p className="muted">{t.noJobs}</p>;
   }
   return (
+    <>
     <table>
       <thead>
         <tr>
@@ -153,7 +156,7 @@ export function JobTable({ jobs, kindLabel, onOpen }: { jobs: OpsJob[]; kindLabe
         </tr>
       </thead>
       <tbody>
-        {jobs.map((j) => (
+        {pagedRows.map((j) => (
           <tr key={j.id}>
             <td>{when(j.started_at)}</td>
             <td>{kindLabel(j)}</td>
@@ -170,6 +173,8 @@ export function JobTable({ jobs, kindLabel, onOpen }: { jobs: OpsJob[]; kindLabe
         ))}
       </tbody>
     </table>
+    <Pager pager={pager} />
+    </>
   );
 }
 

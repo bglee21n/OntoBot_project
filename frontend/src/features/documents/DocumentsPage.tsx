@@ -7,6 +7,7 @@ import type { DocumentDetail, DocumentLinkOut, DocumentOut, GroupChoice, LinkSca
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.documents;
 
@@ -25,6 +26,7 @@ export function DocumentsPage() {
     refetchInterval: (q) => (q.state.data?.some((d) => d.status === "pending") ? 3000 : false),
   });
 
+  const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <section className="stack">
       <h1>{t.title}</h1>
@@ -33,6 +35,7 @@ export function DocumentsPage() {
       {list.isError && <ErrorBox error={list.error} />}
       {list.data?.length === 0 && <p className="notice">{t.none}</p>}
       {list.data && list.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -44,7 +47,7 @@ export function DocumentsPage() {
             </tr>
           </thead>
           <tbody>
-            {list.data.map((d) => (
+            {pagedRows.map((d) => (
               <tr key={d.id} className={d.id === docId ? "selected-row" : ""}>
                 <td>
                   <Link to={`/documents/${d.id}`}>{d.title}</Link>
@@ -60,6 +63,8 @@ export function DocumentsPage() {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
       {docId !== null && <DocumentView id={docId} canEdit={canUpload} />}
     </section>
@@ -234,6 +239,7 @@ function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
     { status: "rejected", label: t.reject },
     { status: "candidate", label: t.undo },
   ];
+  const { rows: pagedRows, pager } = usePaged(links.data);
   return (
     <div className="stack">
       <div className="row">
@@ -257,6 +263,7 @@ function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
       )}
       {links.data?.length === 0 && <p className="muted">{t.noLinks}</p>}
       {links.data && links.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -267,7 +274,7 @@ function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {links.data.map((l) => (
+            {pagedRows.map((l) => (
               <tr key={l.id}>
                 <td>
                   <button type="button" className="link" onClick={() => explore(l)}>
@@ -305,6 +312,8 @@ function DocumentLinks({ id, canEdit }: { id: number; canEdit: boolean }) {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </div>
   );

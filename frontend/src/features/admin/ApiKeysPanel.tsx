@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { ApiKeyIssued, ApiKeyOut, UserOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.admin.apiKeys;
 const SCOPES = ["query", "objects:read", "actions:request"] as const;
@@ -24,6 +25,7 @@ export function ApiKeysPanel() {
     void qc.invalidateQueries({ queryKey: ["admin", "api-keys"] });
   };
   const revoke = useMutation({ mutationFn: (id: number) => api.del(`/admin/api-keys/${id}`), onSuccess: refresh });
+  const { rows: pagedRows, pager } = usePaged(keys.data);
   return (
     <div className="stack">
       <p className="muted">{t.hint}</p>
@@ -42,6 +44,7 @@ export function ApiKeysPanel() {
       {(keys.isError || revoke.isError) && <ErrorBox error={keys.error ?? revoke.error} />}
       {keys.data?.length === 0 && <p className="muted">{t.none}</p>}
       {keys.data && keys.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -54,7 +57,7 @@ export function ApiKeysPanel() {
             </tr>
           </thead>
           <tbody>
-            {keys.data.map((k) => {
+            {pagedRows.map((k) => {
               const expired = k.expires_at != null && new Date(k.expires_at) <= new Date();
               const state = k.revoked_at ? t.revoked : expired ? t.expired : t.active;
               return (
@@ -89,6 +92,8 @@ export function ApiKeysPanel() {
             })}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { ko } from "../../i18n/ko";
 import { FeedbackPanel } from "./FeedbackPanel";
 import { ItemsTable } from "./ItemsTable";
 import { RunView } from "./RunView";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.eval;
 
@@ -59,6 +60,7 @@ export function EvalPage() {
     }
   };
 
+  const { rows: pagedRows, pager } = usePaged(runs.data);
   return (
     <section className="stack">
       <h1>{t.title}</h1>
@@ -112,6 +114,7 @@ export function EvalPage() {
               <h3>{t.runs}</h3>
               {runs.data?.length === 0 && <p className="muted">{t.noRuns}</p>}
               {runs.data && runs.data.length > 0 && (
+                <>
                 <table>
                   <thead>
                     <tr>
@@ -124,7 +127,7 @@ export function EvalPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {runs.data.map((r) => (
+                    {pagedRows.map((r) => (
                       <tr key={r.id} className={r.id === runId ? "selected-row" : ""}>
                         <td>{r.id}</td>
                         <td>{new Date(r.started_at).toLocaleString("ko-KR")}</td>
@@ -145,6 +148,8 @@ export function EvalPage() {
                     ))}
                   </tbody>
                 </table>
+                <Pager pager={pager} />
+                </>
               )}
               {runId !== null && <RunView runId={runId} />}
 

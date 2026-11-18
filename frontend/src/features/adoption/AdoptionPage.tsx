@@ -7,6 +7,7 @@ import type { EngagementDetail, EngagementSummary } from "../../api/types";
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.adoption;
 
@@ -38,6 +39,7 @@ export function AdoptionPage() {
     create.mutate();
   };
 
+  const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <section className="stack">
       <h1>{t.title}</h1>
@@ -62,6 +64,7 @@ export function AdoptionPage() {
       {list.isError && <ErrorBox error={list.error} />}
       {list.data?.length === 0 && <p className="muted">{t.none}</p>}
       {list.data && list.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -74,7 +77,7 @@ export function AdoptionPage() {
             </tr>
           </thead>
           <tbody>
-            {list.data.map((e) => (
+            {pagedRows.map((e) => (
               <tr key={e.id}>
                 <td>{e.id}</td>
                 <td>{e.name}</td>
@@ -88,6 +91,8 @@ export function AdoptionPage() {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </section>
   );

@@ -1655,7 +1655,8 @@ def ch_audit(c: Ctx) -> None:
             s.shot(pg, f"filter-{ev.replace('.', '-')}", clip=table)
         pg.get_by_label("이벤트로 거르기").fill("")
         pg.wait_for_timeout(1500)
-        more = pg.get_by_role("button", name="더 보기")
+        # 더 보기 단추 대신 페이지 단추(마지막 페이지의 > 가 다음 50줄을 받는다).
+        more = pg.locator("nav.pager").last
         if more.count():
             s.shot(pg, "more-button", marks=[(more, 1, "right")], full=True)
 

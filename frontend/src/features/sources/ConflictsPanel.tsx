@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { SyncConflictOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.conflicts;
 type Filter = "live" | "acknowledged" | "cleared";
@@ -35,6 +36,7 @@ export function ConflictsPanel() {
   });
   const when = (v: string | null | undefined) => (v ? new Date(v).toLocaleString() : "—");
 
+  const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <div className="card stack">
       <div className="row">
@@ -52,6 +54,7 @@ export function ConflictsPanel() {
       {clearEdit.isError && <ErrorBox error={clearEdit.error} />}
       {list.data?.length === 0 && <p className="muted">{t.none}</p>}
       {list.data && list.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -66,7 +69,7 @@ export function ConflictsPanel() {
             </tr>
           </thead>
           <tbody>
-            {list.data.map((c) => (
+            {pagedRows.map((c) => (
               <tr key={c.id}>
                 <td>
                   {c.type} · <code>{c.pk}</code>
@@ -105,6 +108,8 @@ export function ConflictsPanel() {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </div>
   );

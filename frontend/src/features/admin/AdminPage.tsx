@@ -23,6 +23,7 @@ import { ko } from "../../i18n/ko";
 import { TraceDetail } from "../traces/TracesPage";
 import { ApiKeysPanel } from "./ApiKeysPanel";
 import { GroupsPanel } from "./GroupsPanel";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.admin;
 type Tab = keyof typeof t.tabs;
@@ -303,6 +304,7 @@ function UsersPanel() {
   const users = useQuery({ queryKey: ["admin", "users"], queryFn: () => api.get<UserOut[]>("/admin/users") });
   const roles = useRoles();
   const me = useMe();
+  const { rows: pagedRows, pager } = usePaged(users.data);
   return (
     <div className="stack">
       <p className="muted">
@@ -322,11 +324,12 @@ function UsersPanel() {
           </tr>
         </thead>
         <tbody>
-          {users.data?.map((u) => (
+          {pagedRows.map((u) => (
             <UserRow key={u.id} u={u} allRoles={roles.data ?? []} self={me.data?.id === u.id} />
           ))}
         </tbody>
       </table>
+      <Pager pager={pager} />
       <details className="card">
         <summary>{t.addUser}</summary>
         <UserForm allRoles={roles.data ?? []} />
@@ -559,6 +562,7 @@ function AuditPanel() {
     refetchOnWindowFocus: false,
   });
   const rows = logs.data?.pages.flat() ?? [];
+  const { rows: pagedRows, pager } = usePaged(rows, event);
   return (
     <div className="stack">
       <p className="muted">{t.auditNote}</p>
@@ -579,7 +583,7 @@ function AuditPanel() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {pagedRows.map((r) => (
             <tr key={r.id}>
               <td>{new Date(r.ts).toLocaleString()}</td>
               <td>
@@ -594,11 +598,10 @@ function AuditPanel() {
           ))}
         </tbody>
       </table>
-      {logs.hasNextPage && (
-        <button type="button" onClick={() => void logs.fetchNextPage()} disabled={logs.isFetchingNextPage}>
-          {t.more}
-        </button>
-      )}
+      <Pager
+        pager={pager}
+        more={{ has: logs.hasNextPage, loading: logs.isFetchingNextPage, load: () => void logs.fetchNextPage() }}
+      />
     </div>
   );
 }

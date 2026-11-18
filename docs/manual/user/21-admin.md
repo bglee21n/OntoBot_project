@@ -206,7 +206,7 @@ Action 알림을 메일·SMS 로 받으려면 연락처가 있어야 합니다. 
 | workshop.session_started / element_reviewed / submitted / published | 인터뷰 시작 / 후보 검토 / 제출 / 초안 게시 |
 | eval.golden_changed / eval.run_started | 골든셋 변경 / 평가 실행 |
 
-목록 아래 **더 보기** 로 오래된 기록을 이어서 봅니다.
+목록 아래 페이지 단추(`<< < 1 2 3 > >>`)로 넘겨 봅니다. 받아 온 마지막 페이지에서 `>` 를 누르면 오래된 기록 50건을 더 받아 이어서 보여 줍니다.
 
 ## 21.5 트레이스 탭
 

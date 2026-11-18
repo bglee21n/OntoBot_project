@@ -5,6 +5,7 @@ import { api } from "../../api/client";
 import type { GoldenSetDetail, ItemIn, ItemOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.eval;
 const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
@@ -163,6 +164,7 @@ export function ItemsTable({ set }: { set: GoldenSetDetail }) {
     </form>
   );
 
+  const { rows: pagedRows, pager } = usePaged(set.item_list);
   return (
     <div className="stack">
       {hasWorkshop && <p className="notice">{t.workshopHint}</p>}
@@ -180,7 +182,7 @@ export function ItemsTable({ set }: { set: GoldenSetDetail }) {
           </tr>
         </thead>
         <tbody>
-          {set.item_list.map((i) => (
+          {pagedRows.map((i) => (
             <tr key={i.id}>
               <td>{i.key ?? "—"}</td>
               <td>
@@ -205,6 +207,7 @@ export function ItemsTable({ set }: { set: GoldenSetDetail }) {
           ))}
         </tbody>
       </table>
+      <Pager pager={pager} />
       {editing !== null ? (
         form
       ) : (

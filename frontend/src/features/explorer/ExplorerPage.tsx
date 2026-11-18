@@ -26,6 +26,7 @@ import { autoLayout } from "../ontology/graph/layout";
 import { addNeighbors, collapse, frontier, type GraphState, hiddenCount, keyOf, type ObjNode, start } from "./model";
 import { useTheme } from "../../app/theme";
 import { FullscreenButton, useGraphFullscreen } from "../../components/GraphFullscreen";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.explorer;
 
@@ -342,12 +343,14 @@ function EditHistory({ type, pk }: { type: string; pk: string }) {
     queryKey: ["object", type, pk, "edits"],
     queryFn: () => api.get<EditHistoryOut[]>(`/objects/${encodeURIComponent(type)}/${encodeURIComponent(pk)}/edits`),
   });
+  const { rows: pagedRows, pager } = usePaged(history.data);
   return (
     <div className="card stack">
       <strong>{t.history}</strong>
       {history.isError && <ErrorBox error={history.error} />}
       {history.data?.length === 0 && <p className="muted">{t.noHistory}</p>}
       {history.data && history.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -358,7 +361,7 @@ function EditHistory({ type, pk }: { type: string; pk: string }) {
             </tr>
           </thead>
           <tbody>
-            {history.data.map((h) => (
+            {pagedRows.map((h) => (
               <tr key={h.edit_id}>
                 <td>{h.display_name}</td>
                 <td>
@@ -373,6 +376,8 @@ function EditHistory({ type, pk }: { type: string; pk: string }) {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </div>
   );

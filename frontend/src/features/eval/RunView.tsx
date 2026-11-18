@@ -4,6 +4,7 @@ import { api } from "../../api/client";
 import type { EvalRunDetail } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.eval;
 const FLAGS = ["violation", "cover_up", "unanswerable_graded", "error"] as const;
@@ -22,6 +23,7 @@ export function RunView({ runId }: { runId: number }) {
     queryFn: () => api.get<EvalRunDetail>(`/eval-runs/${runId}`),
     refetchInterval: (q) => (q.state.data?.status === "running" ? 3000 : false),
   });
+  const { rows: pagedRows, pager } = usePaged(run.data?.result_list);
   if (run.isPending) {
     return <p>{ko.common.loading}</p>;
   }
@@ -88,7 +90,7 @@ export function RunView({ runId }: { runId: number }) {
           </tr>
         </thead>
         <tbody>
-          {r.result_list.map((x) => {
+          {pagedRows.map((x) => {
             const v = x.verdict as Record<string, unknown>;
             const misses = [
               ...((v.missing_values as string[] | undefined) ?? []).map((m) => `− ${m}`),
@@ -119,6 +121,7 @@ export function RunView({ runId }: { runId: number }) {
           })}
         </tbody>
       </table>
+      <Pager pager={pager} />
     </div>
   );
 }

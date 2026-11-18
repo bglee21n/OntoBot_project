@@ -7,6 +7,7 @@ import type { FeedbackItemOut, GoldenSetDetail, ItemOut, PromoteIn } from "../..
 import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.eval;
 const f = ko.eval.feedback;
@@ -67,6 +68,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
     }
   };
 
+  const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <div className="stack">
       <h3>
@@ -76,6 +78,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
       {list.isError && <ErrorBox error={list.error} />}
       {list.data?.length === 0 && <p className="muted">{f.none}</p>}
       {list.data && list.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -87,7 +90,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
             </tr>
           </thead>
           <tbody>
-            {list.data.map((fb) => (
+            {pagedRows.map((fb) => (
               <tr key={fb.id} className={fb.id === open ? "selected-row" : ""}>
                 <td>{fb.question ?? "—"}</td>
                 <td>
@@ -114,6 +117,8 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
       {dismiss.isError && <ErrorBox error={dismiss.error} />}
       {open !== null && draft && (

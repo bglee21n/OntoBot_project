@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { useCreateDraft, useVersions } from "./queries";
+import { Pager, usePaged } from "../../components/Pager";
 
 export function VersionsPage() {
   const versions = useVersions();
@@ -12,6 +13,7 @@ export function VersionsPage() {
   const createDraft = (parentId: number | null) =>
     create.mutate(parentId, { onSuccess: (v) => navigate(`/ontology/versions/${v.id}`) });
 
+  const { rows: pagedRows, pager } = usePaged(versions.data);
   return (
     <section className="stack">
       <div className="row">
@@ -26,6 +28,7 @@ export function VersionsPage() {
       {versions.isError && <ErrorBox error={versions.error} />}
       {versions.data?.length === 0 && <p className="muted">{ko.ontology.noVersions}</p>}
       {versions.data && versions.data.length > 0 && (
+        <>
         <table>
           <thead>
             <tr>
@@ -37,7 +40,7 @@ export function VersionsPage() {
             </tr>
           </thead>
           <tbody>
-            {versions.data.map((v) => (
+            {pagedRows.map((v) => (
               <tr key={v.id}>
                 <td>{ko.ontology.version(v.version_no)}</td>
                 <td>
@@ -57,6 +60,8 @@ export function VersionsPage() {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
     </section>
   );

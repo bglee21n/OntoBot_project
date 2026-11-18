@@ -7,6 +7,7 @@ import { api } from "../../api/client";
 import type { EngagementDetail, SeedOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
+import { Pager, usePaged } from "../../components/Pager";
 
 const t = ko.adoption.seeds;
 
@@ -34,15 +35,17 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
     upload.mutate();
   };
 
+  const { rows: pagedRows, pager } = usePaged(list.data);
   return (
     <section className="stack">
       <h2>{t.title}</h2>
       <p className="muted">{t.intro}</p>
       {list.isError && <ErrorBox error={list.error} />}
       {list.data && list.data.length > 0 && (
+        <>
         <table>
           <tbody>
-            {list.data.map((s) => (
+            {pagedRows.map((s) => (
               <tr key={s.object_type}>
                 <td>
                   <code>{s.object_type}</code>
@@ -60,6 +63,8 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
             ))}
           </tbody>
         </table>
+        <Pager pager={pager} />
+        </>
       )}
       {list.data?.length === 0 && <p className="muted">{t.none}</p>}
       {e.can_edit && (
