@@ -8,6 +8,7 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.documents;
 
@@ -58,7 +59,7 @@ export function DocumentsPage() {
                 <td>
                   <StatusBadge d={d} />
                 </td>
-                <td>{new Date(d.created_at).toLocaleString("ko-KR")}</td>
+                <td>{formatDateTime(d.created_at)}</td>
               </tr>
             ))}
           </tbody>
@@ -120,8 +121,11 @@ function UploadForm() {
       <p className="muted">{t.uploadHint}</p>
       <div className="row">
         <input ref={fileRef} type="file" aria-label={t.file} accept=".txt,.md,.pdf" />
-        <input aria-label={t.docTitle} placeholder={t.titleHint} value={title} maxLength={255} onChange={(e) => setTitle(e.target.value)} />
-        <label className="row">
+        <label>
+          {t.docTitle}
+          <input placeholder={t.titleHint} value={title} maxLength={255} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label>
           {t.group}
           <select value={chosen} onChange={(e) => setGroup(e.target.value)}>
             <option value="" disabled>

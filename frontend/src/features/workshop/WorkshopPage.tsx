@@ -9,6 +9,7 @@ import { useMe } from "../../app/auth";
 import { ko } from "../../i18n/ko";
 import { MergePanel } from "./MergePanel";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.workshop;
 
@@ -43,13 +44,14 @@ export function WorkshopPage() {
       <h1>{t.title}</h1>
       <p className="muted">{t.intro}</p>
       <form className="row" onSubmit={submit}>
-        <input
-          aria-label={t.sessionTitle}
-          placeholder={t.sessionTitle}
-          value={title}
-          maxLength={200}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <label>
+          {t.sessionTitle}
+          <input
+            value={title}
+            maxLength={200}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
         <button type="submit" disabled={create.isPending}>
           {t.newSession}
         </button>
@@ -92,7 +94,7 @@ export function WorkshopPage() {
                 <td>
                   <span className={`badge ws-${s.status}`}>{t.status[s.status]}</span>
                 </td>
-                <td>{new Date(s.created_at).toLocaleString("ko-KR")}</td>
+                <td>{formatDateTime(s.created_at)}</td>
                 <td className="actions">
                   <Link to={`/workshop/${s.id}`}>{t.open}</Link>
                 </td>

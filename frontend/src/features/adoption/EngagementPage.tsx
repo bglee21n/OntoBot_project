@@ -9,6 +9,7 @@ import { ko } from "../../i18n/ko";
 import { engagementKey, useEngagement, useSheetKinds } from "./queries";
 import { PilotPanel } from "./PilotPanel";
 import { SendPanel } from "./SendPanel";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.adoption;
 
@@ -88,7 +89,7 @@ function SheetLinks({ e, kinds }: { e: EngagementDetail; kinds: SheetKindOut[] }
               </td>
               <td className="muted">
                 {saved
-                  ? `${t.revision} ${saved.revision} · ${saved.updated_at ? new Date(saved.updated_at).toLocaleString("ko-KR") : ""}`
+                  ? `${t.revision} ${saved.revision} · ${saved.updated_at ? formatDateTime(saved.updated_at) : ""}`
                   : t.notSaved}
               </td>
             </tr>
@@ -182,7 +183,10 @@ function Members({ e }: { e: EngagementDetail }) {
       </table>
       {e.can_manage && (
         <form className="row" onSubmit={submit}>
-          <input aria-label={t.username} placeholder={t.username} value={username} maxLength={64} onChange={(ev) => setUsername(ev.target.value)} />
+          <label>
+            {t.username}
+            <input value={username} maxLength={64} onChange={(ev) => setUsername(ev.target.value)} />
+          </label>
           <select aria-label={t.myRole} value={role} onChange={(ev) => setRole(ev.target.value as MemberOut["role"])}>
             {(["owner", "editor", "viewer"] as const).map((r) => (
               <option key={r} value={r}>
@@ -251,13 +255,14 @@ function Sessions({ e }: { e: EngagementDetail }) {
       )}
       {e.can_edit && (
         <form className="row" onSubmit={submit}>
-          <input
-            aria-label={s.sessionId}
-            placeholder={s.sessionId}
-            inputMode="numeric"
-            value={sessionId}
-            onChange={(ev) => setSessionId(ev.target.value.replace(/\D/g, ""))}
-          />
+          <label>
+            {s.sessionId}
+            <input
+              inputMode="numeric"
+              value={sessionId}
+              onChange={(ev) => setSessionId(ev.target.value.replace(/\D/g, ""))}
+            />
+          </label>
           <button type="submit" disabled={link.isPending || !sessionId}>
             {s.link}
           </button>

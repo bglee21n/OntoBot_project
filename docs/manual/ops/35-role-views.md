@@ -17,7 +17,7 @@
 
 ## 35.1 일반 사용자 — `kim.user`
 
-![일반 사용자의 상단 막대](images/35-roles/kim.user-topbar.png)
+![일반 사용자의 왼쪽 메뉴](images/35-roles/kim.user-topbar.png)
 
 ### 채팅
 
@@ -46,7 +46,7 @@
 
 ## 35.2 모델러 — `lee.modeler`
 
-![모델러의 상단 막대](images/35-roles/lee.modeler-topbar.png)
+![모델러의 왼쪽 메뉴](images/35-roles/lee.modeler-topbar.png)
 
 모델러는 메뉴가 가장 많습니다(관리 제외).
 
@@ -71,7 +71,7 @@
 
 ## 35.3 현업 전문가 — `choi.expert`
 
-![현업 전문가의 상단 막대](images/35-roles/choi.expert-topbar.png)
+![현업 전문가의 왼쪽 메뉴](images/35-roles/choi.expert-topbar.png)
 
 ![현업 전문가 — 채팅](images/35-roles/choi.expert-chat.png)
 
@@ -88,7 +88,7 @@
 
 ## 35.4 챗봇 빌더 — `jung.builder`
 
-![챗봇 빌더의 상단 막대](images/35-roles/jung.builder-topbar.png)
+![챗봇 빌더의 왼쪽 메뉴](images/35-roles/jung.builder-topbar.png)
 
 ![챗봇 빌더 — 채팅](images/35-roles/jung.builder-chat.png)
 
@@ -102,7 +102,7 @@
 
 ## 35.5 관리자 — `park.admin`
 
-![관리자의 상단 막대](images/35-roles/park.admin-topbar.png)
+![관리자의 왼쪽 메뉴](images/35-roles/park.admin-topbar.png)
 
 ![관리자 — 채팅](images/35-roles/park.admin-chat.png)
 

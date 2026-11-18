@@ -8,6 +8,7 @@ import { useMe } from "../../app/auth";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.eval;
 const f = ko.eval.feedback;
@@ -99,7 +100,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
                   {isAdmin && fb.trace_id != null && <Link to={`/traces/${fb.trace_id}`}>{f.trace}</Link>}
                 </td>
                 <td>{fb.comment ?? "—"}</td>
-                <td>{new Date(fb.created_at).toLocaleString("ko-KR")}</td>
+                <td>{formatDateTime(fb.created_at)}</td>
                 <td className="actions">
                   <button type="button" onClick={() => start(fb)}>
                     {f.promote}

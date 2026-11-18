@@ -85,7 +85,7 @@ def console_tab(pg: Page, label: str) -> None:
 
 
 def nav(pg: Page, label: str) -> None:
-    pg.locator("header.topbar").get_by_role("link", name=label, exact=True).click()
+    pg.locator("nav.sidenav").get_by_role("link", name=label, exact=True).click()
     pg.wait_for_load_state("networkidle")
     pg.wait_for_timeout(1200)
 
@@ -153,7 +153,7 @@ def ch_verify(c: Ctx) -> None:
         go(pg, "/login")
         s.shot(pg, "web-login", marks=[("label:has-text('아이디') input", 1), ("input[type=password]", 2), ("button[type=submit]", 3)])
     with c.app() as pg:
-        s.shot(pg, "after-login", marks=[("header .muted", 1, "below")])
+        s.shot(pg, "after-login", marks=[(".user-menu-button", 1, "below")])
         ask(pg, "위험등급이 3 이상인 시설은 몇 개야?")
         shot_turn(s, pg, "sample-answer")
         ask(pg, "강남지사가 소유한 시설 보여줘")
@@ -165,7 +165,7 @@ def ch_verify(c: Ctx) -> None:
 # ---------------------------------------------------------------- 6장 웹 화면 둘러보기(관리자)
 
 # v1 촬영 관리자(admin·user) 기준 위쪽 메뉴 — 인터뷰(domain_expert·modeler)·평가(bot_builder·modeler)는 없다.
-NAV = ["채팅", "객체 탐색", "문서", "온톨로지", "데이터 소스", "Action", "트레이스", "관리"]
+NAV = ["채팅", "객체 탐색", "문서", "Action", "온톨로지", "데이터 소스", "도입", "트레이스", "관리"]
 
 
 def ch_web(c: Ctx) -> None:
@@ -180,10 +180,11 @@ def ch_web(c: Ctx) -> None:
         pg.wait_for_timeout(1500)
         s.shot(pg, "login-wrong", marks=[(".error, [role=alert]", None)])
     with c.app() as pg:
-        bar = pg.locator("header.topbar")
-        marks = [(bar.get_by_role("link", name=n, exact=True), i + 1, "below") for i, n in enumerate(NAV)]
+        side = pg.locator("nav.sidenav")
+        marks = [(side.get_by_role("link", name=n, exact=True), i + 1, "right") for i, n in enumerate(NAV)]
         n = len(NAV)
-        marks += [(bar.locator(".muted"), n + 1, "below"), (bar.get_by_role("button", name="로그아웃"), n + 2, "below")]
+        # 이름 단추를 누르면 역할·테마·로그아웃이 나온다.
+        marks += [(pg.locator(".user-menu-button"), n + 1, "below")]
         s.shot(pg, "topbar", marks=marks)
         s.shot(pg, "chat-page", marks=[(".chat-list", 1), (".chat-input", 2)])
         for n, name in [("온톨로지", "ontology-page"), ("데이터 소스", "sources-page"), ("Action", "actions-page")]:
@@ -208,7 +209,8 @@ def ch_web(c: Ctx) -> None:
                 (pg.locator("details.card summary", has_text="로컬 계정 추가"), 8),
             ],
         )
-        bar.get_by_role("button", name="로그아웃").click()
+        pg.locator(".user-menu-button").click()
+        pg.locator(".user-menu-panel").get_by_role("menuitem", name="로그아웃").click()
         pg.wait_for_timeout(1500)
         s.shot(pg, "after-logout")
 
@@ -301,7 +303,7 @@ def ch_users(c: Ctx) -> None:
         s.shot(pg, "self-row", clip=_users_table(pg), marks=[(me.locator("td").nth(5), 1)])
     # 첫 로그인 — 새 계정
     with c.app("kim.user") as pg:
-        s.shot(pg, "kim-first-login", marks=[("header .muted", 1, "below")])
+        s.shot(pg, "kim-first-login", marks=[(".user-menu-button", 1, "below")])
         go(pg, "/admin")
         s.shot(pg, "kim-admin-denied")
     # 역할 바꾸기 — 로그인해 있는 사람의 세션이 끊긴다
@@ -881,7 +883,7 @@ def ch_actions(c: Ctx) -> None:
         _tab(pg, 1)
         s.shot(pg, "mine-tab", full=True)
     with c.app("park.admin") as pg:
-        s.shot(pg, "approver-badge", clip=pg.locator("header.topbar"), pad=0, marks=[(pg.locator("header .badge"), 1, "below")])
+        s.shot(pg, "approver-badge", clip=pg.locator("nav.sidenav"), pad=0, marks=[(pg.locator("nav.sidenav .badge"), 1, "right")])
         go(pg, "/actions")
         s.shot(pg, "to-decide", full=True)
         card = run_card(pg, "F-0004")
@@ -1908,7 +1910,7 @@ def ch_roles(c: Ctx) -> None:
     s = c.s
     for user, menus in ROLE_VIEWS:
         with c.app(user) as pg:
-            s.shot(pg, f"{user}-topbar", clip=pg.locator("header.topbar"), pad=0)
+            s.shot(pg, f"{user}-topbar", clip=pg.locator("nav.sidenav"), pad=0)
             for m in menus:
                 go(pg, MENU_PATH[m], wait=2500)
                 s.shot(pg, f"{user}-{MENU_PATH[m].strip('/')}")

@@ -18,6 +18,7 @@ import type {
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { ConflictsPanel } from "./ConflictsPanel";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.sources;
 
@@ -197,7 +198,7 @@ function MappingCard({ m, sources }: { m: MappingOut; sources: SourceOut[] }) {
         <tbody>
           {(runs.data ?? []).map((r) => (
             <tr key={r.id}>
-              <td>{new Date(r.started_at).toLocaleString("ko-KR")}</td>
+              <td>{formatDateTime(r.started_at)}</td>
               <td>
                 <span className={`badge ${r.status}`}>{t.status[r.status] ?? r.status}</span>
               </td>
@@ -449,7 +450,7 @@ function GraphPanel() {
           {s.lag_warning && <p className="notice">{g.lagWarn}</p>}
           {report && (
             <p className="muted">
-              {g.lastReconcile}: {s.last_reconcile_at ? new Date(s.last_reconcile_at).toLocaleString("ko-KR") : ""} ·{" "}
+              {g.lastReconcile}: {s.last_reconcile_at ? formatDateTime(s.last_reconcile_at) : ""} ·{" "}
               {report.ok ? "일치" : `${g.mismatch} ${bad.length}건`}
               {report.stub_nodes > 0 ? ` · ${g.stubs} ${report.stub_nodes}건` : ""}
             </p>

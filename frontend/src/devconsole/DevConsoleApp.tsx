@@ -423,7 +423,10 @@ function SourcePanel({ onJob }: { onJob: (j: OpsJob) => void }) {
             branch.mutate(newBranch.trim());
           }}
         >
-          <input value={newBranch} onChange={(e) => setNewBranch(e.target.value)} placeholder={t.newBranch} style={{ minWidth: "18rem" }} />
+          <label>
+            {t.newBranch}
+            <input value={newBranch} onChange={(e) => setNewBranch(e.target.value)} style={{ minWidth: "18rem" }} />
+          </label>
           <button type="submit" disabled={!newBranch.trim() || branch.isPending}>
             {t.createSwitch}
           </button>
@@ -442,8 +445,14 @@ function SourcePanel({ onJob }: { onJob: (j: OpsJob) => void }) {
             tag.mutate();
           }}
         >
-          <input value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder={t.newTag} />
-          <input value={tagMessage} onChange={(e) => setTagMessage(e.target.value)} placeholder={t.tagMessage} style={{ minWidth: "18rem" }} />
+          <label>
+            {t.newTag}
+            <input value={tagName} onChange={(e) => setTagName(e.target.value)} />
+          </label>
+          <label>
+            {t.tagMessage}
+            <input value={tagMessage} onChange={(e) => setTagMessage(e.target.value)} style={{ minWidth: "18rem" }} />
+          </label>
           <button type="submit" disabled={!tagName.trim() || tag.isPending}>
             {t.createTag}
           </button>
@@ -729,12 +738,14 @@ function BuildPanel({ onJob }: { onJob: (j: OpsJob) => void }) {
             <button type="button" className="link" disabled={busy} onClick={() => start.mutate({ kind: "release-notes", name: b.name })}>
               {t.notes}
             </button>
-            <input
-              value={target[b.name] ?? ""}
-              onChange={(e) => setTarget({ ...target, [b.name]: e.target.value })}
-              placeholder={t.exportTarget}
-              style={{ minWidth: "18rem" }}
-            />
+            <label>
+              {t.exportTarget}
+              <input
+                value={target[b.name] ?? ""}
+                onChange={(e) => setTarget({ ...target, [b.name]: e.target.value })}
+                style={{ minWidth: "18rem" }}
+              />
+            </label>
             <button
               type="button"
               className="link"

@@ -10,6 +10,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { engagementKey } from "./queries";
 import { SeedsPanel } from "./SeedsPanel";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.adoption.pilot;
 const DECISIONS = ["go", "go_after_fix", "no_go"] as const;
@@ -108,14 +109,17 @@ export function PilotPanel({ e }: { e: EngagementDetail }) {
           <strong>{t.decide}</strong>
           <div className="row">
             {DECISIONS.map((d) => (
-              <label key={d} title={p.allowed[d] ?? undefined} className={p.allowed[d] ? "muted" : ""}>
+              <label key={d} title={p.allowed[d] ?? undefined} className={p.allowed[d] ? "check muted" : "check"}>
                 <input type="radio" name="decision" value={d} checked={decision === d} disabled={Boolean(p.allowed[d])} onChange={() => setDecision(d)} />{" "}
                 {t.decisions[d]}
               </label>
             ))}
           </div>
           {p.allowed.go && <p className="notice warn">{p.allowed.go}</p>}
-          <textarea className="plain" aria-label={t.reason} placeholder={t.reason} rows={2} maxLength={4000} value={reason} onChange={(ev) => setReason(ev.target.value)} />
+          <label>
+            {t.reason}
+            <textarea className="plain" rows={2} maxLength={4000} value={reason} onChange={(ev) => setReason(ev.target.value)} />
+          </label>
           <div>
             <button type="submit" disabled={decide.isPending || !reason.trim()}>
               {t.record}
@@ -137,7 +141,7 @@ export function PilotPanel({ e }: { e: EngagementDetail }) {
           <tbody>
             {p.decisions.map((d) => (
               <tr key={d.id}>
-                <td>{new Date(d.created_at).toLocaleString("ko-KR")}</td>
+                <td>{formatDateTime(d.created_at)}</td>
                 <td>{t.decisions[d.decision]}</td>
                 <td>{d.reason}</td>
                 <td className="muted">{d.eval_run_id ? `#${d.eval_run_id}` : "—"}</td>

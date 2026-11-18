@@ -15,6 +15,15 @@ export const ko = {
     admin: "관리",
     logout: "로그아웃",
     menu: "메뉴",
+    groups: { work: "업무", build: "모델링", operate: "운영" },
+  },
+  // 역할 이름(사용자 매뉴얼 29장과 같게)
+  roles: {
+    user: "사용자",
+    domain_expert: "현업 전문가",
+    modeler: "모델러",
+    bot_builder: "챗봇 빌더",
+    admin: "관리자",
   },
   pager: {
     label: "페이지",

@@ -8,6 +8,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { GradeBadge } from "../chat/AnswerView";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.traces;
 const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
@@ -105,7 +106,7 @@ export function TracesPage() {
                     <td>
                       {r.question ?? "—"}
                       <div className="muted">
-                        {r.user_name ?? "—"} · {new Date(r.created_at).toLocaleString("ko-KR")}
+                        {r.user_name ?? "—"} · {formatDateTime(r.created_at)}
                       </div>
                     </td>
                     <td>
@@ -170,7 +171,7 @@ export function TraceDetail({ id }: { id: number }) {
         <strong>#{tr.id}</strong>
         <Outcome status={tr.status} reason={tr.failure_reason} grade={tr.grade} />
         <span className="spacer" />
-        <span className="muted">{new Date(tr.created_at).toLocaleString("ko-KR")}</span>
+        <span className="muted">{formatDateTime(tr.created_at)}</span>
       </div>
       <p className="muted">{t.masked}</p>
       <ol className="trace-steps">

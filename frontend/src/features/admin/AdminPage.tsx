@@ -24,6 +24,7 @@ import { TraceDetail } from "../traces/TracesPage";
 import { ApiKeysPanel } from "./ApiKeysPanel";
 import { GroupsPanel } from "./GroupsPanel";
 import { Pager, usePaged } from "../../components/Pager";
+import { formatDateTime } from "../../app/format";
 
 const t = ko.admin;
 type Tab = keyof typeof t.tabs;
@@ -422,8 +423,14 @@ function ContactsCell({ u }: { u: UserOut }) {
   return (
     <div className="stack">
       <p className="muted">{t.contactsHint}</p>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.email} />
-      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.phone} />
+      <label>
+        {t.email}
+        <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      </label>
+      <label>
+        {t.phone}
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+      </label>
       <div className="row">
         <button type="button" onClick={() => save.mutate()} disabled={save.isPending}>
           {ko.ontology.save}
@@ -585,7 +592,7 @@ function AuditPanel() {
         <tbody>
           {pagedRows.map((r) => (
             <tr key={r.id}>
-              <td>{new Date(r.ts).toLocaleString()}</td>
+              <td>{formatDateTime(r.ts)}</td>
               <td>
                 <code>{r.event}</code>
               </td>
