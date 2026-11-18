@@ -94,7 +94,10 @@ class Shooter:
 
     @contextmanager
     def as_user(self, username: str | None, viewport: dict[str, int] | None = None) -> Iterator[Page]:
-        ctx = self.browser.new_context(viewport=viewport or VIEWPORT, locale="ko-KR")
+        # 매뉴얼 사진은 늘 밝은 화면(화이트 모드) — 앱은 OS 다크 설정을 따르므로 명시한다.
+        ctx = self.browser.new_context(
+            viewport=viewport or VIEWPORT, locale="ko-KR", color_scheme="light"
+        )
         ctx.expose_binding("__captureDialog", lambda _src, msg: self.dialogs.append(msg))
         ctx.add_init_script(AUTO_CONFIRM_JS)
         page = ctx.new_page()
