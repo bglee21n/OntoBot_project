@@ -8,6 +8,8 @@ import type { EngagementDetail, SeedOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
+import { EmptyState, RowMenu } from "../../components/page";
+import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.adoption.seeds;
 
@@ -54,9 +56,16 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
                 <td>{s.pii_columns.length > 0 && <span className="warn-text">{t.pii(s.pii_columns.join(", "))}</span>}</td>
                 <td className="actions">
                   {e.can_edit && (
-                    <button type="button" className="link" onClick={() => remove.mutate(s.object_type)}>
-                      {ko.common.delete}
-                    </button>
+                    <RowMenu
+                      items={[
+                        {
+                          label: ko.common.delete,
+                          danger: true,
+                          onSelect: () =>
+                            void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && remove.mutate(s.object_type, { onSuccess: () => toast(ko.common.deleted) })),
+                        },
+                      ]}
+                    />
                   )}
                 </td>
               </tr>
@@ -66,7 +75,7 @@ export function SeedsPanel({ e }: { e: EngagementDetail }) {
         <Pager pager={pager} />
         </>
       )}
-      {list.data?.length === 0 && <p className="muted">{t.none}</p>}
+      {list.data?.length === 0 && <EmptyState message={t.none} />}
       {e.can_edit && (
         <form className="card stack" onSubmit={submit}>
           <div className="row">

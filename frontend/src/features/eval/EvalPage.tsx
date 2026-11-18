@@ -11,6 +11,7 @@ import { ItemsTable } from "./ItemsTable";
 import { RunView } from "./RunView";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.eval;
 
@@ -64,13 +65,12 @@ export function EvalPage() {
   const { rows: pagedRows, pager } = usePaged(runs.data);
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="eval" title={t.title} intro={t.intro} />
       <div className="eval">
         <aside className="stack">
           <h2>{t.sets}</h2>
           {sets.isError && <ErrorBox error={sets.error} />}
-          {sets.data?.length === 0 && <p className="muted">{t.noSets}</p>}
+          {sets.data?.length === 0 && <EmptyState message={t.noSets} />}
           <nav className="chat-list">
             {sets.data?.map((gs) => (
               <Link key={gs.id} to={`/eval/${gs.id}`} className={gs.id === setId ? "active" : ""}>
@@ -96,7 +96,7 @@ export function EvalPage() {
         </aside>
 
         <div className="stack">
-          {setId === null && <p className="muted">{t.sets} ←</p>}
+          {setId === null && <EmptyState message={t.pickSet} />}
           {detail.isError && <ErrorBox error={detail.error} />}
           {detail.data && (
             <>
@@ -115,7 +115,7 @@ export function EvalPage() {
               {start.isError && <ErrorBox error={start.error} />}
 
               <h3>{t.runs}</h3>
-              {runs.data?.length === 0 && <p className="muted">{t.noRuns}</p>}
+              {runs.data?.length === 0 && <EmptyState message={t.noRuns} />}
               {runs.data && runs.data.length > 0 && (
                 <>
                 <table>

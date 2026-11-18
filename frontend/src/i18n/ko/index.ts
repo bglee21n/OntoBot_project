@@ -208,7 +208,7 @@ export const ko = {
     latency: "단계별 지연(ms)",
   },
   chat: {
-    title: "질의",
+    title: "채팅",
     conversations: "대화",
     newConversation: "새 대화",
     noConversations: "아직 대화가 없습니다.",
@@ -307,6 +307,16 @@ export const ko = {
     delete: "삭제",
     confirmDelete: "삭제할까요?",
     forbidden: "이 화면을 볼 권한이 없습니다",
+    confirm: "확인",
+    confirmTitle: "확인",
+    deleted: "삭제했습니다.",
+    edit: "수정",
+    done: "처리했습니다.",
+  },
+  page: {
+    showHelp: "이 화면 설명 보기",
+    hideHelp: "설명 접기",
+    moreActions: "더 많은 동작",
   },
   status: { draft: "draft", published: "게시됨", archived: "보관됨" } as Record<string, string>,
   ontology: {
@@ -317,6 +327,7 @@ export const ko = {
     noVersions: "아직 버전이 없습니다. 빈 draft 를 만들거나 도메인 팩을 임포트하세요.",
     version: (no: number) => `버전 ${no}`,
     publish: "게시",
+    published: "게시했습니다.",
     publishConfirm: "게시하면 현재 게시본은 보관되고 이 버전이 읽기 경로가 됩니다. 게시할까요?",
     readonly: "게시·보관된 버전은 수정할 수 없습니다. 고치려면 이 버전으로 새 draft 를 만드세요.",
     issuesTitle: "게시 전 검사",
@@ -480,7 +491,7 @@ export const ko = {
     pick: "고르기",
   },
   sources: {
-    title: "데이터 소스와 동기화",
+    title: "데이터 소스",
     sources: "데이터 소스",
     addSource: "데이터 소스 추가",
     kind: "종류",
@@ -742,6 +753,7 @@ export const ko = {
     username: "아이디",
     addMember: "구성원 넣기(같은 아이디면 역할 바꾸기)",
     remove: "빼기",
+    confirmRemove: (name: string) => `${name} 님을 이 도입에서 뺄까요?`,
     editInfo: "이름·설명 고치기",
     sheet: {
       back: "도입으로",
@@ -788,6 +800,7 @@ export const ko = {
       sessionId: "인터뷰 번호",
       link: "인터뷰 잇기",
       unlink: "끊기",
+      confirmUnlink: "이 인터뷰 연결을 끊을까요? 인터뷰 자체는 지워지지 않습니다.",
     },
     pilot: {
       title: "36.14 파일럿 판단 · 36.15 자산화",
@@ -956,6 +969,7 @@ export const ko = {
   },
   eval: {
     title: "평가",
+    pickSet: "왼쪽 목록에서 골든셋을 고르거나 새로 만드세요.",
     intro:
       "골든셋 문항을 운영과 같은 질의 파이프라인으로 돌려 정답률·근거 인용률·권한 위반·실패 은폐를 재고, 게이트 기준(gate.yaml)으로 판정합니다.",
     sets: "골든셋",

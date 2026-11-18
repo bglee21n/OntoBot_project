@@ -34,7 +34,7 @@ def env_value(key: str) -> str:
 os.environ.setdefault("ONTOBOT_MANUAL_PASSWORD", env_value("ONTOBOT_MANUAL_PASSWORD"))
 
 from playwright.sync_api import Browser, Locator, Page, sync_playwright  # noqa: E402
-from shots import BASE, Shooter, ask, go, last_answer, password, shot_turn  # noqa: E402
+from shots import BASE, Shooter, ask, go, last_answer, password, row_action, shot_turn  # noqa: E402
 from term import Term, ctl, sh  # noqa: E402
 
 IMAGES = ROOT / "docs" / "manual" / "ops" / "images"
@@ -1001,7 +1001,7 @@ def ch_notify(c: Ctx) -> None:
     # 모델러가 메일·SMS 로 알리는 Action 을 게시한다(사용자 매뉴얼 17장과 같은 화면)
     with c.app("lee.modeler") as pg:
         go(pg, "/ontology")
-        pg.locator("tbody tr", has_text="게시됨").get_by_role("button", name="이 버전으로 새 draft").click()
+        row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         go(pg, "/ontology")
         pg.locator("tbody tr", has_text="draft").first.get_by_role("link", name="열기").click()

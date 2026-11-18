@@ -5,6 +5,7 @@ import { ko } from "../../i18n/ko";
 import { useCreateDraft, useVersions } from "./queries";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState, PageHeader, RowMenu } from "../../components/page";
 
 export function VersionsPage() {
   const versions = useVersions();
@@ -17,17 +18,19 @@ export function VersionsPage() {
   const { rows: pagedRows, pager } = usePaged(versions.data);
   return (
     <section className="stack">
-      <div className="row">
-        <h1>{ko.ontology.versions}</h1>
-        <span className="spacer" />
-        <button type="button" onClick={() => createDraft(null)} disabled={create.isPending}>
-          {ko.ontology.newDraft}
-        </button>
-      </div>
+      <PageHeader
+        id="ontology"
+        title={ko.nav.ontology}
+        actions={
+          <button type="button" onClick={() => createDraft(null)} disabled={create.isPending}>
+            {ko.ontology.newDraft}
+          </button>
+        }
+      />
       {create.isError && <ErrorBox error={create.error} />}
       {versions.isPending && <p>{ko.common.loading}</p>}
       {versions.isError && <ErrorBox error={versions.error} />}
-      {versions.data?.length === 0 && <p className="muted">{ko.ontology.noVersions}</p>}
+      {versions.data?.length === 0 && <EmptyState message={ko.ontology.noVersions} />}
       {versions.data && versions.data.length > 0 && (
         <>
         <table>
@@ -51,11 +54,7 @@ export function VersionsPage() {
                 <td>{v.published_at ? formatDateTime(v.published_at) : "—"}</td>
                 <td className="actions">
                   <Link to={`/ontology/versions/${v.id}`}>{ko.ontology.open}</Link>
-                  {v.status !== "draft" && (
-                    <button type="button" className="link" onClick={() => createDraft(v.id)}>
-                      {ko.ontology.copyToDraft}
-                    </button>
-                  )}
+                  {v.status !== "draft" && <RowMenu items={[{ label: ko.ontology.copyToDraft, onSelect: () => createDraft(v.id) }]} />}
                 </td>
               </tr>
             ))}

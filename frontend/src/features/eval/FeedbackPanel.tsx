@@ -9,6 +9,7 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { EmptyState } from "../../components/page";
 
 const t = ko.eval;
 const f = ko.eval.feedback;
@@ -77,7 +78,7 @@ export function FeedbackPanel({ set }: { set: GoldenSetDetail }) {
       </h3>
       <p className="muted">{f.hint}</p>
       {list.isError && <ErrorBox error={list.error} />}
-      {list.data?.length === 0 && <p className="muted">{f.none}</p>}
+      {list.data?.length === 0 && <EmptyState message={f.none} />}
       {list.data && list.data.length > 0 && (
         <>
         <table>

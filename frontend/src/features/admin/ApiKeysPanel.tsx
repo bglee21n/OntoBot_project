@@ -7,6 +7,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDate, formatDateTime } from "../../app/format";
+import { confirmDialog, toast } from "../../components/feedback";
+import { EmptyState, RowMenu } from "../../components/page";
 
 const t = ko.admin.apiKeys;
 const SCOPES = ["query", "objects:read", "actions:request"] as const;
@@ -43,7 +45,7 @@ export function ApiKeysPanel() {
         </div>
       )}
       {(keys.isError || revoke.isError) && <ErrorBox error={keys.error ?? revoke.error} />}
-      {keys.data?.length === 0 && <p className="muted">{t.none}</p>}
+      {keys.data?.length === 0 && <EmptyState message={t.none} />}
       {keys.data && keys.data.length > 0 && (
         <>
         <table>
@@ -78,14 +80,17 @@ export function ApiKeysPanel() {
                   <td>{k.last_used_at ? formatDateTime(k.last_used_at) : "—"}</td>
                   <td>
                     {!k.revoked_at && (
-                      <button
-                        type="button"
-                        className="link"
-                        disabled={revoke.isPending}
-                        onClick={() => window.confirm(t.confirmRevoke(k.name)) && revoke.mutate(k.id)}
-                      >
-                        {t.revoke}
-                      </button>
+                      <RowMenu
+                        items={[
+                          {
+                            label: t.revoke,
+                            danger: true,
+                            disabled: revoke.isPending,
+                            onSelect: () =>
+                              void confirmDialog(t.confirmRevoke(k.name), { danger: true, confirmLabel: t.revoke }).then((ok) => ok && revoke.mutate(k.id, { onSuccess: () => toast(ko.common.done) })),
+                          },
+                        ]}
+                      />
                     )}
                   </td>
                 </tr>

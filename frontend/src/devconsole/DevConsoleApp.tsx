@@ -6,6 +6,7 @@ import { JobTable, JobView, Light, type OpsJob, when } from "../components/ops/J
 import { ko } from "../i18n/ko";
 import { type BuiltBundle, type CheckLight, dev, type FileChange, jobApi, type TaskEntry } from "./client";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { confirmDialog, toast } from "../components/feedback";
 
 const t = ko.devconsole;
 type Tab = keyof typeof t.tabs;
@@ -755,7 +756,7 @@ function BuildPanel({ onJob }: { onJob: (j: OpsJob) => void }) {
               {t.export}
             </button>
             <span className="spacer" />
-            <button type="button" className="link danger" disabled={busy} onClick={() => window.confirm(t.removeConfirm) && remove.mutate(b.name)}>
+            <button type="button" className="link danger" disabled={busy} onClick={() => void confirmDialog(t.removeConfirm, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && remove.mutate(b.name, { onSuccess: () => toast(ko.common.deleted) }))}>
               {t.remove}
             </button>
           </div>

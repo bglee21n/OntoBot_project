@@ -7,6 +7,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
+import { confirmDialog, toast } from "../../components/feedback";
+import { EmptyState } from "../../components/page";
 
 const t = ko.conflicts;
 type Filter = "live" | "acknowledged" | "cleared";
@@ -53,7 +55,7 @@ export function ConflictsPanel() {
       {list.isError && <ErrorBox error={list.error} />}
       {acknowledge.isError && <ErrorBox error={acknowledge.error} />}
       {clearEdit.isError && <ErrorBox error={clearEdit.error} />}
-      {list.data?.length === 0 && <p className="muted">{t.none}</p>}
+      {list.data?.length === 0 && <EmptyState message={t.none} />}
       {list.data && list.data.length > 0 && (
         <>
         <table>
@@ -99,7 +101,7 @@ export function ConflictsPanel() {
                     <button
                       type="button"
                       className="link danger"
-                      onClick={() => window.confirm(t.clearConfirm) && clearEdit.mutate(c.edit_id)}
+                      onClick={() => void confirmDialog(t.clearConfirm, { danger: true }).then((ok) => ok && clearEdit.mutate(c.edit_id, { onSuccess: () => toast(ko.common.done) }))}
                     >
                       {t.clearEdit}
                     </button>

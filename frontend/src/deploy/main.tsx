@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import "../app/styles.css";
 import { DeployApp } from "./DeployApp";
 import { applyTheme } from "../app/theme";
+import { FeedbackHost } from "../components/feedback";
 
 applyTheme();
 
@@ -17,6 +18,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 1 } } })}>
       <DeployApp />
+      <FeedbackHost />
     </QueryClientProvider>
   </StrictMode>,
 );

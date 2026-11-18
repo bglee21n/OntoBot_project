@@ -7,6 +7,7 @@ import { ko } from "../../../i18n/ko";
 import { ActionForm } from "../ActionTypes";
 import { blankFunction, FunctionForm, strip } from "../Functions";
 import { useVersionMutation, V } from "../queries";
+import { confirmDialog, toast } from "../../../components/feedback";
 
 const t = ko.ontology;
 type Editing = { kind: "action" | "function"; id: number | "new" } | null;
@@ -38,7 +39,8 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
   const actions = v.action_types.filter((a) => a.target_type === typeName);
   const functions = v.functions.filter((f) => functionTypes(f).has(typeName));
   const is = (kind: "action" | "function", id: number | "new") => editing?.kind === kind && editing.id === id;
-  const confirmDelete = () => window.confirm(ko.common.confirmDelete);
+  const confirmDelete = () => confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete });
+  const deleted = { onSuccess: () => toast(ko.common.deleted) };
 
   return (
     <div className="stack">
@@ -68,7 +70,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
                   <button type="button" className="link" onClick={() => setEditing({ kind: "action", id: a.id })}>
                     {t.edit}
                   </button>
-                  <button type="button" className="link danger" onClick={() => confirmDelete() && delAction.mutate(a.id)}>
+                  <button type="button" className="link danger" onClick={() => void confirmDelete().then((ok) => ok && delAction.mutate(a.id, deleted))}>
                     {ko.common.delete}
                   </button>
                 </>
@@ -116,7 +118,7 @@ export function TypeBehaviors({ v, typeName, editable }: { v: VersionDetail; typ
                   <button type="button" className="link" onClick={() => setEditing({ kind: "function", id: f.id })}>
                     {t.edit}
                   </button>
-                  <button type="button" className="link danger" onClick={() => confirmDelete() && delFn.mutate(f.id)}>
+                  <button type="button" className="link danger" onClick={() => void confirmDelete().then((ok) => ok && delFn.mutate(f.id, deleted))}>
                     {ko.common.delete}
                   </button>
                 </>

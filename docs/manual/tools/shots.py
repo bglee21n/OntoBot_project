@@ -64,6 +64,26 @@ _MARK_JS = """
 """
 
 
+# 앱의 확인 창은 화면 안 대화상자다(components/feedback — window.confirm 아님).
+# 기본 확인 창처럼 문구를 남기고 바로 "확인"(마지막 단추)을 누른다.
+AUTO_CONFIRM_JS = """
+new MutationObserver(() => {
+  const d = document.querySelector('[role=alertdialog]');
+  if (!d || d.dataset.captured) return;
+  d.dataset.captured = '1';
+  const msg = d.querySelector('#confirm-message')?.textContent ?? '';
+  if (window.__captureDialog) window.__captureDialog(msg);
+  setTimeout(() => d.querySelector('.dialog-actions button:last-child')?.click(), 0);
+}).observe(document, { childList: true, subtree: true });
+"""
+
+
+def row_action(row: Any, label: str) -> None:
+    """표 행의 ⋯ 메뉴를 열고 동작을 고른다(components/page RowMenu)."""
+    row.locator(".row-menu-button").click()
+    row.page.get_by_role("menuitem", name=label, exact=True).click()
+
+
 class Shooter:
     def __init__(self, browser: Browser, chapter: str, root: Path | None = None) -> None:
         self.browser = browser
@@ -75,9 +95,11 @@ class Shooter:
     @contextmanager
     def as_user(self, username: str | None, viewport: dict[str, int] | None = None) -> Iterator[Page]:
         ctx = self.browser.new_context(viewport=viewport or VIEWPORT, locale="ko-KR")
+        ctx.expose_binding("__captureDialog", lambda _src, msg: self.dialogs.append(msg))
+        ctx.add_init_script(AUTO_CONFIRM_JS)
         page = ctx.new_page()
         page.set_default_timeout(30_000)
-        # 확인 창(window.confirm)은 사진에 찍히지 않는다 — 문구를 남기고 "확인"을 누른다.
+        # 브라우저 기본 확인 창(배포 콘솔 등에 남은 것)도 문구를 남기고 "확인"을 누른다.
         page.on("dialog", lambda d: (self.dialogs.append(d.message), d.accept()))
         if username:
             login(page, username)

@@ -6,6 +6,8 @@ import type { ActionRunOut, ActionTypeView, NotificationList } from "../../api/t
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { formatDateTime } from "../../app/format";
+import { confirmDialog } from "../../components/feedback";
+import { EmptyState, PageHeader } from "../../components/page";
 
 const t = ko.actions;
 type Scope = "to_decide" | "mine" | "all";
@@ -28,8 +30,7 @@ export function ActionsPage() {
   const [scope, setScope] = useState<Scope>("to_decide");
   return (
     <section className="stack">
-      <h1>{t.title}</h1>
-      <p className="muted">{t.intro}</p>
+      <PageHeader id="actions" title={t.title} intro={t.intro} />
       <RequestPanel />
       <nav className="row" role="tablist">
         {(Object.keys(t.tabs) as Scope[]).map((k) => (
@@ -179,7 +180,7 @@ function RunList({ scope }: { scope: Scope }) {
   return (
     <div className="stack">
       {runs.isError && <ErrorBox error={runs.error} />}
-      {runs.data?.length === 0 && <p className="muted">{t.none}</p>}
+      {runs.data?.length === 0 && <EmptyState message={t.none} />}
       {runs.data?.map((r) => <RunCard key={r.id} run={r} />)}
     </div>
   );
@@ -326,7 +327,7 @@ export function RunCard({ run, open = false }: { run: ActionRunOut; open?: boole
             <button
               type="button"
               disabled={decide.isPending}
-              onClick={() => (!irreversible || window.confirm(t.approveConfirm)) && decide.mutate("approve")}
+              onClick={() => void (irreversible ? confirmDialog(t.approveConfirm) : Promise.resolve(true)).then((ok) => ok && decide.mutate("approve"))}
             >
               {t.approve}
             </button>
@@ -344,7 +345,7 @@ export function RunCard({ run, open = false }: { run: ActionRunOut; open?: boole
               type="button"
               className="link danger"
               disabled={decide.isPending}
-              onClick={() => window.confirm(t.rollbackConfirm) && decide.mutate("rollback")}
+              onClick={() => void confirmDialog(t.rollbackConfirm, { danger: true }).then((ok) => ok && decide.mutate("rollback"))}
             >
               {t.rollback}
             </button>
@@ -376,7 +377,7 @@ function NotificationsPanel() {
         )}
       </div>
       {list.isError && <ErrorBox error={list.error} />}
-      {list.data?.items.length === 0 && <p className="muted">{t.noNotifications}</p>}
+      {list.data?.items.length === 0 && <EmptyState message={t.noNotifications} />}
       <ul>
         {list.data?.items.map((n) => (
           <li key={n.id} className={n.read_at ? "muted" : ""}>

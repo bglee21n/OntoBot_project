@@ -15,7 +15,7 @@ import sys
 import subprocess
 import time
 
-from shots import Shooter, ask, go, last_answer, run, shot_turn
+from shots import Shooter, ask, go, last_answer, row_action, run, shot_turn
 
 # ---------------------------------------------------------------- 1. 로그인
 
@@ -634,15 +634,15 @@ def ch_ontology(s: Shooter) -> None:
             row = fac.locator("tbody tr").filter(has=pg.locator(f"td:first-child code:text-is('{prop}')")).first
             if row.count():
                 if first:
-                    s.shot(pg, "delete-dup-prop", clip=fac, marks=[(row.get_by_role("button", name="삭제"), 1, "right")])
+                    s.shot(pg, "delete-dup-prop", clip=fac, marks=[(row.locator(".row-menu-button"), 1, "right")])
                     first = False
-                row.get_by_role("button", name="삭제").click()
+                row_action(row, "삭제")
                 pg.wait_for_timeout(1200)
         s.shot(pg, "facility-cleaned", clip=_type_article(pg, "Facility"))
         # 3) 속성 고치기 — 마지막 점검일에 인덱스
         fac = _type_article(pg, "Facility")
         row = fac.locator("tbody tr").filter(has=pg.locator("td:first-child code:text-is('last_inspection_date')")).first
-        row.get_by_role("button", name="수정").click()
+        row_action(row, "수정")
         pg.wait_for_timeout(600)
         form = fac.locator("tbody tr form").first
         s.shot(pg, "edit-property", clip=form)
@@ -729,7 +729,7 @@ def ch_ontology(s: Shooter) -> None:
         pg.wait_for_timeout(3000)
         s.shot(pg, "after-publish", full=False)
         go(pg, "/ontology")
-        s.shot(pg, "versions-after", marks=[(pg.get_by_role("button", name="이 버전으로 새 draft").first, 1, "right")])
+        s.shot(pg, "versions-after", marks=[(pg.locator("tbody tr", has_text="게시됨").locator(".row-menu-button").first, 1, "right")])
     print("    확인 창:", s.dialogs, flush=True)
 
 
@@ -739,7 +739,7 @@ def ch_ontology(s: Shooter) -> None:
 def ch_action_types(s: Shooter) -> None:
     with s.as_user("lee.modeler") as pg:
         go(pg, "/ontology")
-        pg.locator("tbody tr", has_text="게시됨").get_by_role("button", name="이 버전으로 새 draft").click()
+        row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         go(pg, "/ontology")
         s.shot(pg, "new-draft-row", marks=[("tbody tr >> nth=0", 1)])
@@ -1648,13 +1648,13 @@ def ch_naming(s: Shooter) -> None:
     before = _probe(s, "before")
     with s.as_user("lee.modeler") as pg:
         go(pg, "/ontology")
-        pg.locator("tbody tr", has_text="게시됨").get_by_role("button", name="이 버전으로 새 draft").click()
+        row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         _open_version(pg, "draft")
         # 1) 시설 유형 표시 이름에 값 목록을 드러낸다.
         fac = _type_article(pg, "Facility")
         row = fac.locator("tbody tr").filter(has=pg.locator("td:first-child code:text-is('facility_type')")).first
-        row.get_by_role("button", name="수정").click()
+        row_action(row, "수정")
         pg.wait_for_timeout(500)
         form = fac.locator("tbody tr form").first
         form.locator("label", has_text="표시 이름").locator("input").fill("시설 유형(변전소·철탑·전주 중 하나)")
@@ -1664,7 +1664,7 @@ def ch_naming(s: Shooter) -> None:
         # 2) 점검 기록 타입의 표시 이름·제목을 다듬는다 — 제목 속성을 점검 ID 로 쓰므로 "점검 ID"로 묻는 말을 돕는다.
         ins = _type_article(pg, "Inspection")
         row = ins.locator("tbody tr").filter(has=pg.locator("td:first-child code:text-is('inspection_id')")).first
-        row.get_by_role("button", name="수정").click()
+        row_action(row, "수정")
         pg.wait_for_timeout(500)
         form = ins.locator("tbody tr form").first
         form.locator("label", has_text="표시 이름").locator("input").fill("점검 ID(I-001 형식)")
@@ -1759,7 +1759,7 @@ def ch_notify_setup(s: Shooter) -> None:
         s.shot(pg, "admin-contacts", clip=pg.locator("tbody tr", has_text="park.admin").first)
     with s.as_user("lee.modeler") as pg:
         go(pg, "/ontology")
-        pg.locator("tbody tr", has_text="게시됨").get_by_role("button", name="이 버전으로 새 draft").click()
+        row_action(pg.locator("tbody tr", has_text="게시됨").first, "이 버전으로 새 draft")
         pg.wait_for_timeout(2000)
         _open_version(pg, "draft")
         sec = pg.locator("h2:has-text('Action')").locator("xpath=..")

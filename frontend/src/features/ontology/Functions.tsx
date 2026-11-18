@@ -5,6 +5,8 @@ import type { FunctionDef, FunctionOut, VersionDetail } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { useVersionMutation, V } from "./queries";
+import { confirmDialog, toast } from "../../components/feedback";
+import { EmptyState } from "../../components/page";
 
 const t = ko.ontology;
 
@@ -37,7 +39,7 @@ export function FunctionsSection({ v, editable }: { v: VersionDetail; editable: 
     <>
       <h2>{t.functions}</h2>
       <p className="muted">{t.functionsHint}</p>
-      {v.functions.length === 0 && <p className="muted">{t.noFunctions}</p>}
+      {v.functions.length === 0 && <EmptyState message={t.noFunctions} />}
       {v.functions.map((f) =>
         editing === f.id ? (
           <div key={f.id} className="card">
@@ -55,7 +57,7 @@ export function FunctionsSection({ v, editable }: { v: VersionDetail; editable: 
             f={f}
             editable={editable}
             onEdit={() => setEditing(f.id)}
-            onDelete={() => window.confirm(ko.common.confirmDelete) && del.mutate(f.id)}
+            onDelete={() => void confirmDialog(ko.common.confirmDelete, { danger: true, confirmLabel: ko.common.delete }).then((ok) => ok && del.mutate(f.id, { onSuccess: () => toast(ko.common.deleted) }))}
           />
         ),
       )}

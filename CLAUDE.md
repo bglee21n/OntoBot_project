@@ -284,6 +284,9 @@ TRD 16.3 의존 규칙은 import-linter(`backend/pyproject.toml`)와 `tests/unit
 - **화면 기준 해상도는 FHD(1920×1080)** 다 — 본문은 왼쪽 메뉴(200px)를 뺀 폭에서 최대 1600px. 화면을 바꾸면 **1920·1280·768·375**
   네 폭(768·375 는 다크 모드도)에서 단추·입력칸 겹침과 가로 넘침이 없는지 본다. 1100px 미만은 왼쪽 메뉴가 ☰ 서랍, 720px 미만은
   휴대폰 배치다. 색은 `styles.css` 토큰으로만(다크 모드), 날짜 표기는 `app/format.ts` 하나, 목록 표는 `components/Pager`.
+  확인은 `window.confirm` 이 아니라 `components/feedback` 의 `confirmDialog`(지우기는 `danger`), 결과 알림은 `toast`, 화면 머리는
+  `components/page` 의 `PageHeader`, 빈 목록은 `EmptyState`, 표 행의 두 번째 이후 동작·지우기는 `RowMenu`(⋯). 매뉴얼 촬영은 화면 안
+  확인 창을 `shots.py` 가 자동 수락한다(`row_action` 으로 ⋯ 메뉴를 고른다).
 - 프론트는 OpenAPI 생성 타입만 쓴다. API 를 바꾸고 `task.py openapi` 를 빼먹으면 계약 테스트가 실패한다.
   화면 문구는 `frontend/src/i18n/ko/index.ts`, 서버 안내 문구는 `chat/templates.py` 가 정본.
 - TypeScript 는 5.9.3 고정(openapi-typescript·typescript-eslint 호환). 프롬프트·안내 문구 파일

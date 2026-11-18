@@ -11,6 +11,7 @@ import { TacitPanel } from "../adoption/TacitPanel";
 import { ElementCard } from "./ElementCard";
 import { WorkshopPreview } from "./Preview";
 import { VoiceButton } from "./VoiceButton";
+import { EmptyState } from "../../components/page";
 
 const t = ko.workshop;
 // 미리보기 갱신 시간 재기(컴포넌트 밖 — 렌더가 아니라 요청 안에서만 부른다).
@@ -183,7 +184,7 @@ export function SessionPage() {
             elements={els}
             review={
               <div className="stack">
-          {els.length === 0 && <p className="muted">{t.noElements}</p>}
+          {els.length === 0 && <EmptyState message={t.noElements} />}
           {KIND_ORDER.map((kind) => {
             const group = els.filter((e) => e.kind === kind);
             return (
