@@ -93,7 +93,7 @@ function Editor({
         ) : (
           <span className="muted">{t.readOnly}</span>
         )}
-        <button type="button" className="link" onClick={() => window.print()}>
+        <button type="button" className="secondary" onClick={() => window.print()}>
           {t.print}
         </button>
         <span className="muted">

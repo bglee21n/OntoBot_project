@@ -1,5 +1,6 @@
 // 화면 틀 부품 — 페이지 머리(제목 + ⓘ 도움말 + 오른쪽 주요 단추), 빈 상태, 표 행의 ⋯ 동작 메뉴.
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { ko } from "../i18n/ko";
 
@@ -140,4 +141,19 @@ export function RowMenu({ items, label }: { items: RowAction[]; label?: string }
       )}
     </>
   );
+}
+
+const INTERACTIVE = "a, button, input, select, textarea, label, summary, [role='menu'], [role='menuitem']";
+
+/**
+ * 표 행 전체를 눌러 상세로 연다(`<tr className="row-link" onClick={rowLink(to)}>`). 행 안의 링크·단추·⋯·체크박스를
+ * 누를 때와 글자를 끌어 고를 때는 열지 않는다. 키보드로는 행 안의 "열기" 링크를 쓴다(그 링크는 남겨 둔다).
+ */
+export function useRowLink() {
+  const navigate = useNavigate();
+  return (to: string) => (e: ReactMouseEvent<HTMLTableRowElement>) => {
+    if ((e.target as HTMLElement).closest(INTERACTIVE)) return;
+    if (window.getSelection()?.toString()) return;
+    navigate(to);
+  };
 }

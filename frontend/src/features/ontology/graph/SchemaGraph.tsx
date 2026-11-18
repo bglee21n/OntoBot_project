@@ -259,10 +259,10 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
               {ko.ontology.graph.addType}
             </button>
           )}
-          <button type="button" className="link" onClick={() => void flow.fitView({ padding: 0.2 })}>
+          <button type="button" className="secondary" onClick={() => void flow.fitView({ padding: 0.2 })}>
             {ko.ontology.graph.fit}
           </button>
-          <button type="button" className="link" onClick={resetLayout}>
+          <button type="button" className="secondary" onClick={resetLayout}>
             {ko.ontology.graph.autoLayout}
           </button>
           <label className="row">
@@ -372,7 +372,7 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
                         : (selectedType?.display_name ?? selection.name)}
                 </h3>
                 <span className="spacer" />
-                <button type="button" className="link" onClick={() => setSelection(null)}>
+                <button type="button" className="secondary" onClick={() => setSelection(null)}>
                   {ko.ontology.graph.close}
                 </button>
               </div>

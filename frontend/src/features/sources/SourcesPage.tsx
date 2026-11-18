@@ -21,6 +21,7 @@ import { ConflictsPanel } from "./ConflictsPanel";
 import { formatDateTime } from "../../app/format";
 import { confirmDialog, toast } from "../../components/feedback";
 import { PageHeader } from "../../components/page";
+import { CreateDialogButton } from "../../components/Dialog";
 
 const t = ko.sources;
 
@@ -47,26 +48,30 @@ export function SourcesPage() {
       <GraphPanel />
       <ConflictsPanel />
 
-      <h2>{t.sources}</h2>
+      <div className="row section-head">
+        <h2>{t.sources}</h2>
+        <span className="spacer" />
+        <CreateDialogButton className="secondary" label={`+ ${t.addSource}`} wide>
+          {(close) => <SourceForm onDone={close} />}
+        </CreateDialogButton>
+      </div>
       {sources.isError && <ErrorBox error={sources.error} />}
       <SourceTable sources={sources.data ?? []} />
-      <details className="card">
-        <summary>{t.addSource}</summary>
-        <SourceForm />
-      </details>
 
-      <h2>{t.mappings}</h2>
+      <div className="row section-head">
+        <h2>{t.mappings}</h2>
+        <span className="spacer" />
+        {published.data && (
+          <CreateDialogButton className="secondary" label={`+ ${t.addMapping}`} wide>
+            {(close) => <MappingForm sources={sources.data ?? []} version={published.data!} onDone={close} />}
+          </CreateDialogButton>
+        )}
+      </div>
       {mappings.isError && <ErrorBox error={mappings.error} />}
       {(mappings.data ?? []).map((m) => (
         <MappingCard key={m.id} m={m} sources={sources.data ?? []} />
       ))}
       {published.data === null && <p className="notice">{t.noPublished}</p>}
-      {published.data && (
-        <details className="card">
-          <summary>{t.addMapping}</summary>
-          <MappingForm sources={sources.data ?? []} version={published.data} />
-        </details>
-      )}
     </section>
   );
 }
@@ -103,7 +108,7 @@ function SourceTable({ sources }: { sources: SourceOut[] }) {
                   <span className={r.ok ? "ok-text" : "error-text"}>{r.ok ? `${t.testOk} · ${r.server}` : r.error}</span>
                 )}
                 {r instanceof Error && <span className="error-text">{r.message}</span>}{" "}
-                <button type="button" className="link" onClick={() => test.mutate(s.id)}>
+                <button type="button" className="secondary" onClick={() => test.mutate(s.id)}>
                   {t.test}
                 </button>
               </td>
@@ -115,12 +120,16 @@ function SourceTable({ sources }: { sources: SourceOut[] }) {
   );
 }
 
-function SourceForm() {
+function SourceForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
   const [s, setS] = useState<SourceIn>({ kind: "postgres", name: "", secret_ref: "env:" });
   const create = useMutation({
     mutationFn: () => api.post<SourceOut>("/sources", s),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["sources"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["sources"] });
+      toast(ko.common.created);
+      onDone();
+    },
   });
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -214,7 +223,7 @@ function MappingCard({ m, sources }: { m: MappingOut; sources: SourceOut[] }) {
   );
 }
 
-function MappingForm({ sources, version }: { sources: SourceOut[]; version: VersionDetail }) {
+function MappingForm({ sources, version, onDone }: { sources: SourceOut[]; version: VersionDetail; onDone: () => void }) {
   const qc = useQueryClient();
   const [sourceId, setSourceId] = useState<number | null>(sources[0]?.id ?? null);
   const [typeName, setTypeName] = useState(version.object_types[0]?.api_name ?? "");
@@ -267,7 +276,11 @@ function MappingForm({ sources, version }: { sources: SourceOut[]; version: Vers
       };
       return api.post<MappingOut>("/mappings", body);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["mappings"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["mappings"] });
+      toast(ko.common.created);
+      onDone();
+    },
   });
 
   const submit = (e: FormEvent) => {
@@ -428,7 +441,7 @@ function GraphPanel() {
       <div className="row">
         <strong>{g.title}</strong>
         <span className="spacer" />
-        <button type="button" className="link" onClick={() => reconcile.mutate()}>
+        <button type="button" className="secondary" onClick={() => reconcile.mutate()}>
           {g.reconcile}
         </button>
         <button

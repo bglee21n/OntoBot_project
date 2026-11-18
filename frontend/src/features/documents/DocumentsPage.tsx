@@ -10,7 +10,8 @@ import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
 import { confirmDialog, toast } from "../../components/feedback";
-import { EmptyState, PageHeader } from "../../components/page";
+import { EmptyState, PageHeader, useRowLink } from "../../components/page";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
 
 const t = ko.documents;
 
@@ -30,10 +31,17 @@ export function DocumentsPage() {
   });
 
   const { rows: pagedRows, pager } = usePaged(list.data);
+  const rowLink = useRowLink();
   return (
     <section className="stack">
-      <PageHeader id="documents" title={t.title} intro={t.intro} />
-      {canUpload && <UploadForm />}
+      <PageHeader
+        id="documents"
+        title={t.title}
+        intro={t.intro}
+        actions={
+          canUpload && <CreateDialogButton label={`+ ${t.upload}`}>{(close) => <UploadForm onCancel={close} />}</CreateDialogButton>
+        }
+      />
       {list.isError && <ErrorBox error={list.error} />}
       {list.data?.length === 0 && <EmptyState message={t.none} />}
       {list.data && list.data.length > 0 && (
@@ -50,7 +58,7 @@ export function DocumentsPage() {
           </thead>
           <tbody>
             {pagedRows.map((d) => (
-              <tr key={d.id} className={d.id === docId ? "selected-row" : ""}>
+              <tr key={d.id} className={d.id === docId ? "row-link selected-row" : "row-link"} onClick={rowLink(`/documents/${d.id}`)}>
                 <td>
                   <Link to={`/documents/${d.id}`}>{d.title}</Link>
                   <div className="muted">{d.filename}</div>
@@ -84,7 +92,7 @@ function StatusBadge({ d }: { d: DocumentOut }) {
   );
 }
 
-function UploadForm() {
+function UploadForm({ onCancel }: { onCancel: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -117,11 +125,13 @@ function UploadForm() {
   };
   if (groups.data?.length === 0) return <p className="notice warn">{t.noGroup}</p>;
   return (
-    <form className="card stack" onSubmit={submit}>
-      <strong>{t.upload}</strong>
+    <form className="stack" onSubmit={submit}>
       <p className="muted">{t.uploadHint}</p>
-      <div className="row">
-        <input ref={fileRef} type="file" aria-label={t.file} accept=".txt,.md,.pdf" />
+      <label>
+        {t.file}
+        <input ref={fileRef} type="file" accept=".txt,.md,.pdf" required />
+      </label>
+      <div className="grid-form">
         <label>
           {t.docTitle}
           <input placeholder={t.titleHint} value={title} maxLength={255} onChange={(e) => setTitle(e.target.value)} />
@@ -139,11 +149,9 @@ function UploadForm() {
             ))}
           </select>
         </label>
-        <button type="submit" disabled={upload.isPending || !chosen}>
-          {upload.isPending ? t.uploading : t.add}
-        </button>
       </div>
       {upload.isError && <ErrorBox error={upload.error} />}
+      <DialogActions onCancel={onCancel} pending={upload.isPending} disabled={!chosen} submitLabel={upload.isPending ? t.uploading : t.add} />
     </form>
   );
 }
@@ -176,7 +184,7 @@ function DocumentView({ id, canEdit }: { id: number; canEdit: boolean }) {
         <span className="spacer" />
         {canEdit && (
           <>
-            <button type="button" className="link" disabled={reindex.isPending} onClick={() => reindex.mutate()}>
+            <button type="button" className="secondary" disabled={reindex.isPending} onClick={() => reindex.mutate()}>
               {t.reindex}
             </button>
             <button

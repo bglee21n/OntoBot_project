@@ -6,6 +6,8 @@ import type { GroupOut, TypeGrantIO, TypeOut, UserOut } from "../../api/types";
 import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { confirmDialog, toast } from "../../components/feedback";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
+import { PageHeader } from "../../components/page";
 
 const t = ko.admin.groups;
 const FLAGS = ["can_read", "can_create", "can_edit", "can_delete"] as const;
@@ -21,24 +23,30 @@ export function GroupsPanel() {
   const types = useQuery({ queryKey: ["admin", "object-types"], queryFn: () => api.get<TypeOut[]>("/admin/object-types") });
   const links = useQuery({ queryKey: ["admin", "link-types"], queryFn: () => api.get<TypeOut[]>("/admin/link-types") });
   const err = [groups, users, types, links].find((q) => q.isError)?.error;
-  if (err) return <ErrorBox error={err} />;
-  if (!groups.data || !users.data || !types.data || !links.data) return <p>{ko.common.loading}</p>;
+  const head = (
+    <PageHeader
+      id="admin-groups"
+      title={ko.admin.sections.groups}
+      intro={t.hint}
+      actions={
+        <CreateDialogButton label={`+ ${t.add}`}>{(close) => <GroupForm onDone={close} />}</CreateDialogButton>
+      }
+    />
+  );
+  if (err) return <>{head}<ErrorBox error={err} /></>;
+  if (!groups.data || !users.data || !types.data || !links.data) return <>{head}<p>{ko.common.loading}</p></>;
   return (
-    <div className="stack">
-      <p className="muted">{t.hint}</p>
+    <>
+      {head}
       {types.data.length === 0 && <p className="notice">{ko.admin.noTypes}</p>}
       {groups.data.map((g) => (
         <GroupCard key={g.id} g={g} users={users.data} types={types.data} links={links.data} />
       ))}
-      <details className="card">
-        <summary>{t.add}</summary>
-        <GroupForm />
-      </details>
-    </div>
+    </>
   );
 }
 
-function GroupForm() {
+function GroupForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: "", display_name: "", external_id: "" });
   const create = useMutation({
@@ -49,8 +57,9 @@ function GroupForm() {
         external_id: form.external_id.trim() || null,
       }),
     onSuccess: () => {
-      setForm({ name: "", display_name: "", external_id: "" });
       void qc.invalidateQueries({ queryKey: ["admin", "groups"] });
+      toast(ko.common.created);
+      onDone();
     },
   });
   const submit = (e: FormEvent) => {
@@ -58,7 +67,7 @@ function GroupForm() {
     create.mutate();
   };
   return (
-    <form className="grid-form" onSubmit={submit}>
+    <form className="stack" onSubmit={submit}>
       <label>
         {t.name}
         <input value={form.name} pattern="[a-z][a-z0-9_]{0,63}" onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -71,16 +80,8 @@ function GroupForm() {
         {t.externalId}
         <input value={form.external_id} onChange={(e) => setForm({ ...form, external_id: e.target.value })} />
       </label>
-      <div className="row span-all">
-        <button type="submit" disabled={create.isPending}>
-          {ko.common.add}
-        </button>
-      </div>
-      {create.isError && (
-        <div className="span-all">
-          <ErrorBox error={create.error} />
-        </div>
-      )}
+      {create.isError && <ErrorBox error={create.error} />}
+      <DialogActions onCancel={onDone} pending={create.isPending} submitLabel={ko.common.add} />
     </form>
   );
 }

@@ -55,9 +55,9 @@ wsl -d ontobot -u root -- bash -c "cd /opt/ontobot && docker compose exec -T pos
 
 ## 10.3 트레이스 열기
 
-**관리** → **트레이스** 탭에서 번호를 넣고 **열기** 를 누릅니다.
+**관리** → 관리 메뉴의 **트레이스**(`/admin/trace`)에서 번호를 넣고 **열기** 를 누릅니다.
 
-![트레이스 탭](images/10-trace/trace-tab.png)
+![트레이스 화면](images/10-trace/trace-tab.png)
 
 | 번호 | 부분 |
 | --- | --- |

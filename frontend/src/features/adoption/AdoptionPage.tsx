@@ -9,7 +9,8 @@ import { ErrorBox } from "../../components/ErrorBox";
 import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
-import { EmptyState, PageHeader } from "../../components/page";
+import { EmptyState, PageHeader, useRowLink } from "../../components/page";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
 
 const t = ko.adoption;
 
@@ -22,49 +23,23 @@ export function useEngagements(enabled = true) {
 }
 
 export function AdoptionPage() {
-  const navigate = useNavigate();
   const me = useMe();
   const canCreate = me.data?.roles.some((r) => r === "modeler" || r === "admin") ?? false;
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const list = useEngagements();
-  const create = useMutation({
-    mutationFn: () =>
-      api.post<EngagementDetail>("/adoption/engagements", {
-        name: name.trim(),
-        description: description.trim() || null,
-      }),
-    onSuccess: (e) => navigate(`/adoption/${e.id}`),
-  });
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    create.mutate();
-  };
-
   const { rows: pagedRows, pager } = usePaged(list.data);
+  const rowLink = useRowLink();
   return (
     <section className="stack">
-      <PageHeader id="adoption" title={t.title} intro={t.intro} />
-      {canCreate && (
-        <form className="row" onSubmit={submit}>
-          <label>
-            {t.name}
-            <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label>
-            {t.description}
-            <input
-              value={description}
-              maxLength={4000}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </label>
-          <button type="submit" disabled={create.isPending || !name.trim()}>
-            {t.create}
-          </button>
-        </form>
-      )}
-      {create.isError && <ErrorBox error={create.error} />}
+      <PageHeader
+        id="adoption"
+        title={t.title}
+        intro={t.intro}
+        actions={
+          canCreate && (
+            <CreateDialogButton label={`+ ${t.create}`}>{(close) => <NewEngagementForm onCancel={close} />}</CreateDialogButton>
+          )
+        }
+      />
       {list.isPending && <p>{ko.common.loading}</p>}
       {list.isError && <ErrorBox error={list.error} />}
       {list.data?.length === 0 && <EmptyState message={t.none} />}
@@ -73,7 +48,7 @@ export function AdoptionPage() {
         <table>
           <thead>
             <tr>
-              <th>id</th>
+              <th className="num">id</th>
               <th>{t.name}</th>
               <th>{t.description}</th>
               <th>{t.myRole}</th>
@@ -83,8 +58,8 @@ export function AdoptionPage() {
           </thead>
           <tbody>
             {pagedRows.map((e) => (
-              <tr key={e.id}>
-                <td>{e.id}</td>
+              <tr key={e.id} className="row-link" onClick={rowLink(`/adoption/${e.id}`)}>
+                <td className="num">{e.id}</td>
                 <td>{e.name}</td>
                 <td className="muted">{e.description ?? "—"}</td>
                 <td>{t.roles[e.my_role]}</td>
@@ -100,5 +75,37 @@ export function AdoptionPage() {
         </>
       )}
     </section>
+  );
+}
+
+function NewEngagementForm({ onCancel }: { onCancel: () => void }) {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const create = useMutation({
+    mutationFn: () =>
+      api.post<EngagementDetail>("/adoption/engagements", {
+        name: name.trim(),
+        description: description.trim() || null,
+      }),
+    onSuccess: (e) => navigate(`/adoption/${e.id}`),
+  });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    create.mutate();
+  };
+  return (
+    <form className="stack" onSubmit={submit}>
+      <label>
+        {t.name}
+        <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} required />
+      </label>
+      <label>
+        {t.description}
+        <textarea className="plain" rows={3} value={description} maxLength={4000} onChange={(e) => setDescription(e.target.value)} />
+      </label>
+      {create.isError && <ErrorBox error={create.error} />}
+      <DialogActions onCancel={onCancel} pending={create.isPending} disabled={!name.trim()} submitLabel={t.create} />
+    </form>
   );
 }

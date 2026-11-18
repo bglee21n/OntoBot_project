@@ -9,7 +9,7 @@ import { ko } from "../../i18n/ko";
 import { GradeBadge } from "../chat/AnswerView";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
-import { EmptyState, PageHeader } from "../../components/page";
+import { EmptyState, PageHeader, useRowLink } from "../../components/page";
 
 const t = ko.traces;
 const STATUSES = ["ok", "empty", "failed", "not_query", "action_preview"] as const;
@@ -23,6 +23,7 @@ export function TracesPage() {
   const params = useParams();
   const id = params.traceId ? Number(params.traceId) : null;
   const navigate = useNavigate();
+  const rowLink = useRowLink();
   const [status, setStatus] = useState("");
   const [reason, setReason] = useState("");
   const [lookup, setLookup] = useState("");
@@ -89,18 +90,18 @@ export function TracesPage() {
             <table>
               <thead>
                 <tr>
-                  <th>id</th>
+                  <th className="num">id</th>
                   <th>{t.question}</th>
                   <th>{t.result}</th>
-                  <th>{t.rows}</th>
+                  <th className="num">{t.rows}</th>
                   <th>{t.grounding}</th>
-                  <th>{t.time}</th>
+                  <th className="num">{t.time}</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedRows.map((r) => (
-                  <tr key={r.id} className={r.id === id ? "selected-row" : ""}>
-                    <td>
+                  <tr key={r.id} className={r.id === id ? "row-link selected-row" : "row-link"} onClick={rowLink(`/traces/${r.id}`)}>
+                    <td className="num">
                       <Link to={`/traces/${r.id}`}>{r.id}</Link>
                     </td>
                     <td>
@@ -112,12 +113,12 @@ export function TracesPage() {
                     <td>
                       <Outcome status={r.status} reason={r.failure_reason} grade={r.grade} />
                     </td>
-                    <td>{r.row_count ?? "—"}</td>
+                    <td className="num">{r.row_count ?? "—"}</td>
                     <td>
                       {r.fact_sentences ? t.verified(r.verified_sentences ?? 0, r.fact_sentences) : "—"}
                       {r.removed_citations > 0 && <div className="error-text">{t.removedCount(r.removed_citations)}</div>}
                     </td>
-                    <td>{(r.total_ms / 1000).toFixed(1)}s</td>
+                    <td className="num">{(r.total_ms / 1000).toFixed(1)}s</td>
                   </tr>
                 ))}
               </tbody>

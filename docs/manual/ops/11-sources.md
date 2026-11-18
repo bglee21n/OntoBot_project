@@ -152,9 +152,9 @@ api·worker 만 `Up 20 seconds` 이고 나머지는 그대로입니다. api 에 
 
 ![데이터 소스 화면(등록 전)](images/11-sources/page-empty.png)
 
-**▶ 데이터 소스 추가** 를 펼칩니다.
+**데이터 소스** 소제목 오른쪽 **+ 데이터 소스 추가** 를 누르면 대화상자가 뜹니다.
 
-![데이터 소스 추가 칸](images/11-sources/add-source-open.png)
+![데이터 소스 추가 대화상자](images/11-sources/add-source-open.png)
 
 | 번호 | 칸 | 입력 |
 | --- | --- | --- |

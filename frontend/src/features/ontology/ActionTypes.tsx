@@ -62,7 +62,7 @@ export function ActionTypesSection({ v, editable }: { v: VersionDetail; editable
       )}
       {del.isError && <ErrorBox error={del.error} />}
       {editable && editing !== "new" && (
-        <button type="button" className="link" onClick={() => setEditing("new")}>
+        <button type="button" className="secondary" onClick={() => setEditing("new")}>
           {t.addActionType}
         </button>
       )}
@@ -100,7 +100,7 @@ function ActionSummary({
         <span className="spacer" />
         {editable && (
           <>
-            <button type="button" className="link" onClick={onEdit}>
+            <button type="button" className="secondary" onClick={onEdit}>
               {t.edit}
             </button>
             <button type="button" className="link danger" onClick={onDelete}>
@@ -293,7 +293,7 @@ export function ActionForm({
         ))}
         <button
           type="button"
-          className="link"
+          className="secondary"
           onClick={() =>
             setA({ ...a, parameters: [...params, { api_name: "", display_name: "", data_type: "string", required: true }] })
           }
@@ -336,7 +336,7 @@ export function ActionForm({
         ))}
         <button
           type="button"
-          className="link"
+          className="secondary"
           onClick={() => setA({ ...a, preconditions: [...conds, { property: "", op: "eq", value: "" }] })}
         >
           {t.addRow}
@@ -377,7 +377,7 @@ export function ActionForm({
             </button>
           </div>
         ))}
-        <button type="button" className="link" onClick={() => setA({ ...a, changes: [...changes, { property: "", value: "" }] })}>
+        <button type="button" className="secondary" onClick={() => setA({ ...a, changes: [...changes, { property: "", value: "" }] })}>
           {t.addRow}
         </button>
       </fieldset>
@@ -437,7 +437,7 @@ export function ActionForm({
         ))}
         <button
           type="button"
-          className="link"
+          className="secondary"
           onClick={() => setA({ ...a, notify: [...notify, { channel: "app", to_roles: [], template: "" }] })}
         >
           {t.addRow}
@@ -455,7 +455,7 @@ export function ActionForm({
         <button type="submit" disabled={pending}>
           {t.save}
         </button>
-        <button type="button" className="link" onClick={onCancel}>
+        <button type="button" className="secondary" onClick={onCancel}>
           {t.cancel}
         </button>
       </div>
@@ -500,7 +500,7 @@ function CandidatePicker({ onPick }: { onPick: (c: ActionCandidateOut) => void }
           <li key={c.element_id}>
             <strong>{c.name}</strong> <span className="muted">{c.session_title ?? `#${c.session_id}`}</span>
             {c.quotes[0] && <div className="muted">“{c.quotes[0]}”</div>}
-            <button type="button" className="link" onClick={() => onPick(c)}>
+            <button type="button" className="secondary" onClick={() => onPick(c)}>
               {t.pick}
             </button>
           </li>

@@ -11,7 +11,8 @@ import { ItemsTable } from "./ItemsTable";
 import { RunView } from "./RunView";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
-import { EmptyState, PageHeader } from "../../components/page";
+import { EmptyState, PageHeader, useRowLink } from "../../components/page";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
 
 const t = ko.eval;
 
@@ -21,7 +22,6 @@ export function EvalPage() {
   const runId = params.runId ? Number(params.runId) : null;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [name, setName] = useState("");
 
   const sets = useQuery({
     queryKey: ["golden-sets"],
@@ -39,14 +39,6 @@ export function EvalPage() {
     // 실행 중이면 진행을 따라간다.
     refetchInterval: (q) => (q.state.data?.some((r) => r.status === "running") ? 3000 : false),
   });
-  const create = useMutation({
-    mutationFn: () => api.post<GoldenSetOut>("/golden-sets", { name: name.trim() }),
-    onSuccess: (gs) => {
-      setName("");
-      void qc.invalidateQueries({ queryKey: ["golden-sets"] });
-      navigate(`/eval/${gs.id}`);
-    },
-  });
   const start = useMutation({
     mutationFn: () => api.post<EvalRunDetail>("/eval-runs", { golden_set_id: setId }),
     onSuccess: (run) => {
@@ -55,17 +47,16 @@ export function EvalPage() {
     },
   });
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) {
-      create.mutate();
-    }
-  };
-
   const { rows: pagedRows, pager } = usePaged(runs.data);
+  const rowLink = useRowLink();
   return (
     <section className="stack">
-      <PageHeader id="eval" title={t.title} intro={t.intro} />
+      <PageHeader
+        id="eval"
+        title={t.title}
+        intro={t.intro}
+        actions={<CreateDialogButton label={`+ ${t.newSet}`}>{(close) => <NewSetForm onCancel={close} />}</CreateDialogButton>}
+      />
       <div className="eval">
         <aside className="stack">
           <h2>{t.sets}</h2>
@@ -78,21 +69,6 @@ export function EvalPage() {
               </Link>
             ))}
           </nav>
-          <form className="stack" onSubmit={submit}>
-            <label>
-              {t.setName}
-              <input
-                placeholder={t.newSet}
-                value={name}
-                maxLength={128}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <button type="submit" disabled={!name.trim() || create.isPending}>
-              {t.create}
-            </button>
-          </form>
-          {create.isError && <ErrorBox error={create.error} />}
         </aside>
 
         <div className="stack">
@@ -121,18 +97,18 @@ export function EvalPage() {
                 <table>
                   <thead>
                     <tr>
-                      <th>id</th>
+                      <th className="num">id</th>
                       <th>{ko.admin.ts}</th>
                       <th>{t.model}</th>
                       <th>{ko.admin.status}</th>
-                      <th>{t.accuracy}</th>
+                      <th className="num">{t.accuracy}</th>
                       <th />
                     </tr>
                   </thead>
                   <tbody>
                     {pagedRows.map((r) => (
-                      <tr key={r.id} className={r.id === runId ? "selected-row" : ""}>
-                        <td>{r.id}</td>
+                      <tr key={r.id} className={r.id === runId ? "row-link selected-row" : "row-link"} onClick={rowLink(`/eval/${setId}/runs/${r.id}`)}>
+                        <td className="num">{r.id}</td>
                         <td>{formatDateTime(r.started_at)}</td>
                         <td>{modelOf(r)}</td>
                         <td>
@@ -143,7 +119,7 @@ export function EvalPage() {
                             </span>
                           )}
                         </td>
-                        <td>{pct(r.metrics?.accuracy)}</td>
+                        <td className="num">{pct(r.metrics?.accuracy)}</td>
                         <td className="actions">
                           <Link to={`/eval/${setId}/runs/${r.id}`}>{t.open}</Link>
                         </td>
@@ -166,6 +142,34 @@ export function EvalPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function NewSetForm({ onCancel }: { onCancel: () => void }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const create = useMutation({
+    mutationFn: () => api.post<GoldenSetOut>("/golden-sets", { name: name.trim() }),
+    onSuccess: (gs) => {
+      void qc.invalidateQueries({ queryKey: ["golden-sets"] });
+      onCancel();
+      navigate(`/eval/${gs.id}`);
+    },
+  });
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) create.mutate();
+  };
+  return (
+    <form className="stack" onSubmit={submit}>
+      <label>
+        {t.setName}
+        <input value={name} maxLength={128} onChange={(e) => setName(e.target.value)} required />
+      </label>
+      {create.isError && <ErrorBox error={create.error} />}
+      <DialogActions onCancel={onCancel} pending={create.isPending} disabled={!name.trim()} submitLabel={t.create} />
+    </form>
   );
 }
 

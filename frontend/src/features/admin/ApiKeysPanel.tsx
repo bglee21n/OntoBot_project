@@ -8,7 +8,8 @@ import { ko } from "../../i18n/ko";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDate, formatDateTime } from "../../app/format";
 import { confirmDialog, toast } from "../../components/feedback";
-import { EmptyState, RowMenu } from "../../components/page";
+import { EmptyState, PageHeader, RowMenu } from "../../components/page";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
 
 const t = ko.admin.apiKeys;
 const SCOPES = ["query", "objects:read", "actions:request"] as const;
@@ -22,7 +23,6 @@ export function ApiKeysPanel() {
   const users = useQuery({ queryKey: ["admin", "users"], queryFn: () => api.get<UserOut[]>("/admin/users") });
   const keys = useQuery({ queryKey: ["admin", "api-keys"], queryFn: () => api.get<ApiKeyOut[]>("/admin/api-keys") });
   const services = users.data?.filter((u) => u.auth === "service") ?? [];
-  const [issued, setIssued] = useState<ApiKeyIssued | null>(null);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["admin", "users"] });
     void qc.invalidateQueries({ queryKey: ["admin", "api-keys"] });
@@ -30,20 +30,24 @@ export function ApiKeysPanel() {
   const revoke = useMutation({ mutationFn: (id: number) => api.del(`/admin/api-keys/${id}`), onSuccess: refresh });
   const { rows: pagedRows, pager } = usePaged(keys.data);
   return (
-    <div className="stack">
-      <p className="muted">{t.hint}</p>
-      <ServiceAccountForm onDone={refresh} />
-      {services.length > 0 && <IssueForm services={services} onIssued={(k) => (setIssued(k), refresh())} />}
-      {issued && (
-        <div className="notice warn stack">
-          <strong>{t.issuedTitle(issued.name)}</strong>
-          <code className="secret">{issued.key}</code>
-          <span>{t.issuedHint}</span>
-          <button type="button" className="link" onClick={() => setIssued(null)}>
-            {t.issuedDone}
-          </button>
-        </div>
-      )}
+    <>
+      <PageHeader
+        id="admin-api-keys"
+        title={ko.admin.sections["api-keys"]}
+        intro={t.hint}
+        actions={
+          <>
+            <CreateDialogButton className="secondary" label={`+ ${t.newAccount}`}>
+              {(close) => <ServiceAccountForm onDone={refresh} onClose={close} />}
+            </CreateDialogButton>
+            {services.length > 0 && (
+              <CreateDialogButton label={`+ ${t.issue}`}>
+                {(close) => <IssueForm services={services} onIssued={refresh} onClose={close} />}
+              </CreateDialogButton>
+            )}
+          </>
+        }
+      />
       {(keys.isError || revoke.isError) && <ErrorBox error={keys.error ?? revoke.error} />}
       {keys.data?.length === 0 && <EmptyState message={t.none} />}
       {keys.data && keys.data.length > 0 && (
@@ -101,19 +105,19 @@ export function ApiKeysPanel() {
         <Pager pager={pager} />
         </>
       )}
-    </div>
+    </>
   );
 }
 
-function ServiceAccountForm({ onDone }: { onDone: () => void }) {
+function ServiceAccountForm({ onDone, onClose }: { onDone: () => void; onClose: () => void }) {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const create = useMutation({
     mutationFn: () => api.post<UserOut>("/admin/service-accounts", { username, display_name: displayName }),
     onSuccess: () => {
-      setUsername("");
-      setDisplayName("");
       onDone();
+      toast(ko.common.created);
+      onClose();
     },
   });
   const submit = (e: FormEvent) => {
@@ -121,10 +125,9 @@ function ServiceAccountForm({ onDone }: { onDone: () => void }) {
     create.mutate();
   };
   return (
-    <form className="card stack" onSubmit={submit}>
-      <strong>{t.newAccount}</strong>
+    <form className="stack" onSubmit={submit}>
       <span className="muted">{t.accountHint}</span>
-      <div className="row">
+      <div className="grid-form">
         <label>
           {t.username}
           <input value={username} onChange={(e) => setUsername(e.target.value)} required />
@@ -133,16 +136,16 @@ function ServiceAccountForm({ onDone }: { onDone: () => void }) {
           {t.displayName}
           <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
         </label>
-        <button type="submit" disabled={create.isPending}>
-          {t.create}
-        </button>
       </div>
       {create.isError && <ErrorBox error={create.error} />}
+      <DialogActions onCancel={onClose} pending={create.isPending} submitLabel={t.create} />
     </form>
   );
 }
 
-function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: ApiKeyIssued) => void }) {
+/** 키 발급 — 발급하면 같은 창이 키 원문(한 번만 보인다)으로 바뀐다. 닫으면 다시 볼 수 없다. */
+function IssueForm({ services, onIssued, onClose }: { services: UserOut[]; onIssued: () => void; onClose: () => void }) {
+  const [issued, setIssued] = useState<ApiKeyIssued | null>(null);
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<string[]>(["query"]);
@@ -157,8 +160,8 @@ function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: 
         expires_days: days ? Number(days) : null,
       }),
     onSuccess: (k) => {
-      setName("");
-      onIssued(k);
+      setIssued(k);
+      onIssued();
     },
   });
   const toggle = (s: string) => setScopes((xs) => (xs.includes(s) ? xs.filter((x) => x !== s) : [...xs, s]));
@@ -166,10 +169,26 @@ function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: 
     e.preventDefault();
     issue.mutate();
   };
+  if (issued) {
+    return (
+      <div className="stack">
+        <div className="notice warn stack">
+          <strong>{t.issuedTitle(issued.name)}</strong>
+          <code className="secret">{issued.key}</code>
+          <span>{t.issuedHint}</span>
+        </div>
+        <div className="row dialog-actions">
+          <span className="spacer" />
+          <button type="button" onClick={onClose}>
+            {t.issuedDone}
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <form className="card stack" onSubmit={submit}>
-      <strong>{t.issue}</strong>
-      <div className="row">
+    <form className="stack" onSubmit={submit}>
+      <div className="grid-form">
         <label>
           {t.account}
           <select value={chosen} onChange={(e) => setUserId(e.target.value)}>
@@ -197,11 +216,9 @@ function IssueForm({ services, onIssued }: { services: UserOut[]; onIssued: (k: 
             {t.scopeName[s]}
           </label>
         ))}
-        <button type="submit" disabled={issue.isPending || scopes.length === 0 || !chosen}>
-          {t.issueButton}
-        </button>
       </div>
       {issue.isError && <ErrorBox error={issue.error} />}
+      <DialogActions onCancel={onClose} pending={issue.isPending} disabled={scopes.length === 0 || !chosen} submitLabel={t.issueButton} />
     </form>
   );
 }

@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink, Navigate, useParams } from "react-router-dom";
 
 import { api } from "../../api/client";
 import type {
@@ -26,39 +26,50 @@ import { GroupsPanel } from "./GroupsPanel";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
 import { PageHeader } from "../../components/page";
+import { CreateDialogButton, DialogActions } from "../../components/Dialog";
+import { toast } from "../../components/feedback";
 
 const t = ko.admin;
-type Tab = keyof typeof t.tabs;
+
+/** 관리 하위 화면 — URL `/admin/<key>` 로 연다(개요는 `/admin`). */
+const SECTIONS = ["overview", "users", "groups", "api-keys", "audit", "trace"] as const;
+type Section = (typeof SECTIONS)[number];
 
 export function AdminPage() {
-  const [tab, setTab] = useState<Tab>("users");
+  const raw = useParams().section ?? "overview";
+  if (!(SECTIONS as readonly string[]).includes(raw)) return <Navigate to="/admin" replace />;
+  const section = raw as Section;
   return (
-    <section className="stack">
-      <PageHeader id="admin" title={t.title} />
+    <div className="subnav-layout">
+      <nav className="subnav" aria-label={t.subnav}>
+        <div className="subnav-title">{t.title}</div>
+        {SECTIONS.map((k) => (
+          <NavLink key={k} to={k === "overview" ? "/admin" : `/admin/${k}`} end>
+            {t.sections[k]}
+          </NavLink>
+        ))}
+      </nav>
+      <section className="stack subnav-body">
+        {section === "overview" && <Overview />}
+        {section === "users" && <UsersPanel />}
+        {section === "groups" && <GroupsPanel />}
+        {section === "api-keys" && <ApiKeysPanel />}
+        {section === "audit" && <AuditPanel />}
+        {section === "trace" && <TracePanel />}
+      </section>
+    </div>
+  );
+}
+
+function Overview() {
+  return (
+    <>
+      <PageHeader id="admin" title={t.sections.overview} intro={t.overviewIntro} />
       <SystemCard />
       <MetricsCard />
       <TargetsCard />
       <ExplorerLimitsCard />
-      <nav className="row" role="tablist">
-        {(Object.keys(t.tabs) as Tab[]).map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            aria-selected={tab === k}
-            className={tab === k ? "" : "link"}
-            onClick={() => setTab(k)}
-          >
-            {t.tabs[k]}
-          </button>
-        ))}
-      </nav>
-      {tab === "users" && <UsersPanel />}
-      {tab === "permissions" && <GroupsPanel />}
-      {tab === "apiKeys" && <ApiKeysPanel />}
-      {tab === "audit" && <AuditPanel />}
-      {tab === "trace" && <TracePanel />}
-    </section>
+    </>
   );
 }
 
@@ -174,7 +185,7 @@ function ExplorerLimitsCard() {
             <button type="submit" disabled={save.isPending}>
               {t.targets.save}
             </button>
-            <button type="button" className="link" onClick={() => setDraft(null)}>
+            <button type="button" className="secondary" onClick={() => setDraft(null)}>
               {t.targets.cancel}
             </button>
           </>
@@ -183,7 +194,7 @@ function ExplorerLimitsCard() {
             <span>{tl.current(q.data.max_depth, q.data.max_nodes)}</span>
             <button
               type="button"
-              className="link"
+              className="secondary"
               onClick={() => setDraft({ depth: String(q.data.max_depth), nodes: String(q.data.max_nodes) })}
             >
               {tl.edit}
@@ -236,14 +247,14 @@ function TargetsCard() {
             <button type="submit" disabled={save.isPending}>
               {tt.save}
             </button>
-            <button type="button" className="link" onClick={() => setDraft(null)}>
+            <button type="button" className="secondary" onClick={() => setDraft(null)}>
               {tt.cancel}
             </button>
           </>
         ) : (
           <button
             type="button"
-            className="link"
+            className="secondary"
             onClick={() => setDraft(Object.fromEntries(q.data.map((x) => [x.key, toInput(x)])))}
           >
             {tt.edit}
@@ -308,10 +319,17 @@ function UsersPanel() {
   const me = useMe();
   const { rows: pagedRows, pager } = usePaged(users.data);
   return (
-    <div className="stack">
-      <p className="muted">
-        {t.sessionNote} {t.selfNote}
-      </p>
+    <>
+      <PageHeader
+        id="admin-users"
+        title={t.sections.users}
+        intro={`${t.sessionNote} ${t.selfNote}`}
+        actions={
+          <CreateDialogButton label={t.newUser} wide>
+            {(close) => <UserForm allRoles={roles.data ?? []} onDone={close} />}
+          </CreateDialogButton>
+        }
+      />
       {users.isError && <ErrorBox error={users.error} />}
       <table>
         <thead>
@@ -332,11 +350,7 @@ function UsersPanel() {
         </tbody>
       </table>
       <Pager pager={pager} />
-      <details className="card">
-        <summary>{t.addUser}</summary>
-        <UserForm allRoles={roles.data ?? []} />
-      </details>
-    </div>
+    </>
   );
 }
 
@@ -415,7 +429,7 @@ function ContactsCell({ u }: { u: UserOut }) {
     return (
       <span>
         <span className="muted">{[u.email, u.phone].filter(Boolean).join(" · ") || "—"}</span>{" "}
-        <button type="button" className="link" onClick={() => setEditing(true)}>
+        <button type="button" className="secondary" onClick={() => setEditing(true)}>
           {t.editContacts}
         </button>
       </span>
@@ -436,7 +450,7 @@ function ContactsCell({ u }: { u: UserOut }) {
         <button type="button" onClick={() => save.mutate()} disabled={save.isPending}>
           {ko.ontology.save}
         </button>
-        <button type="button" className="link" onClick={() => setEditing(false)}>
+        <button type="button" className="secondary" onClick={() => setEditing(false)}>
           {ko.ontology.cancel}
         </button>
       </div>
@@ -445,15 +459,16 @@ function ContactsCell({ u }: { u: UserOut }) {
   );
 }
 
-function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
+function UserForm({ allRoles, onDone }: { allRoles: RoleOut[]; onDone: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<UserCreate>({ username: "", display_name: "", password: "", roles: ["user"], groups: [] });
   const groups = useQuery({ queryKey: ["admin", "groups"], queryFn: () => api.get<GroupOut[]>("/admin/groups") });
   const create = useMutation({
     mutationFn: (body: UserCreate) => api.post<UserOut>("/admin/users", body),
     onSuccess: () => {
-      setForm({ username: "", display_name: "", password: "", roles: ["user"], groups: [] });
       void qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast(ko.common.created);
+      onDone();
     },
   });
   const submit = (e: FormEvent) => {
@@ -463,7 +478,7 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
   const roles = form.roles ?? [];
   const picked = form.groups ?? [];
   return (
-    <form className="grid-form" onSubmit={submit}>
+    <form className="grid-form dialog-form" onSubmit={submit}>
       <label>
         {t.username}
         <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
@@ -487,6 +502,7 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
         />
       </label>
       <div className="row span-all">
+        <span className="field-title">{t.roles}:</span>
         {allRoles.map((r) => (
           <label key={r.id} className="check">
             <input
@@ -504,7 +520,7 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
         ))}
       </div>
       <div className="row span-all">
-        <span className="muted">{t.groupsCol}:</span>
+        <span className="field-title">{t.groupsCol}:</span>
         {(groups.data ?? []).map((g) => (
           <label key={g.id} className="check">
             <input
@@ -520,15 +536,15 @@ function UserForm({ allRoles }: { allRoles: RoleOut[] }) {
             {g.display_name}
           </label>
         ))}
-        <button type="submit" disabled={create.isPending}>
-          {ko.common.add}
-        </button>
       </div>
       {create.isError && (
         <div className="span-all">
           <ErrorBox error={create.error} />
         </div>
       )}
+      <div className="span-all">
+        <DialogActions onCancel={onDone} pending={create.isPending} submitLabel={ko.common.add} />
+      </div>
     </form>
   );
 }
@@ -572,8 +588,8 @@ function AuditPanel() {
   const rows = logs.data?.pages.flat() ?? [];
   const { rows: pagedRows, pager } = usePaged(rows, event);
   return (
-    <div className="stack">
-      <p className="muted">{t.auditNote}</p>
+    <>
+      <PageHeader id="admin-audit" title={t.sections.audit} intro={t.auditNote} />
       <AuditChainCheck />
       <label>
         {t.filterEvent}
@@ -610,7 +626,7 @@ function AuditPanel() {
         pager={pager}
         more={{ has: logs.hasNextPage, loading: logs.isFetchingNextPage, load: () => void logs.fetchNextPage() }}
       />
-    </div>
+    </>
   );
 }
 
@@ -625,9 +641,10 @@ function TracePanel() {
     if (Number.isInteger(n) && n > 0) setId(n);
   };
   return (
-    <div className="stack">
+    <>
+      <PageHeader id="admin-trace" title={t.sections.trace} intro={t.traceNote} />
       <p className="muted">
-        {t.traceNote} <Link to="/traces">{t.traceScreen}</Link>
+        <Link to="/traces">{t.traceScreen}</Link>
       </p>
       <form className="row" onSubmit={submit}>
         <label>
@@ -637,6 +654,6 @@ function TracePanel() {
         <button type="submit">{t.open}</button>
       </form>
       {id !== null && <TraceDetail key={id} id={id} />}
-    </div>
+    </>
   );
 }

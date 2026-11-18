@@ -93,7 +93,7 @@ export function ConflictsPanel() {
                 <td>{t.status[c.status]}</td>
                 <td>
                   {c.status === "open" && (
-                    <button type="button" className="link" onClick={() => acknowledge.mutate(c.id)}>
+                    <button type="button" className="secondary" onClick={() => acknowledge.mutate(c.id)}>
                       {t.acknowledge}
                     </button>
                   )}

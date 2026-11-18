@@ -63,7 +63,7 @@ export function FunctionsSection({ v, editable }: { v: VersionDetail; editable: 
       )}
       {del.isError && <ErrorBox error={del.error} />}
       {editable && editing !== "new" && (
-        <button type="button" className="link" onClick={() => setEditing("new")}>
+        <button type="button" className="secondary" onClick={() => setEditing("new")}>
           {t.addFunction}
         </button>
       )}
@@ -107,7 +107,7 @@ function FunctionSummary({
         <span className="spacer" />
         {editable && (
           <>
-            <button type="button" className="link" onClick={onEdit}>
+            <button type="button" className="secondary" onClick={onEdit}>
               {t.edit}
             </button>
             <button type="button" className="link danger" onClick={onDelete}>
@@ -176,7 +176,7 @@ export function FunctionForm({
         <button type="submit" disabled={pending}>
           {t.save}
         </button>
-        <button type="button" className="link" onClick={onCancel}>
+        <button type="button" className="secondary" onClick={onCancel}>
           {t.cancel}
         </button>
       </div>

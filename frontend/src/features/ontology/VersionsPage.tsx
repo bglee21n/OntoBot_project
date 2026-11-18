@@ -5,7 +5,7 @@ import { ko } from "../../i18n/ko";
 import { useCreateDraft, useVersions } from "./queries";
 import { Pager, usePaged } from "../../components/Pager";
 import { formatDateTime } from "../../app/format";
-import { EmptyState, PageHeader, RowMenu } from "../../components/page";
+import { EmptyState, PageHeader, RowMenu, useRowLink } from "../../components/page";
 
 export function VersionsPage() {
   const versions = useVersions();
@@ -16,6 +16,7 @@ export function VersionsPage() {
     create.mutate(parentId, { onSuccess: (v) => navigate(`/ontology/versions/${v.id}`) });
 
   const { rows: pagedRows, pager } = usePaged(versions.data);
+  const rowLink = useRowLink();
   return (
     <section className="stack">
       <PageHeader
@@ -45,7 +46,7 @@ export function VersionsPage() {
           </thead>
           <tbody>
             {pagedRows.map((v) => (
-              <tr key={v.id}>
+              <tr key={v.id} className="row-link" onClick={rowLink(`/ontology/versions/${v.id}`)}>
                 <td>{ko.ontology.version(v.version_no)}</td>
                 <td>
                   <span className={`badge ${v.status}`}>{ko.status[v.status]}</span>

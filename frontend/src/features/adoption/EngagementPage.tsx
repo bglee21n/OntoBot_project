@@ -10,7 +10,7 @@ import { engagementKey, useEngagement, useSheetKinds } from "./queries";
 import { PilotPanel } from "./PilotPanel";
 import { SendPanel } from "./SendPanel";
 import { formatDateTime } from "../../app/format";
-import { RowMenu } from "../../components/page";
+import { RowMenu, useRowLink } from "../../components/page";
 import { confirmDialog, toast } from "../../components/feedback";
 
 const t = ko.adoption;
@@ -78,14 +78,15 @@ export function EngagementPage() {
 
 function SheetLinks({ e, kinds }: { e: EngagementDetail; kinds: SheetKindOut[] }) {
   const revisions = new Map(e.sheets.map((s) => [s.kind, s]));
+  const rowLink = useRowLink();
   return (
     <table>
       <tbody>
         {kinds.map((k) => {
           const saved = revisions.get(k.kind);
           return (
-            <tr key={k.kind}>
-              <td style={{ width: "5em" }}>{k.number}</td>
+            <tr key={k.kind} className="row-link" onClick={rowLink(`/adoption/${e.id}/sheets/${k.kind}`)}>
+              <td className="num" style={{ width: "5em" }}>{k.number}</td>
               <td>
                 <Link to={`/adoption/${e.id}/sheets/${k.kind}`}>{k.title}</Link>
               </td>
@@ -117,7 +118,7 @@ function InfoForm({ e }: { e: EngagementDetail }) {
   if (!open) {
     return (
       <p>
-        <button type="button" className="link" onClick={() => setOpen(true)}>
+        <button type="button" className="secondary" onClick={() => setOpen(true)}>
           {t.editInfo}
         </button>
       </p>
@@ -134,7 +135,7 @@ function InfoForm({ e }: { e: EngagementDetail }) {
       <button type="submit" disabled={save.isPending || !name.trim()}>
         {ko.common.save}
       </button>
-      <button type="button" className="link" onClick={() => setOpen(false)}>
+      <button type="button" className="secondary" onClick={() => setOpen(false)}>
         {ko.common.cancel}
       </button>
       {save.isError && <ErrorBox error={save.error} />}
