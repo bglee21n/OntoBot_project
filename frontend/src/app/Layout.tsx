@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+
+import { ThemeToggle } from "../components/ThemeToggle";
 
 import { useNotifications } from "../features/actions/ActionsPage";
 import { useEngagements } from "../features/adoption/AdoptionPage";
@@ -14,11 +17,22 @@ export function Layout() {
   const canCreateEngagement = me.data?.roles.some((r) => r === "modeler" || r === "admin") ?? false;
   const engagements = useEngagements(Boolean(me.data) && !canCreateEngagement);
   const showAdoption = canCreateEngagement || (engagements.data?.length ?? 0) > 0;
+  // 좁은 화면(휴대폰)에서는 메뉴를 접는다. 메뉴 안을 누르면(링크 이동) 다시 접는다.
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="shell">
       <header className="topbar">
         <strong>{ko.appTitle}</strong>
-        <nav>
+        <button
+          type="button"
+          className="link menu-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="main-nav"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <span aria-hidden="true">☰</span> {ko.nav.menu}
+        </button>
+        <nav id="main-nav" className={menuOpen ? "collapsible open" : "collapsible"} onClick={() => setMenuOpen(false)}>
           <NavLink to="/chat">{ko.nav.chat}</NavLink>
           {me.data?.roles.some((r) => r === "domain_expert" || r === "modeler") && (
             <NavLink to="/workshop">{ko.nav.workshop}</NavLink>
@@ -40,10 +54,12 @@ export function Layout() {
         </nav>
         <span className="spacer" />
         {me.data && (
-          <span className="muted">
-            {me.data.display_name} · {me.data.roles.join(", ")}
+          <span className="muted user-name">
+            {me.data.display_name}
+            <span className="hide-narrow"> · {me.data.roles.join(", ")}</span>
           </span>
         )}
+        <ThemeToggle />
         <button type="button" className="link" onClick={() => logout.mutate()}>
           {ko.nav.logout}
         </button>

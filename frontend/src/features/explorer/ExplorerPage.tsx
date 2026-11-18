@@ -24,6 +24,8 @@ import { ko } from "../../i18n/ko";
 import { ObjectCardPanel } from "../chat/AnswerView";
 import { autoLayout } from "../ontology/graph/layout";
 import { addNeighbors, collapse, frontier, type GraphState, hiddenCount, keyOf, type ObjNode, start } from "./model";
+import { useTheme } from "../../app/theme";
+import { FullscreenButton, useGraphFullscreen } from "../../components/GraphFullscreen";
 
 const t = ko.explorer;
 
@@ -78,8 +80,10 @@ export function ExplorerPage() {
 }
 
 function Explorer() {
+  const colorMode = useTheme();
   const location = useLocation();
   const flow = useReactFlow();
+  const fs = useGraphFullscreen();
   const [q, setQ] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [graph, setGraph] = useState<GraphState | null>(null);
@@ -238,7 +242,7 @@ function Explorer() {
     <section className="stack">
       <h1>{t.title}</h1>
       <p className="muted">{t.intro}</p>
-      <div className="explorer">
+      <div className={fs.on ? "explorer graph-fullscreen" : "explorer"}>
         <aside className="stack explorer-search">
           <form className="row" onSubmit={submit}>
             <input aria-label={t.search} placeholder={t.searchHint} value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} />
@@ -298,6 +302,7 @@ function Explorer() {
             {!graph && <p className="schema-empty muted">{t.empty}</p>}
             <NodeActions.Provider value={actions}>
               <ReactFlow
+                colorMode={colorMode}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
@@ -310,6 +315,7 @@ function Explorer() {
               >
                 <Background />
                 <Controls showInteractive={false} />
+                <FullscreenButton fs={fs} />
               </ReactFlow>
             </NodeActions.Provider>
           </div>

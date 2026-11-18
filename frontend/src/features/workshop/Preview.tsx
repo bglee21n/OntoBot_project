@@ -7,6 +7,8 @@ import type { ElementOut } from "../../api/types";
 import { ko } from "../../i18n/ko";
 import { autoLayout, type Point } from "../ontology/graph/layout";
 import { buildPreview, type PreviewAction, type PreviewType } from "./previewModel";
+import { useTheme } from "../../app/theme";
+import { FullscreenButton, useGraphFullscreen } from "../../components/GraphFullscreen";
 
 const t = ko.workshop.preview;
 type Tab = "review" | "graph" | "actions";
@@ -52,6 +54,8 @@ export function WorkshopPreview({ elements, review }: { elements: ElementOut[]; 
 const pending = (status: string) => status === "proposed";
 
 function ElementGraph({ types, links }: { types: PreviewType[]; links: ReturnType<typeof buildPreview>["links"] }) {
+  const colorMode = useTheme();
+  const fs = useGraphFullscreen();
   const [pos, setPos] = useState<Map<string, Point>>(new Map());
   const key = useMemo(() => JSON.stringify([types.map((x) => x.name), links.map((l) => [l.from, l.to])]), [types, links]);
   useEffect(() => {
@@ -99,8 +103,9 @@ function ElementGraph({ types, links }: { types: PreviewType[]; links: ReturnTyp
     style: pending(l.status) ? { strokeDasharray: "4 3" } : undefined,
   }));
   return (
-    <div className="ws-graph">
+    <div className={fs.on ? "ws-graph graph-fullscreen" : "ws-graph"}>
       <ReactFlow
+        colorMode={colorMode}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -109,6 +114,7 @@ function ElementGraph({ types, links }: { types: PreviewType[]; links: ReturnTyp
         proOptions={{ hideAttribution: true }}
       >
         <Background />
+        <FullscreenButton fs={fs} />
       </ReactFlow>
       <p className="muted">{t.graphHint}</p>
     </div>

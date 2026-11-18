@@ -14,6 +14,18 @@ export const ko = {
     actions: "Action",
     admin: "관리",
     logout: "로그아웃",
+    menu: "메뉴",
+  },
+  graphView: {
+    fullscreen: "전체 화면",
+    exitFullscreen: "전체 화면 닫기",
+  },
+  theme: {
+    label: "화면 테마",
+    change: "눌러서 바꾸기",
+    system: "시스템",
+    light: "밝게",
+    dark: "어둡게",
   },
   admin: {
     title: "관리",

@@ -34,6 +34,8 @@ import {
 } from "./model";
 import { TypeBehaviors } from "./TypeBehaviors";
 import { NodeActions, type TypeNode, TypeNodeView } from "./TypeNode";
+import { useTheme } from "../../../app/theme";
+import { FullscreenButton, useGraphFullscreen } from "../../../components/GraphFullscreen";
 
 type Selection =
   | { kind: "type"; name: string }
@@ -60,7 +62,9 @@ export function SchemaGraph(props: { v: VersionDetail; editable: boolean; canSav
 }
 
 function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editable: boolean; canSaveLayout: boolean }) {
+  const colorMode = useTheme();
   const flow = useReactFlow();
+  const fs = useGraphFullscreen();
   const versions = useVersions();
   const [base, setBase] = useState<number | null>(v.parent_id ?? null);
   const baseDetail = useVersion(base ?? 0, base !== null);
@@ -174,7 +178,7 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
             ? "var(--warn)"
             : l.ghost || l.deprecated
               ? "var(--muted)"
-              : "#52606d";
+              : "var(--edge)";
       const dash = l.ghost || l.deprecated ? "2 4" : l.sourceKind === "join_mapping" ? "6 3" : undefined;
       return {
         id: l.name,
@@ -315,10 +319,11 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
         {diff.isError && <ErrorBox error={diff.error} />}
         {saveLayout.isError && <ErrorBox error={saveLayout.error} />}
 
-        <div className="schema-body">
+        <div className={fs.on ? "schema-body graph-fullscreen" : "schema-body"}>
           <div className="schema-canvas">
             {elements.types.length === 0 && <p className="schema-empty muted">{ko.ontology.graph.empty}</p>}
             <ReactFlow<TypeNode, Edge<LinkEdgeData>>
+              colorMode={colorMode}
               nodes={nodes}
               edges={edges}
               nodeTypes={NODE_TYPES}
@@ -349,6 +354,7 @@ function GraphCanvas({ v, editable, canSaveLayout }: { v: VersionDetail; editabl
               <Background />
               <Controls showInteractive={false} />
               <MiniMap pannable zoomable />
+              <FullscreenButton fs={fs} />
             </ReactFlow>
           </div>
 
